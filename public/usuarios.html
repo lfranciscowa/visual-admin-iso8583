@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Admin — Gestión de Perfiles</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --blue-main: #2563eb;
+            --text-dark: #1e1b4b;
+            --border: #e2e8f0;
+            --bg: #f8f7ff;
+        }
+
+        body { 
+            font-family: 'Sora', sans-serif; 
+            background: var(--bg); 
+            padding: 40px; margin: 0;
+            display: flex; flex-direction: column; align-items: flex-end;
+        }
+
+        .container-usuarios { max-width: 1000px; width: 100%; }
+
+        /* Estilo de Tarjetas */
+        .user-card {
+            background: white; border-radius: 12px; padding: 20px;
+            display: flex; align-items: center; border: 1px solid #edf2f7;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: relative;
+            transition: 0.3s;
+        }
+
+        /* Estilo para usuarios desactivados */
+        .card-disabled { opacity: 0.6; filter: grayscale(0.8); background: #f1f5f9; }
+
+        .btn-blue {
+            background: var(--blue-main); color: white; border: none;
+            padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;
+        }
+
+        /* Área de acciones (Botones a la derecha) */
+        .actions-area {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-left: 15px;
+        }
+
+        .btn-action {
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 6px;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        .btn-delete:hover { background: #fee2e2; border-color: #ef4444; }
+
+        /* Nodos Tags */
+        .nodo-tag {
+            background: #eff6ff; color: #2563eb; font-size: 10px; 
+            padding: 2px 8px; border-radius: 4px; font-weight: 600;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px);
+            z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: white; width: 90%; max-width: 500px;
+            border-radius: 16px; padding: 25px; box-shadow: 0 20px 25px rgba(0,0,0,0.1);
+        }
+        .nodos-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 10px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #f1f5f9;
+        }
+        input, select {
+            width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px;
+            border: 1px solid var(--border); border-radius: 8px; outline: none;
+        }
+        label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <div class="container-usuarios">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <div>
+                <h2 style="margin:0">Gestión de Perfiles</h2>
+                <p style="font-size: 13px; color: #64748b; margin: 5px 0 0 0;">Usuarios con acceso al sistema operativo</p>
+            </div>
+            <button onclick="abrirModal()" class="btn-blue">+ Nuevo Perfil</button>
+        </div>
+
+        <div id="usuariosContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
+        </div>
+    </div>
+
+    <div id="modalPerfil" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin-top:0">👤 Nuevo Perfil de Usuario</h3>
+            <form id="perfilFormModal">
+                <label>Nombre Completo</label>
+                <input type="text" id="mNombre" placeholder="Ej: Juan Pérez" required>
+
+                <label>Usuario (Login)</label>
+                <input type="text" id="mUser" placeholder="JPEREZ" required>
+
+                <label>Rol</label>
+                <select id="mRol">
+                    <option value="Administrador">Administrador</option>
+                    <option value="Operador">Operador</option>
+                    <option value="Soporte">Soporte</option>
+                </select>
+
+                <label>Nodos Permitidos</label>
+                <div class="nodos-grid" id="mNodos">
+                    <label style="font-size: 10px;"><input type="checkbox" value="0401"> 0401</label>
+                    <label style="font-size: 10px;"><input type="checkbox" value="0402"> 0402</label>
+                    <label style="font-size: 10px;"><input type="checkbox" value="0403"> 0403</label>
+                    <label style="font-size: 10px;"><input type="checkbox" value="0404"> 0404</label>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button type="button" onclick="cerrarModal()" style="background:none; border:none; cursor:pointer; color:#64748b">Cancelar</button>
+                    <button type="submit" class="btn-blue">💾 Guardar Perfil</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+    // Agregamos la propiedad 'activo' a la lista inicial
+    let listaUsuarios = [
+        { nombre: "Carlos Ramírez", user: "CRAMIREZ", rol: "Administrador", nodos: ["0401", "0402"], activo: true },
+        { nombre: "María González", user: "MGONZALEZ", rol: "Operador", nodos: ["0402"], activo: true }
+    ];
+
+    function abrirModal() { 
+        document.getElementById('perfilFormModal').reset();
+        document.getElementById('modalPerfil').style.display = 'flex'; 
+    }
+    
+    function cerrarModal() { document.getElementById('modalPerfil').style.display = 'none'; }
+
+    function renderUsuarios() {
+        const container = document.getElementById('usuariosContainer');
+        container.innerHTML = '';
+
+        listaUsuarios.forEach((u, index) => {
+            const iniciales = u.nombre.substring(0, 2).toUpperCase();
+            const nodosHTML = u.nodos.map(n => `<span class="nodo-tag">${n}</span>`).join(' ');
+
+            container.innerHTML += `
+                <div class="user-card ${u.activo ? '' : 'card-disabled'}">
+                    <div style="width: 45px; height: 45px; background: #2563eb; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin-right: 15px; flex-shrink: 0;">${iniciales}</div>
+                    
+                    <div style="flex-grow: 1;">
+                        <h4 style="margin: 0; font-size: 14px;">${u.nombre}</h4>
+                        <p style="margin: 0; font-size: 11px; color: #64748b;">${u.user} • ${u.rol}</p>
+                        <div style="margin-top: 8px; display: flex; gap: 5px; flex-wrap: wrap;">${nodosHTML}</div>
+                    </div>
+
+                    <div class="actions-area">
+                        <button onclick="toggleEstado(${index})" class="btn-action" title="${u.activo ? 'Desactivar' : 'Activar'}">
+                            ${u.activo ? '🟢' : '⚪'}
+                        </button>
+                        <button onclick="confirmarEliminar(${index})" class="btn-action btn-delete" title="Eliminar">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // Guardar nuevo perfil
+    document.getElementById('perfilFormModal').onsubmit = function(e) {
+        e.preventDefault();
+        const checkboxes = document.querySelectorAll('#mNodos input:checked');
+        const nodosSeleccionados = Array.from(checkboxes).map(cb => cb.value);
+
+        const nuevoUsuario = {
+            nombre: document.getElementById('mNombre').value,
+            user: document.getElementById('mUser').value,
+            rol: document.getElementById('mRol').value,
+            nodos: nodosSeleccionados,
+            activo: true // Por defecto nacen activos
+        };
+
+        listaUsuarios.push(nuevoUsuario);
+        renderUsuarios();
+        cerrarModal();
+        Swal.fire('¡Creado!', 'El perfil se ha añadido correctamente.', 'success');
+    };
+
+    // Función para Activar/Desactivar
+    function toggleEstado(index) {
+        listaUsuarios[index].activo = !listaUsuarios[index].activo;
+        renderUsuarios();
+        
+        const estadoTxt = listaUsuarios[index].activo ? 'activado' : 'desactivado';
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: `Usuario ${estadoTxt}`,
+            showConfirmButton: false,
+            timer: 1500
+        });
+    }
+
+    // Función para Eliminar con confirmación de SweetAlert
+    async function confirmarEliminar(index) {
+        const result = await Swal.fire({
+            title: '¿Estás seguro?',
+            text: `Vas a eliminar el perfil de ${listaUsuarios[index].nombre}`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
+            listaUsuarios.splice(index, 1);
+            renderUsuarios();
+            Swal.fire('Eliminado', 'El perfil ha sido removido.', 'success');
+        }
+    }
+// Dentro del script de usuarios.html
+async function cargarUsuarios() {
+    try {
+        // Pedimos a la API los usuarios (incluyendo el que acabas de crear en perfiles)
+        const res = await fetch('/api/usuarios');
+        const usuarios = await res.json();
+        
+        const container = document.getElementById('usuariosContainer');
+        container.innerHTML = ''; 
+
+        usuarios.forEach((u, index) => {
+            const esActivo = u.estado === 'ACTIVO';
+            const iniciales = u.username ? u.username.substring(0, 2).toUpperCase() : '??';
+            
+            // Generamos los tags de nodos que vienen de la base de datos
+            const nodosHTML = u.nodos ? u.nodos.map(n => `<span class="nodo-tag">${n}</span>`).join('') : '';
+
+            const cardHTML = `
+                <div class="user-card ${esActivo ? '' : 'card-disabled'}">
+                    <div style="width: 45px; height: 45px; background: #2563eb; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin-right: 15px; flex-shrink: 0;">
+                        ${iniciales}
+                    </div>
+                    <div style="flex-grow: 1;">
+                        <h4 style="margin: 0; font-size: 14px;">${u.username}</h4>
+                        <p style="margin: 0; font-size: 11px; color: #64748b;">${u.rol}</p>
+                        <div style="margin-top: 8px; display: flex; gap: 5px; flex-wrap: wrap;">
+                            ${nodosHTML}
+                        </div>
+                    </div>
+                    <div class="actions-area">
+                        <button onclick="toggleEstado('${u.username}', '${u.estado}')" class="btn-action">
+                            ${esActivo ? '🟢' : '⚪'}
+                        </button>
+                        <button onclick="confirmarEliminar('${u.username}')" class="btn-action btn-delete">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', cardHTML);
+        });
+    } catch (error) {
+        console.log("Esperando conexión con la base de datos...");
+    }
+}
+    window.onload = renderUsuarios;
+</script>
+
+</body>
+</html>

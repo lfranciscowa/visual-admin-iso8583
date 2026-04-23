@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Admin — Acceso</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --lila:       #8b5cf6;
+            --lila-light: #a78bfa;
+            --lila-pale:  #ede9fe;
+            --lila-faint: #f5f3ff;
+            --cyan:       #06b6d4;
+            --white:      #ffffff;
+            --text-dark:  #1e1b4b;
+            --text-mid:   #4c4472;
+            --text-gray:  #7c7aaa;
+            --border:     #ddd6fe;
+            --error:      #dc2626;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Sora', sans-serif;
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            background: #f0ebff;
+            background-image:
+                radial-gradient(ellipse 70% 60% at 15% 20%, #ddd6fe 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 85% 85%, #c7d2fe 0%, transparent 60%);
+            overflow: hidden;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .shake { animation: shake 0.4s ease-in-out; }
+        .card {
+            position: relative; z-index: 1;
+            display: flex; width: 100%; max-width: 860px; min-height: 500px;
+            border-radius: 28px; overflow: hidden;
+            box-shadow: 0 0 0 1px rgba(139,92,246,.18), 0 32px 64px -12px rgba(109,40,217,.25);
+            animation: cardIn .55s cubic-bezier(.34,1.2,.64,1) both;
+        }
+        @keyframes cardIn {
+            from { opacity:0; transform: translateY(28px) scale(.97); }
+            to   { opacity:1; transform: none; }
+        }
+        .left {
+            flex: 1;
+            background: linear-gradient(145deg, #6d28d9 0%, #8b5cf6 50%, #a78bfa 100%);
+            padding: 3.5rem;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 2.5rem; }
+        .brand-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.6); }
+        .brand-name { font-size: 14px; font-weight: 700; color: rgba(255,255,255,.7); letter-spacing: 1.5px; text-transform: uppercase; }
+        .left h1 { font-size: 42px; font-weight: 800; color: #fff; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 16px; }
+        .left h1 em { font-style: normal; color: #c4b5fd; }
+        .left p { font-size: 14px; color: rgba(255,255,255,.72); line-height: 1.7; max-width: 280px; }
+        .right {
+            width: 400px; background: var(--white); padding: 3.5rem 3rem;
+            display: flex; flex-direction: column; justify-content: center; position: relative;
+        }
+        .right::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--lila), var(--cyan)); }
+        .right-header { margin-bottom: 2rem; }
+        .right-header h2 { font-size: 30px; font-weight: 800; color: var(--text-dark); letter-spacing: -.8px; margin-bottom: 6px; }
+        .right-header p { font-size: 13px; color: var(--text-gray); }
+        .input-group { margin-bottom: 1.2rem; }
+        .input-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-mid); margin-bottom: 7px; }
+        .input-wrap { position: relative; }
+        .input-wrap .icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #c4b5fd; pointer-events: none; }
+        input {
+            width: 100%; padding: 13px 14px 13px 40px; border: 1.5px solid var(--border); border-radius: 12px;
+            font-family: 'Sora', sans-serif; font-size: 14px; color: var(--text-dark);
+            background: var(--lila-faint); outline: none; transition: all .2s ease;
+        }
+        input:focus { border-color: var(--lila); background: #fff; box-shadow: 0 0 0 4px rgba(139,92,246,.1); }
+        .eye-btn { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #c4b5fd; cursor: pointer; font-size: 16px; padding: 3px; }
+        .btn-login {
+            width: 100%; padding: 15px;
+            background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 60%, var(--lila-light) 100%);
+            color: #fff; border: none; border-radius: 13px; font-family: 'Sora', sans-serif;
+            font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 1.4rem;
+            transition: all .25s ease; box-shadow: 0 8px 20px rgba(109,40,217,.3);
+        }
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(109,40,217,.35); }
+        .btn-login:active { transform: scale(.98); }
+        .btn-login:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+        #msg { min-height: 20px; margin-top: 14px; text-align: center; font-size: 13px; font-weight: 600; color: var(--error); display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .right-footer { margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid var(--lila-pale); }
+        .security-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-gray); }
+        .security-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; }
+        @media (max-width: 800px) {
+            .left { display: none; }
+            .card { max-width: 420px; }
+            .right { width: 100%; padding: 2.5rem 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card" id="loginCard">
+    <div class="left">
+        <div class="left-top">
+            <div class="brand">
+                <div class="brand-dot"></div>
+                <div class="brand-name">Visual Admin</div>
+            </div>
+            <h1>Bienvenido al<br><em>sistema</em></h1>
+            <p>Infraestructura de datos y monitoreo de servicios bancarios de misión crítica.</p>
+        </div>
+    </div>
+
+    <div class="right">
+        <div class="right-header">
+            <h2>Iniciar sesión</h2>
+            <p>Ingresa tus credenciales para continuar</p>
+        </div>
+
+        <form id="loginForm" onsubmit="event.preventDefault(); login();" autocomplete="off">
+            <div class="input-group">
+                <label for="user">Usuario</label>
+                <div class="input-wrap">
+                    <span class="icon">👤</span>
+                    <input type="text" id="user" placeholder="ej: luis.rodriguez" required autocomplete="one-time-code">
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="pass">Contraseña</label>
+                <div class="input-wrap">
+                    <span class="icon">🔑</span>
+                    <input type="password" id="pass" placeholder="••••••••" required autocomplete="new-password">
+                    <button class="eye-btn" onclick="togglePass()" id="eyeBtn" type="button">👁️</button>
+                </div>
+            </div>
+            <button type="submit" class="btn-login" id="btnEntrar">
+                <span id="btn-text">Entrar al sistema</span>
+            </button>
+        </form>
+
+        <div id="msg"></div>
+
+        <div class="right-footer">
+            <div class="security-badge">
+                <div class="security-dot"></div>
+                Conexión cifrada · Visual Admin v2.0
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // LIMPIEZA DE SESIÓN Y CAMPOS AL CARGAR
+    // ============================================================
+    localStorage.removeItem('rol_actual');
+    localStorage.removeItem('usuario_actual');
+    localStorage.removeItem('username');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('session');
+
+    // Mejora 4: Forzar limpieza de inputs al cargar la página físicamente
+    window.onload = () => {
+        document.getElementById('user').value = "";
+        document.getElementById('pass').value = "";
+    };
+
+    const ROLES_ADMIN = ['ADMIN', 'Administrador'];
+
+    function togglePass() {
+        const inp = document.getElementById('pass');
+        const btn = document.getElementById('eyeBtn');
+        inp.type === 'password'
+            ? (inp.type = 'text',     btn.textContent = '🙈')
+            : (inp.type = 'password', btn.textContent = '👁️');
+    }
+
+    async function login() {
+        const user = document.getElementById('user').value.trim();
+        const pass = document.getElementById('pass').value;
+        const msg  = document.getElementById('msg');
+        const btn  = document.getElementById('btnEntrar');
+        const txt  = document.getElementById('btn-text');
+        const card = document.getElementById('loginCard');
+
+        msg.innerHTML   = '';
+        btn.disabled    = true;
+        txt.textContent = 'Validando...';
+
+        try {
+            const res  = await fetch('/api/login', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ user, pass })
+            });
+            const data = await res.json();
+
+            if (data.ok) {
+                localStorage.setItem('username',   data.user.username);
+                localStorage.setItem('rol_actual', data.user.rol);
+                if (data.user.token) localStorage.setItem('token', data.user.token);
+
+                txt.textContent = '✓ Acceso concedido';
+
+                setTimeout(() => {
+                    if (data.user.requiere_cambio === 1) {
+                        window.location.href = '/cambiar-clave.html';
+                        return;
+                    }
+                    if (ROLES_ADMIN.includes(data.user.rol)) {
+                        window.location.href = '/perfil.html';
+                    } else {
+                        window.location.href = '/dashboard.html';
+                    }
+                }, 600);
+
+            } else {
+                throw new Error(data.msg || 'Credenciales incorrectas');
+            }
+
+        } catch (err) {
+            msg.innerHTML   = '❌ ' + err.message;
+            txt.textContent = 'Entrar al sistema';
+            btn.disabled    = false;
+
+            // Mejora 5: Limpiar campo de clave inmediatamente tras el error
+            document.getElementById('pass').value = "";
+
+            card.classList.add('shake');
+            document.getElementById('pass').style.borderColor = 'var(--error)';
+            setTimeout(() => {
+                card.classList.remove('shake');
+                document.getElementById('pass').style.borderColor = '';
+            }, 500);
+        }
+    }
+</script>
+</body>
+</html>

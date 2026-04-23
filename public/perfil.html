@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Admin — Gestión de Perfiles</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --blue-main: #2563eb;
+            --blue-pale: #eff6ff;
+            --text-dark: #1e1b4b;
+            --border:    #e2e8f0;
+            --bg:        #f8f7ff;
+            --green:     #059669;
+            --red:       #ef4444;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Sora', sans-serif;
+            background: var(--bg);
+            color: var(--text-dark);
+            padding: 40px; margin: 0; min-height: 100vh;
+        }
+
+        /* ---- Header ---- */
+        .page-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 24px; max-width: 1100px; margin-left: auto; margin-right: auto;
+            flex-wrap: wrap; gap: 16px;
+        }
+        .page-header h2 { font-size: 22px; color: #1e293b; margin: 0; }
+        .page-header p  { font-size: 12px; color: #94a3b8; margin: 4px 0 0 0; }
+        .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+        /* ---- Stats ---- */
+        .stats-bar { max-width: 1100px; margin: 0 auto 20px auto; display: flex; gap: 12px; flex-wrap: wrap; }
+        .stat-chip {
+            background: white; border: 1px solid var(--border); border-radius: 10px;
+            padding: 10px 16px; display: flex; align-items: center; gap: 8px;
+            font-size: 13px; font-weight: 600; color: #475569;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .stat-chip .num { font-size: 18px; font-weight: 700; }
+        .stat-chip.total    .num { color: #2563eb; }
+        .stat-chip.activos  .num { color: #059669; }
+        .stat-chip.inactivos .num { color: #94a3b8; }
+
+        /* ---- Search ---- */
+        .search-bar { max-width: 1100px; margin: 0 auto 20px auto; display: flex; gap: 10px; align-items: center; }
+        .search-wrap { flex-grow: 1; position: relative; }
+        .search-wrap input {
+            width: 100%; padding: 10px 14px 10px 38px; border: 1px solid var(--border); border-radius: 10px;
+            font-family: 'Sora', sans-serif; font-size: 14px; background: white; outline: none;
+            transition: border-color .2s; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .search-wrap input:focus { border-color: var(--blue-main); }
+        .search-wrap .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 15px; pointer-events: none; }
+        .filter-select {
+            padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+            font-family: 'Sora', sans-serif; font-size: 13px; background: white;
+            outline: none; cursor: pointer; color: #475569; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+
+        /* ---- Buttons ---- */
+        .btn-blue {
+            background: var(--blue-main); color: white; border: none;
+            padding: 10px 20px; border-radius: 8px; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; gap: 8px;
+            font-family: 'Sora', sans-serif; font-size: 14px; transition: .2s;
+        }
+        .btn-blue:hover { background: #1d4ed8; }
+        .btn-ghost {
+            background: white; color: #64748b; border: 1px solid var(--border);
+            padding: 10px 16px; border-radius: 8px; font-weight: 600;
+            cursor: pointer; font-family: 'Sora', sans-serif; font-size: 14px; transition: .2s;
+        }
+        .btn-ghost:hover { border-color: #94a3b8; }
+        .btn-logout {
+            background: white; color: #ef4444; border: 1px solid #fecaca;
+            padding: 10px 16px; border-radius: 8px; font-weight: 600;
+            cursor: pointer; font-family: 'Sora', sans-serif; font-size: 14px;
+            transition: .2s; display: flex; align-items: center; gap: 6px;
+        }
+        .btn-logout:hover { background: #fff1f2; border-color: #fca5a5; }
+
+        /* ---- Admin badge ---- */
+        .admin-badge {
+            display: flex; align-items: center; gap: 8px; background: white;
+            border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px;
+            font-size: 12px; color: #475569;
+        }
+        .admin-dot {
+            width: 8px; height: 8px; background: #059669; border-radius: 50%; flex-shrink: 0;
+            box-shadow: 0 0 0 2px #dcfce7; animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+
+        /* ---- Cards grid ---- */
+        #usuariosContainer {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px; max-width: 1100px; margin: 0 auto;
+        }
+        .user-card {
+            background: white; border-radius: 14px; padding: 20px;
+            border: 1px solid #edf2f7; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex; align-items: flex-start; gap: 14px;
+            transition: box-shadow .2s, transform .2s;
+        }
+        .user-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-2px); }
+        .card-disabled { opacity: 0.55; filter: grayscale(0.7); }
+        .avatar {
+            width: 46px; height: 46px; background: var(--blue-main); color: white;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 15px; flex-shrink: 0;
+        }
+        .card-body { flex-grow: 1; min-width: 0; }
+        .card-username { font-size: 14px; font-weight: 700; color: #1e293b; margin: 0 0 2px 0; }
+        .card-rol      { font-size: 12px; color: #64748b; margin: 0 0 10px 0; }
+        .card-email    { font-size: 11px; color: #94a3b8; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .nodo-tag {
+            background: var(--blue-pale); color: var(--blue-main); font-size: 10px;
+            padding: 2px 8px; border-radius: 4px; font-weight: 600;
+            margin-right: 4px; margin-bottom: 4px; display: inline-block;
+        }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 10px; font-weight: 700; padding: 3px 8px;
+            border-radius: 100px; margin-top: 8px;
+        }
+        .status-badge.active   { background: #dcfce7; color: #15803d; }
+        .status-badge.inactive { background: #f1f5f9; color: #94a3b8; }
+
+        /* ---- Card actions ---- */
+        .card-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+        .btn-icon {
+            width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border);
+            background: white; cursor: pointer; display: flex; align-items: center;
+            justify-content: center; font-size: 14px; transition: .2s;
+        }
+        .btn-icon.toggle-btn:hover { background: #dcfce7; border-color: #86efac; }
+        .btn-icon.delete-btn:hover { background: #fee2e2; border-color: #fca5a5; }
+        .btn-icon.email-btn:hover  { background: #eff6ff; border-color: #93c5fd; }
+
+        /* ---- Empty state ---- */
+        .empty-state { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-state p { font-size: 14px; }
+
+        /* ---- Modal ---- */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(30,27,75,0.4); backdrop-filter: blur(4px);
+            z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: white; width: 95%; max-width: 520px; border-radius: 18px; padding: 32px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+            animation: modalIn .3s cubic-bezier(.34,1.2,.64,1);
+        }
+        @keyframes modalIn {
+            from { opacity:0; transform: scale(.95) translateY(10px); }
+            to   { opacity:1; transform: none; }
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .modal-header h3 { font-size: 18px; margin: 0; color: #1e293b; }
+        .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #94a3b8; line-height: 1; }
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; color: #64748b; }
+        .input-group input, .input-group select {
+            width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+            font-family: 'Sora', sans-serif; font-size: 14px; outline: none; transition: border-color .2s;
+        }
+        .input-group input:focus, .input-group select:focus { border-color: var(--blue-main); }
+        .nodos-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+            background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #f1f5f9;
+        }
+        .check-item { font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #475569; }
+        .temp-pass-display {
+            background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px;
+            padding: 10px 14px; margin-top: 10px; display: flex; align-items: center; gap: 10px;
+        }
+        .temp-pass-display code { font-family: 'Courier New', monospace; font-size: 15px; font-weight: 700; color: #15803d; letter-spacing: 1px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+        .btn-cancel { background: white; border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px; cursor: pointer; font-family: 'Sora', sans-serif; }
+
+        /* ---- Toast ---- */
+        .toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: #1e293b; color: white; padding: 12px 20px; border-radius: 10px;
+            font-size: 13px; font-weight: 600; opacity: 0; transition: opacity .3s;
+            pointer-events: none; z-index: 9999;
+        }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+
+<!-- ✅ GUARD DE SESIÓN: se ejecuta antes de renderizar nada -->
+<script>
+    const rolActual = localStorage.getItem('rol_actual');
+    const ROLES_ADMIN = ['ADMIN', 'Administrador'];
+    if (!rolActual || !ROLES_ADMIN.includes(rolActual)) {
+        window.location.href = '/login.html';
+    }
+</script>
+
+<!-- Header -->
+<div class="page-header">
+    <div>
+        <h2>👥 Gestión de Perfiles</h2>
+        <p>Usuarios con acceso al sistema operativo · <span id="totalCount">...</span> registros</p>
+    </div>
+    <div class="header-actions">
+        <div class="admin-badge">
+            <div class="admin-dot"></div>
+            <span id="adminNombre">Admin</span>
+        </div>
+        <button class="btn-ghost" onclick="irDashboard()">← Dashboard</button>
+        <button class="btn-blue"  onclick="abrirModal()">+ Nuevo Perfil</button>
+        <button class="btn-logout" onclick="cerrarSesion()">🚪 Cerrar sesión</button>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-bar">
+    <div class="stat-chip total">
+        <span>👥</span><span class="num" id="statTotal">0</span><span>Total</span>
+    </div>
+    <div class="stat-chip activos">
+        <span>🟢</span><span class="num" id="statActivos">0</span><span>Activos</span>
+    </div>
+    <div class="stat-chip inactivos">
+        <span>⚪</span><span class="num" id="statInactivos">0</span><span>Inactivos</span>
+    </div>
+</div>
+
+<!-- Búsqueda -->
+<div class="search-bar">
+    <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Buscar por nombre, usuario o email..." oninput="filtrarUsuarios()">
+    </div>
+    <select class="filter-select" id="filterRol" onchange="filtrarUsuarios()">
+        <option value="">Todos los roles</option>
+        <option value="Administrador">Administrador</option>
+        <option value="Operador">Operador</option>
+        <option value="Auditor">Auditor</option>
+        <option value="Soporte">Soporte</option>
+    </select>
+    <select class="filter-select" id="filterEstado" onchange="filtrarUsuarios()">
+        <option value="">Todos los estados</option>
+        <option value="ACTIVO">Activos</option>
+        <option value="INACTIVO">Inactivos</option>
+    </select>
+</div>
+
+<!-- Grid -->
+<div id="usuariosContainer">
+    <div class="empty-state"><div class="icon">⏳</div><p>Cargando usuarios...</p></div>
+</div>
+<div id="noResults" style="display:none;text-align:center;padding:50px;color:#94a3b8;max-width:1100px;margin:0 auto;">
+    <div style="font-size:40px;margin-bottom:10px;">🔍</div>
+    <p style="font-size:14px;">No se encontraron usuarios con ese criterio.</p>
+</div>
+
+<!-- Modal crear usuario -->
+<div id="modalPerfil" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>👤 Nuevo Perfil de Usuario</h3>
+            <button class="modal-close" onclick="cerrarModal()">&times;</button>
+        </div>
+        <form id="perfilFormModal">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div class="input-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="mNombre" placeholder="Ej: Juan Pérez" required>
+                </div>
+                <div class="input-group">
+                    <label>Usuario (Login)</label>
+                    <input type="text" id="mUser" placeholder="JPEREZ" required>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div class="input-group">
+                    <label>Rol del Sistema</label>
+                    <select id="mRol">
+                        <option value="Administrador">Administrador</option>
+                        <option value="Operador" selected>Operador</option>
+                        <option value="Auditor">Auditor</option>
+                        <option value="Soporte">Soporte</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Correo Electrónico</label>
+                    <input type="email" id="mEmail" placeholder="usuario@empresa.com" required>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Nodos Permitidos</label>
+                <div class="nodos-grid" id="mNodos">
+                    <label class="check-item"><input type="checkbox" value="0401"> 0401</label>
+                    <label class="check-item"><input type="checkbox" value="0402"> 0402</label>
+                    <label class="check-item"><input type="checkbox" value="0403"> 0403</label>
+                    <label class="check-item"><input type="checkbox" value="0404"> 0404</label>
+                    <label class="check-item"><input type="checkbox" value="0405"> 0405</label>
+                    <label class="check-item"><input type="checkbox" value="0408"> 0408</label>
+                    <label class="check-item"><input type="checkbox" value="0410"> 0410</label>
+                    <label class="check-item"><input type="checkbox" value="0412"> 0412</label>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Clave Temporal (generada automáticamente)</label>
+                <div class="temp-pass-display">
+                    <span>🔑</span>
+                    <code id="tempPassDisplay">—</code>
+                    <button type="button" onclick="regenerarClave()" style="margin-left:auto;font-size:12px;background:none;border:1px solid #86efac;color:#15803d;padding:4px 10px;border-radius:6px;cursor:pointer;">↻ Nueva</button>
+                </div>
+                <p style="font-size:11px;color:#64748b;margin-top:6px;">Se enviará al correo del usuario. Deberá cambiarla en su primer ingreso.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+                <button type="submit" class="btn-blue">💾 Crear y Enviar Clave</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    let tempPassword      = '';
+    let todosLosUsuarios  = [];
+
+    // ✅ Nombre del admin logueado — misma key que guarda login.html
+    document.getElementById('adminNombre').textContent =
+        localStorage.getItem('username') || 'Admin';
+
+    // ============================================================
+    // CERRAR SESIÓN
+    // ============================================================
+    async function cerrarSesion() {
+        const { isConfirmed } = await Swal.fire({
+            title: '¿Cerrar sesión?',
+            text:  'Tu sesión activa será terminada.',
+            icon:  'question',
+            showCancelButton:   true,
+            confirmButtonColor: '#ef4444',
+            confirmButtonText:  '🚪 Sí, cerrar sesión',
+            cancelButtonText:   'Cancelar'
+        });
+        if (!isConfirmed) return;
+
+        // Limpiar todas las keys de sesión
+        ['rol_actual','usuario_actual','username','token','user','session']
+            .forEach(k => localStorage.removeItem(k));
+
+        showToast('👋 Sesión cerrada correctamente');
+        setTimeout(() => { window.location.href = '/login.html'; }, 1000);
+    }
+
+    // ============================================================
+    // UTILS
+    // ============================================================
+    function generarClave() {
+        const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';
+        return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    }
+    function regenerarClave() {
+        tempPassword = generarClave();
+        document.getElementById('tempPassDisplay').textContent = tempPassword;
+    }
+    function abrirModal() {
+        document.getElementById('perfilFormModal').reset();
+        regenerarClave();
+        document.getElementById('modalPerfil').style.display = 'flex';
+    }
+    function cerrarModal()   { document.getElementById('modalPerfil').style.display = 'none'; }
+    function irDashboard()   { window.location.href = '/dashboard.html'; }
+    function showToast(msg, duration = 2500) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), duration);
+    }
+
+    // ============================================================
+    // STATS
+    // ============================================================
+    function actualizarStats(usuarios) {
+        const total   = usuarios.length;
+        const activos = usuarios.filter(u => u.estado === 'ACTIVO').length;
+        document.getElementById('statTotal').textContent    = total;
+        document.getElementById('statActivos').textContent  = activos;
+        document.getElementById('statInactivos').textContent = total - activos;
+        document.getElementById('totalCount').textContent   = total;
+    }
+
+    // ============================================================
+    // FILTRO
+    // ============================================================
+    function filtrarUsuarios() {
+        const q     = document.getElementById('searchInput').value.toLowerCase().trim();
+        const rol   = document.getElementById('filterRol').value;
+        const estado = document.getElementById('filterEstado').value;
+
+        const filtrados = todosLosUsuarios.filter(u => {
+            const nombre = (u.nombre || '').toLowerCase();
+            const uname  = (u.username || u.user || '').toLowerCase();
+            const email  = (u.email || '').toLowerCase();
+            return (!q || nombre.includes(q) || uname.includes(q) || email.includes(q))
+                && (!rol    || u.rol    === rol)
+                && (!estado || u.estado === estado);
+        });
+
+        renderizarUsuarios(filtrados, false);
+        const noResults = document.getElementById('noResults');
+        if (filtrados.length === 0 && todosLosUsuarios.length > 0) {
+            document.getElementById('usuariosContainer').innerHTML = '';
+            noResults.style.display = 'block';
+        } else {
+            noResults.style.display = 'none';
+        }
+    }
+
+    // ============================================================
+    // CARGAR USUARIOS
+    // ============================================================
+    async function cargarUsuarios() {
+        try {
+            const res = await fetch('/api/usuarios');
+            if (!res.ok) throw new Error();
+            todosLosUsuarios = await res.json();
+        } catch {
+            todosLosUsuarios = [];
+        }
+        actualizarStats(todosLosUsuarios);
+        renderizarUsuarios(todosLosUsuarios);
+    }
+
+    function renderizarUsuarios(usuarios, actualizarStat = true) {
+        const container = document.getElementById('usuariosContainer');
+        if (actualizarStat) actualizarStats(usuarios);
+
+        if (usuarios.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">👥</div>
+                    <p>No hay usuarios registrados.<br>Crea el primero con "+ Nuevo Perfil".</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = '';
+        usuarios.forEach(u => {
+            const esActivo  = u.estado === 'ACTIVO';
+            const username  = u.username || u.user;
+            const iniciales = u.nombre
+                ? u.nombre.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+                : username.substring(0, 2).toUpperCase();
+            const nodosHTML    = (u.nodos || []).map(n => `<span class="nodo-tag">${n}</span>`).join('');
+            const emailDisplay = u.email ? `<p class="card-email">✉️ ${u.email}</p>` : '';
+
+            container.insertAdjacentHTML('beforeend', `
+                <div class="user-card ${esActivo ? '' : 'card-disabled'}" id="card-${username}">
+                    <div class="avatar">${iniciales}</div>
+                    <div class="card-body">
+                        <p class="card-username">${u.nombre || username}</p>
+                        <p class="card-rol">${username} · ${u.rol}</p>
+                        <div>${nodosHTML}</div>
+                        ${emailDisplay}
+                        <span class="status-badge ${esActivo ? 'active' : 'inactive'}">
+                            ${esActivo ? '● ACTIVO' : '○ INACTIVO'}
+                        </span>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-icon toggle-btn" title="${esActivo ? 'Desactivar' : 'Activar'}"
+                            onclick="toggleEstado('${username}', '${u.estado}')">
+                            ${esActivo ? '🟢' : '⚪'}
+                        </button>
+                        <button class="btn-icon email-btn" title="Reenviar clave"
+                            onclick="reenviarClave('${username}', '${u.email || ''}')">
+                            📧
+                        </button>
+                        <button class="btn-icon delete-btn" title="Eliminar usuario"
+                            onclick="confirmarEliminar('${username}', '${u.nombre || username}')">
+                            🗑️
+                        </button>
+                    </div>
+                </div>`);
+        });
+    }
+
+    // ============================================================
+    // CREAR USUARIO
+    // ============================================================
+    document.getElementById('perfilFormModal').onsubmit = async (e) => {
+        e.preventDefault();
+        const datos = {
+            nombre:          document.getElementById('mNombre').value.trim(),
+            user:            document.getElementById('mUser').value.toUpperCase().trim(),
+            email:           document.getElementById('mEmail').value.trim(),
+            rol:             document.getElementById('mRol').value,
+            nodos:           Array.from(document.querySelectorAll('#mNodos input:checked')).map(cb => cb.value),
+            password:        tempPassword,
+            requiere_cambio: 1,
+            estado:          'ACTIVO'
+        };
+        try {
+            const res    = await fetch('/api/usuarios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos) });
+            const result = await res.json();
+            if (res.ok && result.ok) {
+                cerrarModal(); cargarUsuarios();
+                Swal.fire({ icon: 'success', title: '✅ Usuario creado',
+                    html: `<p>Perfil <strong>${datos.user}</strong> creado.</p>
+                           <p style="margin-top:10px;font-size:13px;color:#64748b;">Clave <strong style="font-family:monospace">${tempPassword}</strong> enviada a <strong>${datos.email}</strong>.</p>`,
+                    confirmButtonColor: '#2563eb' });
+            } else {
+                Swal.fire('Error', result.msg || 'No se pudo crear el usuario.', 'error');
+            }
+        } catch {
+            Swal.fire('Sin conexión', 'No se pudo contactar con el servidor.', 'error');
+        }
+    };
+
+    // ============================================================
+    // TOGGLE ESTADO
+    // ============================================================
+    async function toggleEstado(username, estadoActual) {
+        const nuevoEstado = estadoActual === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
+        const accion = nuevoEstado === 'ACTIVO' ? 'activar' : 'desactivar';
+        const { isConfirmed } = await Swal.fire({
+            title: `¿${accion[0].toUpperCase() + accion.slice(1)} usuario?`,
+            text: `Vas a ${accion} la cuenta de ${username}`, icon: 'question', showCancelButton: true,
+            confirmButtonColor: nuevoEstado === 'ACTIVO' ? '#059669' : '#f59e0b',
+            confirmButtonText: `Sí, ${accion}`, cancelButtonText: 'Cancelar'
+        });
+        if (!isConfirmed) return;
+        try {
+            const res = await fetch(`/api/usuarios/${username}/estado`, {
+                method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: nuevoEstado })
+            });
+            if (res.ok) { showToast(`✅ ${username} ${nuevoEstado === 'ACTIVO' ? 'activado' : 'desactivado'}`); cargarUsuarios(); }
+            else Swal.fire('Error', 'No se pudo actualizar el estado.', 'error');
+        } catch { Swal.fire('Sin conexión', 'No se pudo contactar al servidor.', 'error'); }
+    }
+
+    // ============================================================
+    // ELIMINAR USUARIO
+    // ============================================================
+    async function confirmarEliminar(username, nombre) {
+        const { isConfirmed } = await Swal.fire({
+            title: '¿Eliminar usuario?',
+            html: `Borrarás permanentemente a <strong>${nombre}</strong> (${username}).<br><br>Esta acción no se puede deshacer.`,
+            icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#ef4444', confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar'
+        });
+        if (!isConfirmed) return;
+        try {
+            const res = await fetch(`/api/usuarios/${username}`, { method: 'DELETE' });
+            if (res.ok) {
+                const card = document.getElementById(`card-${username}`);
+                if (card) { card.style.transition = '.3s'; card.style.opacity = '0'; card.style.transform = 'scale(.95)'; }
+                setTimeout(() => cargarUsuarios(), 350);
+                showToast(`🗑️ Usuario ${username} eliminado`);
+            } else { Swal.fire('Error', 'No se pudo eliminar el usuario.', 'error'); }
+        } catch { Swal.fire('Sin conexión', 'No se pudo contactar al servidor.', 'error'); }
+    }
+
+    // ============================================================
+    // REENVIAR CLAVE
+    // ============================================================
+    async function reenviarClave(username, email) {
+        const { value: correo, isConfirmed } = await Swal.fire({
+            title: '📧 Reenviar clave temporal',
+            html: `<p style="font-size:13px;color:#64748b;margin-bottom:12px;">Nueva clave para <strong>${username}</strong>.</p>
+                   <input id="swal-email" class="swal2-input" type="email" placeholder="correo@empresa.com" value="${email}">`,
+            confirmButtonText: '📨 Enviar clave', confirmButtonColor: '#2563eb',
+            showCancelButton: true, cancelButtonText: 'Cancelar',
+            preConfirm: () => {
+                const val = document.getElementById('swal-email').value;
+                if (!val || !val.includes('@')) { Swal.showValidationMessage('Ingresa un correo válido'); return false; }
+                return val;
+            }
+        });
+        if (!isConfirmed) return;
+        try {
+            const res  = await fetch(`/api/usuarios/${username}/reenviar-clave`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: correo })
+            });
+            const data = await res.json();
+            if (res.ok && data.ok) {
+                Swal.fire({ icon: 'success', title: '✅ Clave enviada', text: `Nueva clave enviada a ${correo}`, confirmButtonColor: '#2563eb' });
+                cargarUsuarios();
+            } else { Swal.fire('Error', data.msg || 'No se pudo enviar el correo.', 'error'); }
+        } catch { Swal.fire('Sin conexión', 'No se pudo contactar al servidor.', 'error'); }
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarUsuarios);
+</script>
+</body>
+</html>
