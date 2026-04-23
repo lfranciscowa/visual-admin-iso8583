@@ -13,11 +13,11 @@ app.use(cors());
 app.use(express.json());
 
 // --- MODIFICACIÓN 1: RUTA DE ARCHIVOS ESTÁTICOS ---
-// Usamos path.join(__dirname, 'public') para que encuentre la carpeta sin importar el sistema
+// Como el Root Directory en Render será 'csr', 'public' está al mismo nivel que este archivo.
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- MODIFICACIÓN 2: RUTA RAÍZ (SOLUCIONA EL "NOT FOUND") ---
-// Cuando alguien entre a https://tu-app.onrender.com/ se cargará el login automáticamente
+// Fuerza a que la página de inicio sea siempre el login.
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
@@ -38,12 +38,14 @@ const mailConfig = {
 const transporter = nodemailer.createTransport(mailConfig);
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3001';
 
-// ... (Tus funciones enviarClaveEmail, enviarEnlaceReset y generarToken se mantienen igual)
+// ... (Aquí van tus funciones enviarClaveEmail, enviarEnlaceReset y generarToken)
+// (Mantenlas tal cual las tienes en tu archivo original)
 
-// ... (Tus rutas /api/login, /api/update-password, /api/usuarios, etc. se mantienen igual)
+// ... (Aquí van tus rutas /api/login, /api/update-password, /api/usuarios, etc.)
+// (Mantenlas tal cual las tienes en tu archivo original)
 
 // ============================================================
-// COMUNICACIÓN CON AS/400 (Mantenemos tu lógica igual)
+// COMUNICACIÓN CON AS/400 (TERMINAL ISO 8583)
 // ============================================================
 const AS400_IP = '10.70.200.1'; 
 const AS400_PORT = 8602; 
@@ -81,13 +83,13 @@ app.post('/api/ejecutar-trarput', (req, res) => {
 });
 
 // ============================================================
-// INICIO DEL SERVIDOR (MODIFICACIÓN 3: PUERTO DINÁMICO)
+// INICIO DEL SERVIDOR (PUERTO DINÁMICO PARA RENDER)
 // ============================================================
 let db;
 
 inicializarTablas().then(database => {
     db = database;
-    // IMPORTANTE: process.env.PORT es lo que usa Render
+    // IMPORTANTE: process.env.PORT permite que Render asigne el puerto automáticamente
     const SERVER_PORT = process.env.PORT || 3001;
 
     app.listen(SERVER_PORT, () => {
