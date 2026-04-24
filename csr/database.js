@@ -9,13 +9,7 @@ require('dotenv').config();
 // 1. Configuración centralizada del Pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  },
-  // Esto ayuda a resolver problemas de red en Windows/Node 24
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  ssl: true, // Cambia el objeto anterior por solo 'true' o déjalo como está, pero la URL debe mandar
 });
 
 // 2. Verificación de conexión (Log)
