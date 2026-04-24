@@ -77,15 +77,22 @@
         }
         .bit-cell.active { background: var(--blue-main); color: white; border-color: var(--blue-main); }
 
+        .actions-group { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+
         .btn-execute {
             background: var(--blue-main); color: white; border: none; width: 100%; padding: 16px; border-radius: 12px;
             font-size: 14px; font-weight: 700; cursor: pointer; transition: all .2s; box-shadow: 0 4px 12px rgba(37,99,235,0.2);
         }
         .btn-execute:hover { transform: translateY(-1px); background: #1d4ed8; }
 
+        .btn-clear {
+            background: transparent; color: var(--text-muted); border: 1px solid var(--border); width: 100%; padding: 12px; border-radius: 10px;
+            font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s;
+        }
+        .btn-clear:hover { background: #f1f5f9; color: var(--text-dark); }
+
         .main-view { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* TOPBAR AJUSTADA */
         .main-topbar { 
             padding: 15px 30px; border-bottom: 1px solid var(--border); background: var(--white);
             display: flex; align-items: center; justify-content: space-between; 
@@ -153,7 +160,10 @@
             </div>
         </div>
 
-        <button class="btn-execute" onclick="ejecutar()">▶ EJECUTAR TRARPUT</button>
+        <div class="actions-group">
+            <button class="btn-execute" onclick="ejecutar()">EJECUTAR</button>
+            <button class="btn-clear" onclick="limpiarParametros()">LIMPIAR PARAMETROS</button>
+        </div>
     </div>
 </div>
 
@@ -229,6 +239,19 @@
                 });
             }
         } catch(e) { alert("Error de comunicación."); }
+    }
+
+    function limpiarParametros() {
+        document.getElementById('idtx').value = '';
+        document.getElementById('nodx').value = '';
+        // Resetear bits
+        for (let i = 1; i <= 64; i++) {
+            const bit = document.getElementById(`bit-${i}`);
+            if(bit) bit.classList.remove('active');
+        }
+        // Ocultar resultados
+        document.getElementById('emptyState').style.display = 'block';
+        document.getElementById('resultContent').style.display = 'none';
     }
 
     function cerrarSesion() {
