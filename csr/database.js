@@ -1,3 +1,8 @@
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+
+
+
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -12,15 +17,6 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
 });
-
-const dns = require('dns');
-dns.setDefaultResultOrder('ipv4first');
-
-
-
-
-
-
 
 // 2. Verificación de conexión (Log)
 pool.connect((err, client, release) => {
