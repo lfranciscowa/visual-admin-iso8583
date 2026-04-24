@@ -18,7 +18,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // --- RUTA RAÍZ ---
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+    res.sendFile(path.resolve(__dirname, 'public', 'login.html'));
 });
 
 // ============================================================
