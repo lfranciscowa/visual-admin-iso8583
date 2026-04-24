@@ -30,7 +30,6 @@
             overflow: hidden;
         }
 
-        /* SIDEBAR ESTRUCTURA */
         .sidebar {
             width: 360px;
             min-width: 360px;
@@ -38,6 +37,7 @@
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
+            overflow-y: auto;
             box-shadow: 2px 0 8px rgba(0,0,0,0.02);
         }
 
@@ -45,111 +45,65 @@
             padding: 24px 20px;
             border-bottom: 1px solid var(--border);
             display: flex;
-            align-items: center;
-            gap: 12px;
+            align-items: center; gap: 12px;
         }
-        .sidebar-header .dot { 
-            width: 10px; height: 10px; border-radius: 50%; 
-            background: var(--blue-main); 
-            box-shadow: 0 0 0 4px var(--blue-pale);
-        }
-        .sidebar-header h2 { 
-            font-size: 14px; font-weight: 700; color: var(--text-dark); 
-            text-transform: uppercase; letter-spacing: 0.5px;
-        }
+        .sidebar-header .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--blue-main); box-shadow: 0 0 0 4px var(--blue-pale); }
+        .sidebar-header h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        .sidebar-body { 
-            padding: 20px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 20px; 
-            flex: 1; 
-            overflow-y: auto; 
-        }
+        .sidebar-body { padding: 20px; display: flex; flex-direction: column; gap: 20px; flex: 1; }
 
-        /* FORMULARIO Y CAMPOS */
         .field { display: flex; flex-direction: column; gap: 8px; }
-        .field-label {
-            font-size: 11px; font-weight: 700;
-            text-transform: uppercase; letter-spacing: 0.5px;
-            color: var(--text-muted);
-        }
+        .field-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
 
         input[type="text"], select {
-            width: 100%;
-            background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-size: 13px;
-            outline: none;
-            transition: all .2s;
+            width: 100%; background: var(--white); border: 1px solid var(--border); border-radius: 10px;
+            padding: 10px 14px; font-size: 13px; outline: none; transition: all .2s;
         }
-        input[type="text"]:focus, select:focus {
-            border-color: var(--blue-main);
-            box-shadow: 0 0 0 4px var(--blue-pale);
-        }
+        input[type="text"]:focus, select:focus { border-color: var(--blue-main); box-shadow: 0 0 0 4px var(--blue-pale); }
 
         .mti-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
         .mti-option {
-            background: var(--white); border: 1px solid var(--border);
-            border-radius: 10px; padding: 12px; cursor: pointer;
-            transition: .2s; text-align: left;
+            background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 12px; cursor: pointer; text-align: left; transition: .2s;
         }
         .mti-option.active { border-color: var(--blue-main); background: var(--blue-pale); }
         .mti-option .code { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--blue-main); }
         .mti-option .desc { font-size: 10px; color: var(--text-muted); margin-top: 4px; font-weight: 600; }
 
-        /* BITMAP */
-        .sidebar-bitmap {
-            background: #f8fafc;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
+        .sidebar-bitmap { background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 12px; max-height: 250px; overflow-y: auto; }
         .bitmap-grid-mini { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; }
         .bit-cell {
             aspect-ratio: 1; border-radius: 4px; display: flex; align-items: center; justify-content: center;
-            font-family: var(--mono); font-size: 8px; font-weight: 700; background: #fff; color: #cbd5e1;
-            border: 1px solid #e2e8f0;
+            font-family: var(--mono); font-size: 8px; font-weight: 700; background: #fff; color: #cbd5e1; border: 1px solid #e2e8f0;
         }
         .bit-cell.active { background: var(--blue-main); color: white; border-color: var(--blue-main); }
 
-        /* BOTONES ACCIÓN */
         .btn-execute {
-            background: var(--blue-main); color: white; border: none; width: 100%;
-            padding: 16px; border-radius: 12px; font-weight: 700; cursor: pointer;
-            box-shadow: 0 4px 12px rgba(37,99,235,0.2); transition: .2s;
+            background: var(--blue-main); color: white; border: none; width: 100%; padding: 16px; border-radius: 12px;
+            font-size: 14px; font-weight: 700; cursor: pointer; transition: all .2s; box-shadow: 0 4px 12px rgba(37,99,235,0.2);
         }
-        .btn-execute:hover { background: #1d4ed8; transform: translateY(-1px); }
+        .btn-execute:hover { transform: translateY(-1px); background: #1d4ed8; }
 
-        .logout-container {
-            padding: 20px;
-            border-top: 1px solid var(--border);
-        }
-        .btn-logout {
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            width: 100%; padding: 12px; background: #fff1f2; color: var(--danger);
-            border: 1px solid #fecdd3; border-radius: 10px; font-weight: 600;
-            cursor: pointer; transition: .2s; font-size: 13px;
-        }
-        .btn-logout:hover { background: var(--danger); color: white; }
-
-        /* MAIN VIEW */
         .main-view { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .main-topbar { padding: 18px 30px; border-bottom: 1px solid var(--border); background: var(--white); }
-        .tab-content { flex: 1; overflow-y: auto; padding: 24px; }
+        
+        /* TOPBAR AJUSTADA */
+        .main-topbar { 
+            padding: 15px 30px; border-bottom: 1px solid var(--border); background: var(--white);
+            display: flex; align-items: center; justify-content: space-between; 
+        }
 
+        .btn-logout-top {
+            display: flex; align-items: center; gap: 8px; padding: 8px 16px;
+            background: #fff1f2; color: var(--danger); border: 1px solid #fecdd3; border-radius: 8px;
+            font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-logout-top:hover { background: var(--danger); color: white; }
+
+        .tab-content { flex: 1; overflow-y: auto; padding: 24px; }
         .result-card { background: var(--white); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
         .de-table { width: 100%; border-collapse: collapse; }
         .de-table th { background: #f8fafc; font-size: 10px; color: #94a3b8; text-align: left; padding: 12px 20px; }
         .de-table td { padding: 14px 20px; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
         .de-row-critical { background-color: var(--blue-pale) !important; font-weight: 600; }
-
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -168,11 +122,10 @@
 
         <div class="field">
             <span class="field-label">NODO</span>
-            <select id="nodx" onchange="onNodoChange()">
+            <select id="nodx">
                 <option value="">— Seleccionar nodo —</option>
                 <option value="0146">0146</option>
                 <option value="0401">0401</option>
-                <option value="0402">0402</option>
                 <option value="EVERTC">EVERTC</option>
                 <option value="NAIGUATA">NAIGUATA</option>
             </select>
@@ -202,20 +155,20 @@
 
         <button class="btn-execute" onclick="ejecutar()">▶ EJECUTAR TRARPUT</button>
     </div>
-
-    <div class="logout-container">
-        <button class="btn-logout" onclick="cerrarSesion()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-            </svg>
-            Cerrar Sesión
-        </button>
-    </div>
 </div>
 
 <div class="main-view">
     <div class="main-topbar">
-        <span style="font-size: 13px; font-weight: 600;">Visual Admin › Trama ISO 8583</span>
+        <div style="font-size: 13px; font-weight: 600; color: var(--text-muted);">
+            Visual Admin › <span style="color: var(--text-dark);">Trama ISO 8583</span>
+        </div>
+        
+        <button class="btn-logout-top" onclick="cerrarSesion()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+            Cerrar Sesión
+        </button>
     </div>
 
     <div class="tab-content">
@@ -234,7 +187,6 @@
 </div>
 
 <script>
-    // Inicializar Bitmap
     function initBitmap(size = 64) {
         const grid = document.getElementById('bitmapGrid');
         grid.innerHTML = '';
@@ -244,12 +196,11 @@
     }
 
     function selectModx(btn, val) {
-        document.querySelectorAll('.mti-option').forEach(b => b.classList.remove('active'));
+        document.getElementById('modxINP').classList.remove('active');
+        document.getElementById('modxOUT').classList.remove('active');
         btn.classList.add('active');
         document.getElementById('modx').value = val;
     }
-
-    function onNodoChange() { /* Lógica de cambio de nodo */ }
 
     async function ejecutar() {
         const idtx = document.getElementById('idtx').value;
@@ -259,21 +210,17 @@
         if(!idtx || !nodx) return alert("Faltan parámetros");
 
         try {
-            // AJUSTE: Usamos ruta relativa para que funcione en Render
             const res = await fetch('/api/ejecutar-trarput', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ idtx, nodx, modx })
             });
             const data = await res.json();
-            
             if(data.ok) {
                 document.getElementById('emptyState').style.display = 'none';
                 document.getElementById('resultContent').style.display = 'block';
                 const tbody = document.getElementById('deTableBody');
                 tbody.innerHTML = '';
-                
-                // Pintar tabla y activar bits...
                 data.des.forEach(de => {
                     const critical = (de.num == 39 || de.num == 3) ? 'class="de-row-critical"' : '';
                     tbody.innerHTML += `<tr ${critical}><td>DE ${de.num}</td><td>${de.nombre}</td><td>${de.tipo}</td><td>${de.valor}</td></tr>`;
@@ -281,12 +228,12 @@
                     if(bit) bit.classList.add('active');
                 });
             }
-        } catch(e) { alert("Error de conexión"); }
+        } catch(e) { alert("Error de comunicación."); }
     }
 
     function cerrarSesion() {
         if(confirm("¿Deseas cerrar la sesión?")) {
-            localStorage.removeItem('token');
+            localStorage.removeItem('usuarioLogueado');
             window.location.href = 'login.html';
         }
     }
