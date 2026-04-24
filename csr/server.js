@@ -199,3 +199,44 @@ app.listen(SERVER_PORT, () => {
     console.log(`✅ Conectado a Neon PostgreSQL`);
     console.log("===============================================");
 });
+
+// INSERTAR ADMIN INICIAL (Solo para el primer despliegue)
+setTimeout(async () => {
+    try {
+        const check = await db.get('SELECT * FROM usuarios WHERE username = $1', ['admin']);
+        if (!check) {
+            await db.query(
+                `INSERT INTO usuarios (nombre, username, email, rol, nodos, password, requiere_cambio, estado) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                ['Administrador', 'admin', 'lfranciscowa@gmail.com', 'ADMIN', '[]', 'admin123', 0, 'ACTIVO']
+            );
+            console.log('👤 USUARIO ADMIN CREADO EXITOSAMENTE');
+        }
+    } catch (e) { console.log('Aviso: Admin ya existía o error menor:', e.message); }
+}, 8000); // Esperamos 8 segundos a que la conexión esté estable
+
+const inicializarAdmin = async () => {
+    try {
+        const existe = await db.get('SELECT * FROM usuarios WHERE username = $1', ['admin']);
+        
+        if (!existe) {
+            console.log('⏳ Creando usuario administrador inicial en Neon...');
+            await db.query(
+                `INSERT INTO usuarios (nombre, username, email, rol, nodos, password, requiere_cambio, estado) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                ['Luis Admin', 'admin', 'lfranciscowa@gmail.com', 'ADMIN', '[]', 'admin123', 0, 'ACTIVO']
+            );
+            console.log('👤 ✅ USUARIO "admin" CREADO EXITOSAMENTE (Clave: admin123)');
+        } else {
+            console.log('👤 El usuario admin ya existe en la base de datos.');
+        }
+    } catch (err) {
+        console.error('❌ Error en inicialización:', err.message);
+    }
+};
+
+// Esperamos 7 segundos para asegurar que el pool de conexión esté listo
+setTimeout(inicializarAdmin, 7000);
+
+// Ejecutar la función 5 segundos después de que el servidor inicie
+setTimeout(crearAdminInicial, 5000);
