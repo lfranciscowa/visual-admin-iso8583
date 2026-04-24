@@ -1,12 +1,14 @@
 {
   "scripts": {
-  "start": "node index.js",
-  "postinstall": "npm rebuild sqlite3 --build-from-source || exit 0"
-},
+    "start": "node index.js",
+    "postinstall": "npm rebuild sqlite3 --build-from-source || exit 0"
+  },
   "dependencies": {
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "nodemailer": "^8.0.5",
+    "pg": "^8.20.0",
     "sqlite": "^5.1.1",
     "sqlite3": "^6.0.1",
     "ssh2": "^1.17.0"

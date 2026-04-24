@@ -3,21 +3,20 @@ const cors    = require('cors');
 const path    = require('path');
 const crypto  = require('crypto');
 const nodemailer = require('nodemailer');
-const { inicializarTablas } = require('./database');
+const db = require('./database'); // Pool unificado para Postgres
 const os = require('os');
 const net = require('net'); 
+require('dotenv').config();
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// --- MODIFICACIÓN 1: RUTA DE ARCHIVOS ESTÁTICOS ---
-// Como el Root Directory en Render será 'csr', 'public' está al mismo nivel que este archivo.
+// --- CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS ---
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- MODIFICACIÓN 2: RUTA RAÍZ (SOLUCIONA EL "NOT FOUND") ---
-// Fuerza a que la página de inicio sea siempre el login.
+// --- RUTA RAÍZ ---
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
@@ -34,76 +33,169 @@ const mailConfig = {
         pass: process.env.MAIL_PASS || 'qhuahqcuelcwstff'
     }
 };
-
 const transporter = nodemailer.createTransport(mailConfig);
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3001';
 
-// ... (Aquí van tus funciones enviarClaveEmail, enviarEnlaceReset y generarToken)
-// (Mantenlas tal cual las tienes en tu archivo original)
+// Helper para enviar correos (necesario para las rutas de usuarios)
+async function enviarClaveEmail(email, username, tempPass) {
+    const mailOptions = {
+        from: `"Visual Admin" <${mailConfig.auth.user}>`,
+        to: email,
+        subject: 'Acceso al Sistema - Clave Temporal',
+        html: `<h3>Bienvenido al Sistema</h3>
+               <p>Se ha creado tu perfil de usuario:</p>
+               <ul>
+                 <li><strong>Usuario:</strong> ${username}</li>
+                 <li><strong>Clave Temporal:</strong> ${tempPass}</li>
+               </ul>
+               <p>Deberás cambiarla en tu primer ingreso.</p>`
+    };
+    return transporter.sendMail(mailOptions);
+}
 
-// ... (Aquí van tus rutas /api/login, /api/update-password, /api/usuarios, etc.)
-// (Mantenlas tal cual las tienes en tu archivo original)
+// ============================================================
+// RUTAS DE LA API (POSTGRESQL COMPATIBLE)
+// ============================================================
+
+// 1. LOGIN
+app.post('/api/login', async (req, res) => {
+    const { user, pass } = req.body;
+    try {
+        const usuario = await db.get('SELECT * FROM usuarios WHERE username = $1 OR email = $1', [user]);
+        if (usuario) {
+            if (usuario.estado === 'INACTIVO') {
+                return res.status(403).json({ ok: false, msg: "Cuenta desactivada." });
+            }
+            if (usuario.password === pass) {
+                res.json({
+                    ok: true,
+                    user: { username: usuario.username, rol: usuario.rol, requiere_cambio: usuario.requiere_cambio }
+                });
+            } else {
+                res.status(401).json({ ok: false, msg: "Contraseña incorrecta" });
+            }
+        } else {
+            res.status(404).json({ ok: false, msg: "Usuario no existe" });
+        }
+    } catch (error) {
+        res.status(500).json({ ok: false, msg: "Error en el servidor" });
+    }
+});
+
+// 2. OBTENER USUARIOS
+app.get('/api/usuarios', async (req, res) => {
+    try {
+        const rows = await db.all('SELECT nombre, username, email, rol, nodos, estado FROM usuarios ORDER BY id DESC');
+        // Parsear nodos si vienen como string JSON
+        const usuarios = rows.map(u => ({
+            ...u,
+            nodos: typeof u.nodos === 'string' ? JSON.parse(u.nodos) : u.nodos
+        }));
+        res.json(usuarios);
+    } catch (error) {
+        res.status(500).json({ ok: false, msg: "Error al obtener usuarios" });
+    }
+});
+
+// 3. CREAR USUARIO
+app.post('/api/usuarios', async (req, res) => {
+    const { nombre, user, email, rol, nodos, password, requiere_cambio, estado } = req.body;
+    try {
+        const sql = `INSERT INTO usuarios (nombre, username, email, rol, nodos, password, requiere_cambio, estado) 
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`;
+        await db.query(sql, [nombre, user, email, rol, JSON.stringify(nodos), password, requiere_cambio, estado]);
+        
+        await enviarClaveEmail(email, user, password);
+        res.json({ ok: true });
+    } catch (error) {
+        res.status(500).json({ ok: false, msg: "Error al crear usuario" });
+    }
+});
+
+// 4. CAMBIAR ESTADO (ACTIVAR/DESACTIVAR)
+app.patch('/api/usuarios/:username/estado', async (req, res) => {
+    const { username } = req.params;
+    const { estado } = req.body;
+    try {
+        await db.query('UPDATE usuarios SET estado = $1 WHERE username = $2', [estado, username]);
+        res.json({ ok: true });
+    } catch (error) {
+        res.status(500).json({ ok: false });
+    }
+});
+
+// 5. ELIMINAR USUARIO
+app.delete('/api/usuarios/:username', async (req, res) => {
+    const { username } = req.params;
+    try {
+        await db.query('DELETE FROM usuarios WHERE username = $1', [username]);
+        res.json({ ok: true });
+    } catch (error) {
+        res.status(500).json({ ok: false });
+    }
+});
+
+// 6. ACTUALIZAR CONTRASEÑA (PRIMER INGRESO)
+app.post('/api/update-password', async (req, res) => {
+    const { username, currentPassword, newPassword } = req.body;
+    try {
+        const user = await db.get('SELECT * FROM usuarios WHERE username = $1', [username]);
+        if (!user || user.password !== currentPassword) {
+            return res.status(401).json({ ok: false, msg: "Clave temporal incorrecta" });
+        }
+        await db.query('UPDATE usuarios SET password = $1, requiere_cambio = 0 WHERE username = $2', [newPassword, username]);
+        res.json({ ok: true });
+    } catch (error) {
+        res.status(500).json({ ok: false, msg: "Error al actualizar" });
+    }
+});
+
+// 7. REENVIAR CLAVE
+app.post('/api/usuarios/:username/reenviar-clave', async (req, res) => {
+    const { username } = req.params;
+    const { email } = req.body;
+    const nuevaClave = crypto.randomBytes(4).toString('hex').toUpperCase();
+    try {
+        await db.query('UPDATE usuarios SET password = $1, requiere_cambio = 1 WHERE username = $2', [nuevaClave, username]);
+        await enviarClaveEmail(email, username, nuevaClave);
+        res.json({ ok: true });
+    } catch (error) {
+        res.status(500).json({ ok: false, msg: "Error al reenviar" });
+    }
+});
 
 // ============================================================
 // COMUNICACIÓN CON AS/400 (TERMINAL ISO 8583)
 // ============================================================
-const AS400_IP = '10.70.200.1'; 
-const AS400_PORT = 8602; 
-
 app.post('/api/ejecutar-trarput', (req, res) => {
     const { idtx, nodx, modx } = req.body;
     const client = new net.Socket();
     client.setTimeout(5000);
 
-    client.connect(AS400_PORT, AS400_IP, () => {
-        const objetoParaRPG = { id_transaccion: idtx, nodo: nodx, idx: modx };
-        client.write(JSON.stringify(objetoParaRPG) + '\n');
+    client.connect(8602, '10.70.200.1', () => {
+        client.write(JSON.stringify({ id_transaccion: idtx, nodo: nodx, idx: modx }) + '\n');
     });
 
     client.on('data', (data) => {
         try {
-            const respuesta = data.toString().trim();
-            const jsonResponse = JSON.parse(respuesta);
-            client.destroy(); 
-            res.json({ ok: true, ...jsonResponse });
-        } catch (e) {
+            res.json({ ok: true, ...JSON.parse(data.toString().trim()) });
             client.destroy();
+        } catch (e) {
             res.json({ ok: true, rawData: data.toString().trim() });
+            client.destroy();
         }
     });
 
-    client.on('timeout', () => {
-        client.destroy();
-        res.status(408).json({ ok: false, msg: "AS/400 no respondió a tiempo" });
-    });
-
-    client.on('error', (err) => {
-        res.status(500).json({ ok: false, msg: "Conexión rechazada por AS/400" });
-    });
+    client.on('error', () => res.status(500).json({ ok: false, msg: "Error AS/400" }));
+    client.on('timeout', () => { client.destroy(); res.status(408).json({ ok: false }); });
 });
 
 // ============================================================
-// INICIO DEL SERVIDOR (PUERTO DINÁMICO PARA RENDER)
+// INICIO DEL SERVIDOR
 // ============================================================
-let db;
-
-inicializarTablas().then(database => {
-    db = database;
-    // IMPORTANTE: process.env.PORT permite que Render asigne el puerto automáticamente
-    const SERVER_PORT = process.env.PORT || 3001;
-
-    app.listen(SERVER_PORT, () => {
-        console.log("===============================================");
-        console.log(`🚀 Servidor Visual Admin activo en puerto: ${SERVER_PORT}`);
-        
-        const networkInterfaces = os.networkInterfaces();
-        Object.keys(networkInterfaces).forEach((interfaceName) => {
-            networkInterfaces[interfaceName].forEach((iface) => {
-                if (iface.family === 'IPv4' && !iface.internal) {
-                    console.log(`   👉 IP detectada: ${iface.address}`);
-                }
-            });
-        });
-        console.log("===============================================");
-    });
+const SERVER_PORT = process.env.PORT || 3001;
+app.listen(SERVER_PORT, () => {
+    console.log("===============================================");
+    console.log(`🚀 Servidor Visual Admin activo en puerto: ${SERVER_PORT}`);
+    console.log(`✅ Conectado a Neon PostgreSQL`);
+    console.log("===============================================");
 });
