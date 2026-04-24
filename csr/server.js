@@ -215,6 +215,7 @@ setTimeout(async () => {
     } catch (e) { console.log('Aviso: Admin ya existía o error menor:', e.message); }
 }, 8000); // Esperamos 8 segundos a que la conexión esté estable
 
+// --- INICIALIZACIÓN DE DATOS (ADMIN) ---
 const inicializarAdmin = async () => {
     try {
         const existe = await db.get('SELECT * FROM usuarios WHERE username = $1', ['admin']);
@@ -235,8 +236,5 @@ const inicializarAdmin = async () => {
     }
 };
 
-// Esperamos 7 segundos para asegurar que el pool de conexión esté listo
+// IMPORTANTE: Asegúrate de que el nombre aquí coincida con la función de arriba
 setTimeout(inicializarAdmin, 7000);
-
-// Ejecutar la función 5 segundos después de que el servidor inicie
-setTimeout(crearAdminInicial, 5000);
