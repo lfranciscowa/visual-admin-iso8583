@@ -225,33 +225,56 @@
     }
 
     async function ejecutar() {
-        const idtx = document.getElementById('idtx').value;
-        const nodx = document.getElementById('nodx').value;
-        const modx = document.getElementById('modx').value;
+    const idtx = document.getElementById('idtx').value;
+    const nodx = document.getElementById('nodx').value;
+    const modx = document.getElementById('modx').value;
 
-        if(!idtx || !nodx) return alert("Faltan parámetros");
+    if (!idtx || !nodx) return alert("Faltan parámetros");
 
-        try {
-            const res = await fetch('/api/ejecutar-trarput', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ idtx, nodx, modx })
+    try {
+        const res = await fetch('/api/ejecutar-trarput', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idtx, nodx, modx })
+        });
+
+        const data = await res.json();
+
+        document.getElementById('emptyState').style.display  = 'none';
+        document.getElementById('resultContent').style.display = 'block';
+
+        const tbody = document.getElementById('deTableBody');
+        tbody.innerHTML = '';
+
+        if (data.des && Array.isArray(data.des)) {
+            // AS/400 devolvió array de elementos DE
+            data.des.forEach(de => {
+                const critical = (de.num == 39 || de.num == 3) ? 'class="de-row-critical"' : '';
+                tbody.innerHTML += `<tr ${critical}>
+                    <td>DE ${de.num}</td>
+                    <td>${de.nombre || ''}</td>
+                    <td>${de.tipo   || ''}</td>
+                    <td>${de.valor  || ''}</td>
+                </tr>`;
+                const bit = document.getElementById(`bit-${de.num}`);
+                if (bit) bit.classList.add('active');
             });
-            const data = await res.json();
-            if(data.ok) {
-                document.getElementById('emptyState').style.display = 'none';
-                document.getElementById('resultContent').style.display = 'block';
-                const tbody = document.getElementById('deTableBody');
-                tbody.innerHTML = '';
-                data.des.forEach(de => {
-                    const critical = (de.num == 39 || de.num == 3) ? 'class="de-row-critical"' : '';
-                    tbody.innerHTML += `<tr ${critical}><td>DE ${de.num}</td><td>${de.nombre}</td><td>${de.tipo}</td><td>${de.valor}</td></tr>`;
-                    const bit = document.getElementById(`bit-${de.num}`);
-                    if(bit) bit.classList.add('active');
-                });
-            }
-        } catch(e) { alert("Error de comunicación."); }
+
+        } else {
+            // AS/400 devolvió objeto plano o rawData — lo mostramos tal cual
+            const entries = Object.entries(data).filter(([k]) => k !== 'ok');
+            entries.forEach(([key, val]) => {
+                tbody.innerHTML += `<tr>
+                    <td colspan="2"><strong>${key}</strong></td>
+                    <td colspan="2">${typeof val === 'object' ? JSON.stringify(val) : val}</td>
+                </tr>`;
+            });
+        }
+
+    } catch (e) {
+        alert("Error de comunicación: " + e.message);
     }
+}
 
     function limpiarParametros() {
         document.getElementById('idtx').value = '';

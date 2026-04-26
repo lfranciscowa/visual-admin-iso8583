@@ -5,7 +5,7 @@ const crypto  = require('crypto');
 const nodemailer = require('nodemailer');
 const db = require('./database'); // Pool unificado para Postgres
 const os = require('os');
-const net = require('net'); 
+
 require('dotenv').config();
 
 const app = express();
@@ -166,27 +166,36 @@ app.post('/api/usuarios/:username/reenviar-clave', async (req, res) => {
 // ============================================================
 // COMUNICACIÓN CON AS/400 (TERMINAL ISO 8583)
 // ============================================================
-app.post('/api/ejecutar-trarput', (req, res) => {
+app.post('/api/ejecutar-trarput', async (req, res) => {
     const { idtx, nodx, modx } = req.body;
-    const client = new net.Socket();
-    client.setTimeout(5000);
 
-    client.connect(8602, '10.70.200.1', () => {
-        client.write(JSON.stringify({ id_transaccion: idtx, nodo: nodx, idx: modx }) + '\n');
-    });
+    const AS400_URL = 'http://172.23.12.2:10022/web/services/CRUD_PR01/prueba1';
 
-    client.on('data', (data) => {
+    try {
+        const response = await fetch(AS400_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id_transaccion: idtx,
+                nodo: nodx,
+                idx: modx
+            })
+        });
+
+        const rawText = await response.text();
+
+        let data;
         try {
-            res.json({ ok: true, ...JSON.parse(data.toString().trim()) });
-            client.destroy();
-        } catch (e) {
-            res.json({ ok: true, rawData: data.toString().trim() });
-            client.destroy();
+            data = JSON.parse(rawText);
+        } catch {
+            data = { rawData: rawText };
         }
-    });
 
-    client.on('error', () => res.status(500).json({ ok: false, msg: "Error AS/400" }));
-    client.on('timeout', () => { client.destroy(); res.status(408).json({ ok: false }); });
+        res.status(response.status).json({ ok: response.ok, ...data });
+
+    } catch (err) {
+        res.status(500).json({ ok: false, msg: err.message });
+    }
 });
 
 // ============================================================
