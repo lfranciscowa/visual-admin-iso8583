@@ -247,3 +247,13 @@ const inicializarAdmin = async () => {
 
 // IMPORTANTE: Asegúrate de que el nombre aquí coincida con la función de arriba
 setTimeout(inicializarAdmin, 7000);
+
+// Keep alive - evita que Render se duerma
+const https = require('https');
+setInterval(() => {
+    https.get('https://visual-admin-prueba.onrender.com', (res) => {
+        console.log(`Keep alive: ${res.statusCode}`);
+    }).on('error', (e) => {
+        console.log('Keep alive error:', e.message);
+    });
+}, 4 * 60 * 1000); // cada 4 minutos
