@@ -9,7 +9,7 @@ require('dotenv').config();
 // 1. Configuración centralizada del Pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: true, // Cambia el objeto anterior por solo 'true' o déjalo como está, pero la URL debe mandar
+  ssl: { rejectUnauthorized: false },
 });
 
 // 2. Verificación de conexión (Log)

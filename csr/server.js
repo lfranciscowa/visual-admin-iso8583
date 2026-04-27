@@ -3,7 +3,7 @@ const cors    = require('cors');
 const path    = require('path');
 const crypto  = require('crypto');
 const nodemailer = require('nodemailer');
-const db = require('./database'); // Pool unificado para Postgres
+const db = require('./database');
 const os = require('os');
 
 require('dotenv').config();
@@ -35,7 +35,6 @@ const mailConfig = {
 };
 const transporter = nodemailer.createTransport(mailConfig);
 
-// Helper para enviar correos (necesario para las rutas de usuarios)
 async function enviarClaveEmail(email, username, tempPass) {
     const mailOptions = {
         from: `"Visual Admin" <${mailConfig.auth.user}>`,
@@ -53,7 +52,7 @@ async function enviarClaveEmail(email, username, tempPass) {
 }
 
 // ============================================================
-// RUTAS DE LA API (POSTGRESQL COMPATIBLE)
+// RUTAS DE LA API (POSTGRESQL)
 // ============================================================
 
 // 1. LOGIN
@@ -85,7 +84,6 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/usuarios', async (req, res) => {
     try {
         const rows = await db.all('SELECT nombre, username, email, rol, nodos, estado FROM usuarios ORDER BY id DESC');
-        // Parsear nodos si vienen como string JSON
         const usuarios = rows.map(u => ({
             ...u,
             nodos: typeof u.nodos === 'string' ? JSON.parse(u.nodos) : u.nodos
@@ -103,7 +101,6 @@ app.post('/api/usuarios', async (req, res) => {
         const sql = `INSERT INTO usuarios (nombre, username, email, rol, nodos, password, requiere_cambio, estado) 
                      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`;
         await db.query(sql, [nombre, user, email, rol, JSON.stringify(nodos), password, requiere_cambio, estado]);
-        
         await enviarClaveEmail(email, user, password);
         res.json({ ok: true });
     } catch (error) {
@@ -111,7 +108,7 @@ app.post('/api/usuarios', async (req, res) => {
     }
 });
 
-// 4. CAMBIAR ESTADO (ACTIVAR/DESACTIVAR)
+// 4. CAMBIAR ESTADO
 app.patch('/api/usuarios/:username/estado', async (req, res) => {
     const { username } = req.params;
     const { estado } = req.body;
@@ -134,7 +131,7 @@ app.delete('/api/usuarios/:username', async (req, res) => {
     }
 });
 
-// 6. ACTUALIZAR CONTRASEÑA (PRIMER INGRESO)
+// 6. ACTUALIZAR CONTRASEÑA
 app.post('/api/update-password', async (req, res) => {
     const { username, currentPassword, newPassword } = req.body;
     try {
@@ -184,14 +181,24 @@ app.post('/api/ejecutar-trarput', async (req, res) => {
 
         const rawText = await response.text();
 
-        let data;
+        // Parsear respuesta principal
+        let parsed;
         try {
-            data = JSON.parse(rawText);
+            parsed = JSON.parse(rawText);
         } catch {
-            data = { rawData: rawText };
+            parsed = { rawData: rawText };
         }
 
-        res.status(response.status).json({ ok: response.ok, ...data });
+        // Si data viene como string JSON, parsearlo también
+        if (parsed.data && typeof parsed.data === 'string') {
+            try {
+                parsed.data = JSON.parse(parsed.data);
+            } catch {
+                // dejarlo como string si no es JSON válido
+            }
+        }
+
+        res.status(response.status).json({ ok: response.ok, ...parsed });
 
     } catch (err) {
         res.status(500).json({ ok: false, msg: err.message });
@@ -209,34 +216,19 @@ app.listen(SERVER_PORT, () => {
     console.log("===============================================");
 });
 
-// INSERTAR ADMIN INICIAL (Solo para el primer despliegue)
-setTimeout(async () => {
+// ============================================================
+// INICIALIZAR ADMIN
+// ============================================================
+const inicializarAdmin = async () => {
     try {
-        const check = await db.get('SELECT * FROM usuarios WHERE username = $1', ['admin']);
-        if (!check) {
+        const existe = await db.get('SELECT * FROM usuarios WHERE username = $1', ['admin']);
+        if (!existe) {
             await db.query(
                 `INSERT INTO usuarios (nombre, username, email, rol, nodos, password, requiere_cambio, estado) 
                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
                 ['Administrador', 'admin', 'lfranciscowa@gmail.com', 'ADMIN', '[]', 'admin123', 0, 'ACTIVO']
             );
             console.log('👤 USUARIO ADMIN CREADO EXITOSAMENTE');
-        }
-    } catch (e) { console.log('Aviso: Admin ya existía o error menor:', e.message); }
-}, 8000); // Esperamos 8 segundos a que la conexión esté estable
-
-// --- INICIALIZACIÓN DE DATOS (ADMIN) ---
-const inicializarAdmin = async () => {
-    try {
-        const existe = await db.get('SELECT * FROM usuarios WHERE username = $1', ['admin']);
-        
-        if (!existe) {
-            console.log('⏳ Creando usuario administrador inicial en Neon...');
-            await db.query(
-                `INSERT INTO usuarios (nombre, username, email, rol, nodos, password, requiere_cambio, estado) 
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-                ['Luis Admin', 'admin', 'lfranciscowa@gmail.com', 'ADMIN', '[]', 'admin123', 0, 'ACTIVO']
-            );
-            console.log('👤 ✅ USUARIO "admin" CREADO EXITOSAMENTE (Clave: admin123)');
         } else {
             console.log('👤 El usuario admin ya existe en la base de datos.');
         }
@@ -245,10 +237,11 @@ const inicializarAdmin = async () => {
     }
 };
 
-// IMPORTANTE: Asegúrate de que el nombre aquí coincida con la función de arriba
 setTimeout(inicializarAdmin, 7000);
 
-// Keep alive - evita que Render se duerma
+// ============================================================
+// KEEP ALIVE — evita que Render se duerma
+// ============================================================
 const https = require('https');
 setInterval(() => {
     https.get('https://visual-admin-prueba.onrender.com', (res) => {
@@ -256,4 +249,4 @@ setInterval(() => {
     }).on('error', (e) => {
         console.log('Keep alive error:', e.message);
     });
-}, 4 * 60 * 1000); // cada 4 minutos
+}, 4 * 60 * 1000);
