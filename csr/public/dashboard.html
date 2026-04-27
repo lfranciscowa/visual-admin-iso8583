@@ -540,12 +540,24 @@
                 }
             } else if (num === 3) {
                 rowClass = 'de-row-highlight';
+            if (valor) {
+        // Mapeo de valores específicos para el DE03 completo
+        const descripcionesCompletas = {
+            '000000': 'Compra - Cuenta Principal',
+            '001000': 'Compra - Ahorro',
+            '002000': 'Compra - Corriente',
+            '003000': 'Compra - Crédito'
+        };
+
+        if (descripcionesCompletas[valor]) {
+            extraInfo = `<br><small style="color:var(--text-muted); font-size:11px;">📌 ${descripcionesCompletas[valor]}</small>`;
+
                 if (valor && valor.length >= 6) {
                     const txType  = valor.substring(0,2);
                     const fromAcc = valor.substring(2,4);
                     const toAcc   = valor.substring(4,6);
-                    const txNames  = {'00':'Compra','01':'Retiro cajero','09':'Compra con cashback','20':'Reverso','28':'Pago de servicio','30':'Consulta saldo'};
-                    const accNames = {'00':'Cuenta principal','10':'Ahorro','20':'Corriente','30':'Crédito'};
+                    const txNames  = {'00':'Compra','01':'Retiro','09':'Cashback','20':'Reverso','30':'Consulta'};
+                    const accNames = {'00':'Principal','10':'Ahorro','20':'Corriente','30':'Crédito'};
                     const txLabel   = txNames[txType]  || 'Tipo ' + txType;
                     const fromLabel = accNames[fromAcc] || 'Origen ' + fromAcc;
                     const toLabel   = accNames[toAcc]   || 'Destino ' + toAcc;
