@@ -533,6 +533,15 @@
                 const accNames={'00':'Cuenta principal','10':'Ahorro','20':'Corriente','30':'Crédito'};
                 extraInfo=`<br><small style="color:var(--text-muted);font-size:11px">🔄 ${txNames[txType]||'Tipo '+txType} &nbsp;|&nbsp; 💳 ${accNames[cuentaTipo]||'Cuenta '+cuentaTipo}</small>`;
             }
+        } else if (num===57) {
+            // DE(057) = Serial del POS
+            // Estructura: empieza desde pos 1, contar 22, tomar 10 caracteres
+            if (valor && valor.length >= 32) {
+                const serial = valor.substring(22, 32).trim();
+                if (serial) {
+                    extraInfo = `<br><small style="color:var(--text-muted);font-size:11px">🖥️ Serial POS: <strong style="color:var(--text-dark)">${serial}</strong></small>`;
+                }
+            }
         } else if (num===4||num===11) {
             rowClass='de-row-highlight';
         }
@@ -727,6 +736,7 @@
 </script>
 </body>
 </html>
+
 
 
 
