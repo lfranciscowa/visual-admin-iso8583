@@ -184,6 +184,16 @@
         .badge-rejected { background: #fff1f2; color: var(--danger); }
         .badge-neutral  { background: var(--blue-pale); color: var(--blue-main); }
 
+        /* Meta bar */
+        .meta-bar {
+            display: flex; gap: 24px; align-items: center;
+            background: var(--white); border: 1px solid var(--border);
+            border-radius: 10px; padding: 10px 16px; font-size: 12px;
+        }
+        .meta-item { display: flex; flex-direction: column; gap: 2px; }
+        .meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+        .meta-value { font-family: var(--mono); font-size: 12px; color: var(--text-dark); font-weight: 600; }
+
         /* Empty state */
         #emptyState { text-align: center; margin-top: 80px; color: var(--text-muted); }
         #emptyState .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.3; }
@@ -299,6 +309,18 @@
                     <div class="code-info">
                         <h3 id="codeTitle">Procesando...</h3>
                         <p id="codeDesc"></p>
+                    </div>
+                </div>
+
+                <!-- Meta bar -->
+                <div class="meta-bar" id="metaBar" style="display:none">
+                    <div class="meta-item">
+                        <span class="meta-label">🕐 Hora</span>
+                        <span class="meta-value" id="metaHora">—</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">🔑 ID Transacción</span>
+                        <span class="meta-value" id="metaIdtx" style="font-size:11px">—</span>
                     </div>
                 </div>
 
@@ -443,15 +465,15 @@
         let code = null;
         let msgtyp = null;
         let sinRespuesta = false;
+        let meta = {};
 
         code = apiData.code || null;
-        msgtyp = apiData.msgtyp || null;
 
         // Detectar OUT vacío
         if (code === 'ERR' || !apiData.data ||
             (typeof apiData.data === 'object' && Object.keys(apiData.data).length === 0)) {
             sinRespuesta = true;
-            return { code, des, msgtyp, sinRespuesta };
+            return { code, des, msgtyp, sinRespuesta, meta };
         }
 
         // Extraer data
@@ -463,15 +485,19 @@
         }
 
         if (dataObj) {
+            // Capturar campos especiales primero
+            if (dataObj.MTI)            msgtyp        = dataObj.MTI.trim();
+            if (dataObj.HORA)           meta.hora      = dataObj.HORA.trim();
+            if (dataObj.ID_TRANSACCION) meta.idtx      = dataObj.ID_TRANSACCION.trim();
+
             Object.entries(dataObj).forEach(([key, val]) => {
+                // Saltar campos especiales ya capturados
+                if (['MTI','HORA','ID_TRANSACCION'].includes(key)) return;
+
                 const match = key.match(/DE[_\(]?(\d+)\)?/i);
                 if (match) {
                     const num = parseInt(match[1]);
                     des.push({ num, key, valor: val });
-                    // Capturar MSGTYP si viene como DE
-                    if (key === 'MSGTYP' || key === 'DE(000)') msgtyp = val?.trim();
-                } else if (key === 'MSGTYP') {
-                    msgtyp = val?.trim();
                 } else {
                     des.push({ num: null, key, valor: val });
                 }
@@ -479,12 +505,12 @@
             des.sort((a, b) => (a.num || 999) - (b.num || 999));
         }
 
-        return { code, des, msgtyp, sinRespuesta };
+        return { code, des, msgtyp, sinRespuesta, meta };
     }
 
     // ── Renderizar ──
     function renderizar(apiData) {
-        const { code, des, msgtyp, sinRespuesta } = parsearRespuesta(apiData);
+        const { code, des, msgtyp, sinRespuesta, meta } = parsearRespuesta(apiData);
 
         document.getElementById('emptyState').style.display = 'none';
         document.getElementById('resultContent').style.display = 'block';
@@ -498,6 +524,7 @@
             document.getElementById('codeTitle').textContent = 'Sin mensaje de respuesta';
             document.getElementById('codeDesc').textContent = 'Esta transacción no tiene trama de salida (OUT) registrada en el sistema';
             document.getElementById('resultMeta').textContent = '0 DEs';
+            document.getElementById('metaBar').style.display = 'none';
             document.getElementById('deTableBody').innerHTML = `
                 <tr>
                     <td colspan="3" style="text-align:center; padding:40px; color:var(--text-muted); font-size:13px;">
@@ -514,10 +541,20 @@
         banner.className = `code-banner ${codeInfo.tipo}`;
         document.getElementById('codeIcon').textContent = codeInfo.icon;
 
-        // Título con tipo de mensaje
-        const msgLabel = msgtyp && MSG_TYPES[msgtyp] ? `[${msgtyp}] ${MSG_TYPES[msgtyp]}` : (msgtyp ? `Mensaje: ${msgtyp}` : '');
+        // MTI en banner
+        const mtiLabel = msgtyp && MSG_TYPES[msgtyp] ? `[${msgtyp}] ${MSG_TYPES[msgtyp]}` : (msgtyp ? `MTI: ${msgtyp}` : '');
         document.getElementById('codeTitle').textContent = `${code ? 'DE(039): ' + code + ' — ' : ''}${codeInfo.label}`;
-        document.getElementById('codeDesc').textContent = `${msgLabel ? msgLabel + ' · ' : ''}${des.length} elementos de datos recibidos`;
+        document.getElementById('codeDesc').textContent = `${mtiLabel ? mtiLabel + ' · ' : ''}${des.length} elementos recibidos`;
+
+        // Meta bar — HORA e ID
+        const metaBar = document.getElementById('metaBar');
+        if (meta.hora || meta.idtx) {
+            metaBar.style.display = 'flex';
+            document.getElementById('metaHora').textContent = meta.hora || '—';
+            document.getElementById('metaIdtx').textContent = meta.idtx || '—';
+        } else {
+            metaBar.style.display = 'none';
+        }
 
         document.getElementById('resultMeta').textContent = `${des.length} DEs`;
 
@@ -626,6 +663,7 @@
 </script>
 </body>
 </html>
+
 
 
 
