@@ -34,23 +34,18 @@
             overflow: hidden;
         }
 
-        /* ── SIDEBAR ── */
         .sidebar {
-            width: 300px;
-            min-width: 300px;
+            width: 300px; min-width: 300px;
             background: var(--white);
             border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
+            display: flex; flex-direction: column;
             overflow-y: auto;
             box-shadow: 2px 0 8px rgba(0,0,0,0.02);
         }
 
         .sidebar-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center; gap: 12px;
+            padding: 20px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 12px;
         }
         .sidebar-header .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--blue-main); box-shadow: 0 0 0 4px var(--blue-pale); }
         .sidebar-header h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -95,6 +90,14 @@
         .btn-execute:hover:not(:disabled) { transform: translateY(-1px); background: #1d4ed8; }
         .btn-execute:disabled { opacity: 0.6; cursor: not-allowed; }
 
+        .btn-compare {
+            background: #7c3aed; color: white; border: none; width: 100%; padding: 11px; border-radius: 10px;
+            font-size: 12px; font-weight: 700; cursor: pointer; transition: all .2s;
+            font-family: var(--sans); display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-compare:hover:not(:disabled) { background: #6d28d9; transform: translateY(-1px); }
+        .btn-compare:disabled { opacity: 0.4; cursor: not-allowed; }
+
         .btn-clear {
             background: transparent; color: var(--text-muted); border: 1px solid var(--border); width: 100%;
             padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
@@ -102,21 +105,37 @@
         }
         .btn-clear:hover { background: #f1f5f9; color: var(--text-dark); }
 
-        /* ── MAIN ── */
-        .main-view { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        /* Historial */
+        .historial-section { border-top: 1px solid var(--border); padding: 16px; }
+        .historial-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .historial-title { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+        .btn-limpiar-hist { font-size: 10px; color: var(--danger); background: none; border: none; cursor: pointer; font-family: var(--sans); font-weight: 600; }
+        .historial-list { display: flex; flex-direction: column; gap: 4px; }
+        .hist-item {
+            background: #f8fafc; border: 1px solid var(--border); border-radius: 8px;
+            padding: 8px 10px; cursor: pointer; transition: all .2s;
+        }
+        .hist-item:hover { border-color: var(--blue-main); background: var(--blue-pale); }
+        .hist-item.active-hist { border-color: var(--blue-main); background: var(--blue-pale); }
+        .hist-id { font-family: var(--mono); font-size: 10px; color: var(--text-dark); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+        .hist-meta { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+        .hist-nodo { font-size: 9px; font-weight: 700; color: var(--blue-main); background: var(--blue-pale); padding: 1px 5px; border-radius: 4px; }
+        .hist-mti  { font-size: 9px; color: var(--text-muted); font-family: var(--mono); }
+        .hist-dir  { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px; }
+        .hist-dir.inp { background: #dcfce7; color: var(--success); }
+        .hist-dir.out { background: var(--warning-pale); color: var(--warning); }
+        .hist-hora { font-size: 9px; color: var(--text-muted); margin-left: auto; }
+        .hist-empty { font-size: 11px; color: var(--text-muted); text-align: center; padding: 12px 0; }
 
+        /* Main */
+        .main-view { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .main-topbar {
             padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--white);
             display: flex; align-items: center; justify-content: space-between;
         }
-
         .topbar-left { display: flex; align-items: center; gap: 16px; }
 
-        /* Status badge */
-        .status-badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
-        }
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
         .status-badge.idle    { background: #f1f5f9; color: var(--text-muted); }
         .status-badge.loading { background: var(--warning-pale); color: var(--warning); }
         .status-badge.ok      { background: var(--success-pale); color: var(--success); }
@@ -134,79 +153,87 @@
 
         .tab-content { flex: 1; overflow-y: auto; padding: 20px; }
 
-        /* ── RESULT CARDS ── */
-        .result-wrapper { display: flex; flex-direction: column; gap: 16px; }
-
-        /* Code response banner */
-        .code-banner {
-            border-radius: 12px; padding: 16px 20px;
-            display: flex; align-items: center; gap: 12px;
+        /* Tabs */
+        .view-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+        .view-tab {
+            padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 700;
+            cursor: pointer; border: 1px solid var(--border); background: var(--white);
+            font-family: var(--sans); transition: all .2s; color: var(--text-muted);
         }
-        .code-banner.aprobado { background: var(--success-pale); border: 1px solid #bbf7d0; }
+        .view-tab.active { background: var(--blue-main); color: white; border-color: var(--blue-main); }
+
+        /* Result */
+        .result-wrapper { display: flex; flex-direction: column; gap: 16px; }
+        .code-banner { border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+        .code-banner.neutro    { background: var(--blue-pale); border: 1px solid #bfdbfe; }
+        .code-banner.aprobado  { background: var(--success-pale); border: 1px solid #bbf7d0; }
         .code-banner.rechazado { background: #fff1f2; border: 1px solid #fecdd3; }
-        .code-banner.neutro { background: var(--blue-pale); border: 1px solid #bfdbfe; }
         .code-icon { font-size: 24px; }
         .code-info h3 { font-size: 15px; font-weight: 700; }
-        .code-info p { font-size: 12px; margin-top: 2px; opacity: 0.8; }
+        .code-info p  { font-size: 12px; margin-top: 2px; opacity: 0.8; }
 
-        /* DE Table */
         .result-card { background: var(--white); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-        .result-header {
-            padding: 14px 20px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between;
-        }
+        .result-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
         .result-title { font-size: 13px; font-weight: 700; }
-        .result-meta { font-size: 11px; color: var(--text-muted); font-family: var(--mono); }
+        .result-meta  { font-size: 11px; color: var(--text-muted); font-family: var(--mono); }
 
         .de-table { width: 100%; border-collapse: collapse; }
-        .de-table th {
-            background: #f8fafc; font-size: 10px; color: #94a3b8;
-            text-align: left; padding: 10px 16px; text-transform: uppercase; letter-spacing: 0.5px;
-            position: sticky; top: 0;
-        }
+        .de-table th { background: #f8fafc; font-size: 10px; color: #94a3b8; text-align: left; padding: 10px 16px; text-transform: uppercase; letter-spacing: 0.5px; }
         .de-table td { padding: 11px 16px; font-size: 12px; border-bottom: 1px solid #f1f5f9; }
         .de-table tr:last-child td { border-bottom: none; }
         .de-table tr:hover td { background: #fafafa; }
 
-        .de-num { font-family: var(--mono); font-weight: 700; color: var(--blue-main); font-size: 11px; }
+        .de-num  { font-family: var(--mono); font-weight: 700; color: var(--blue-main); font-size: 11px; }
         .de-name { color: var(--text-muted); font-size: 11px; }
-        .de-val { font-family: var(--mono); font-size: 12px; color: var(--text-dark); word-break: break-all; }
+        .de-val  { font-family: var(--mono); font-size: 12px; color: var(--text-dark); word-break: break-all; }
+
+        /* Copiar */
+        .copy-cell { cursor: pointer; position: relative; }
+        .copy-cell:hover .de-val { color: var(--blue-main); }
+        .copy-cell::after { content: '📋'; font-size: 10px; opacity: 0; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); transition: opacity .2s; }
+        .copy-cell:hover::after { opacity: 1; }
 
         .de-row-approved td { background: var(--success-pale) !important; }
         .de-row-rejected td { background: #fff1f2 !important; }
         .de-row-highlight td { background: var(--blue-pale) !important; }
+        .diff-highlight td { background: #fef9c3 !important; }
 
-        .badge-de {
-            display: inline-block; padding: 2px 8px; border-radius: 20px;
-            font-size: 10px; font-weight: 700; font-family: var(--mono);
-        }
+        .badge-de { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; font-family: var(--mono); margin-left: 6px; }
         .badge-approved { background: var(--success-pale); color: var(--success); }
         .badge-rejected { background: #fff1f2; color: var(--danger); }
-        .badge-neutral  { background: var(--blue-pale); color: var(--blue-main); }
 
-        /* Meta bar */
-        .meta-bar {
-            display: flex; gap: 24px; align-items: center;
-            background: var(--white); border: 1px solid var(--border);
-            border-radius: 10px; padding: 10px 16px; font-size: 12px;
-        }
+        .meta-bar { display: flex; gap: 24px; align-items: center; background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; }
         .meta-item { display: flex; flex-direction: column; gap: 2px; }
         .meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
         .meta-value { font-family: var(--mono); font-size: 12px; color: var(--text-dark); font-weight: 600; }
 
-        /* Empty state */
+        /* Comparar */
+        .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .compare-col { display: flex; flex-direction: column; gap: 12px; }
+        .compare-label { text-align: center; font-size: 11px; font-weight: 700; padding: 8px; border-radius: 8px; }
+        .compare-label.inp { background: #dcfce7; color: var(--success); }
+        .compare-label.out { background: var(--warning-pale); color: var(--warning); }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: #1e1b4b; color: white; padding: 10px 18px;
+            border-radius: 10px; font-size: 12px; font-weight: 600;
+            opacity: 0; transform: translateY(10px);
+            transition: all .3s; pointer-events: none; z-index: 999;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+
         #emptyState { text-align: center; margin-top: 80px; color: var(--text-muted); }
         #emptyState .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.3; }
 
-        /* Spinner */
-        .spinner {
-            width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.3);
-            border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite;
-        }
+        .spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
+
+<div class="toast" id="toast">✓ Copiado</div>
 
 <div class="sidebar">
     <div class="sidebar-header">
@@ -269,7 +296,20 @@
             <button class="btn-execute" id="btnEjecutar" onclick="ejecutar()">
                 <span id="btnText">EJECUTAR</span>
             </button>
+            <button class="btn-compare" id="btnComparar" onclick="comparar()" disabled>
+                ⚖️ COMPARAR INP vs OUT
+            </button>
             <button class="btn-clear" onclick="limpiarParametros()">LIMPIAR PARÁMETROS</button>
+        </div>
+    </div>
+
+    <div class="historial-section">
+        <div class="historial-header">
+            <span class="historial-title">📋 Historial</span>
+            <button class="btn-limpiar-hist" onclick="limpiarHistorial()">Limpiar</button>
+        </div>
+        <div class="historial-list" id="historialList">
+            <div class="hist-empty">Sin consultas aún</div>
         </div>
     </div>
 </div>
@@ -277,8 +317,8 @@
 <div class="main-view">
     <div class="main-topbar">
         <div class="topbar-left">
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-muted);">
-                Visual Admin › <span style="color: var(--text-dark);">Trama ISO 8583</span>
+            <div style="font-size:13px;font-weight:600;color:var(--text-muted)">
+                Visual Admin › <span style="color:var(--text-dark)">Trama ISO 8583</span>
             </div>
             <span class="status-badge idle" id="statusBadge">
                 <span class="status-dot"></span>
@@ -287,7 +327,7 @@
         </div>
         <button class="btn-logout-top" onclick="cerrarSesion()">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/>
             </svg>
             Cerrar Sesión
         </button>
@@ -296,14 +336,18 @@
     <div class="tab-content">
         <div id="emptyState">
             <div class="empty-icon">⚡</div>
-            <p style="font-weight:600; margin-bottom:6px;">Esperando ejecución...</p>
-            <p style="font-size:12px;">Completa los parámetros y presiona EJECUTAR</p>
+            <p style="font-weight:600;margin-bottom:6px">Esperando ejecución...</p>
+            <p style="font-size:12px">Completa los parámetros y presiona EJECUTAR</p>
         </div>
 
         <div id="resultContent" style="display:none">
-            <div class="result-wrapper">
+            <div class="view-tabs">
+                <button class="view-tab active" id="tabNormal" onclick="switchTab('normal')">📄 Resultado</button>
+                <button class="view-tab" id="tabComparar" onclick="switchTab('comparar')" style="display:none">⚖️ Comparar INP / OUT</button>
+            </div>
 
-                <!-- Banner código de respuesta -->
+            <!-- Vista normal -->
+            <div id="vistaId" class="result-wrapper">
                 <div id="codeBanner" class="code-banner neutro">
                     <div class="code-icon" id="codeIcon">📋</div>
                     <div class="code-info">
@@ -312,7 +356,6 @@
                     </div>
                 </div>
 
-                <!-- Meta bar -->
                 <div class="meta-bar" id="metaBar" style="display:none">
                     <div class="meta-item">
                         <span class="meta-label">🕐 Hora</span>
@@ -324,359 +367,367 @@
                     </div>
                 </div>
 
-                <!-- Tabla DE -->
                 <div class="result-card">
                     <div class="result-header">
                         <span class="result-title">Elementos de Datos ISO 8583</span>
                         <span class="result-meta" id="resultMeta"></span>
                     </div>
                     <table class="de-table">
-                        <thead>
-                            <tr>
-                                <th style="width:80px">DE #</th>
-                                <th>Nombre</th>
-                                <th>Valor</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th style="width:80px">DE #</th><th>Nombre</th><th>Valor</th></tr></thead>
                         <tbody id="deTableBody"></tbody>
                     </table>
                 </div>
+            </div>
 
+            <!-- Vista comparar -->
+            <div id="vistaComparar" style="display:none">
+                <div class="compare-grid">
+                    <div class="compare-col">
+                        <div class="compare-label inp">📥 INP — Entrada</div>
+                        <div class="result-card">
+                            <table class="de-table">
+                                <thead><tr><th>DE #</th><th>Nombre</th><th>Valor</th></tr></thead>
+                                <tbody id="compareInpBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="compare-col">
+                        <div class="compare-label out">📤 OUT — Salida</div>
+                        <div class="result-card">
+                            <table class="de-table">
+                                <thead><tr><th>DE #</th><th>Nombre</th><th>Valor</th></tr></thead>
+                                <tbody id="compareOutBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // ── Nombres descriptivos ISO 8583 ──
     const DE_NAMES = {
-        2:  'PAN (Número de tarjeta)',
-        3:  'Código de proceso',
-        4:  'Monto transacción',
-        5:  'Monto liquidación',
-        6:  'Monto titular',
-        7:  'Fecha/Hora transmisión',
-        9:  'Factor conv. liquidación',
-        11: 'STAN (Número de secuencia)',
-        12: 'Hora local',
-        13: 'Fecha local',
-        14: 'Fecha expiración',
-        15: 'Fecha liquidación',
-        18: 'Código de comercio (MCC)',
-        22: 'Modo entrada POS',
-        23: 'Número secuencia tarjeta',
-        24: 'NII / Código de función',
-        25: 'Condición punto servicio',
-        32: 'Cód. institución adquirente',
-        35: 'Track 2',
-        37: 'Referencia retrieval',
-        38: 'Código autorización',
-        39: 'Código de respuesta',
-        41: 'Terminal ID',
-        42: 'Merchant ID',
-        43: 'Nombre/Ubicación comercio',
-        48: 'Datos adicionales privados',
-        49: 'Moneda transacción',
-        52: 'PIN encriptado',
-        55: 'Datos ICC / EMV',
-        56: 'Moneda (símbolo)',
-        57: 'Datos adicionales',
-        60: 'Datos adicionales terminales',
-        61: 'Datos adicionales POS',
-        62: 'Datos adicionales intermediario',
-        63: 'Datos adicionales financiero',
-        90: 'Datos transacción original',
-        95: 'Importes liquidación',
-        100:'Cód. institución receptora',
-        102:'Cuenta deudora',
-        103:'Cuenta acreedora',
-        126:'Datos privados',
+        2:'PAN (Número de tarjeta)',3:'Código de proceso',4:'Monto transacción',
+        5:'Monto liquidación',6:'Monto titular',7:'Fecha/Hora transmisión',
+        9:'Factor conv. liquidación',11:'STAN (Número de secuencia)',
+        12:'Hora local',13:'Fecha local',14:'Fecha expiración',15:'Fecha liquidación',
+        18:'Código de comercio (MCC)',22:'Modo entrada POS',23:'Número secuencia tarjeta',
+        24:'NII / Código de función',25:'Condición punto servicio',
+        32:'Cód. institución adquirente',35:'Track 2',37:'Referencia retrieval',
+        38:'Código autorización',39:'Código de respuesta',41:'Terminal ID',
+        42:'Merchant ID',43:'Nombre/Ubicación comercio',48:'Datos adicionales privados',
+        49:'Moneda transacción',52:'PIN encriptado',55:'Datos ICC / EMV',
+        56:'Moneda (símbolo)',57:'Datos adicionales',60:'Datos adicionales terminales',
+        61:'Datos adicionales POS',62:'Datos adicionales intermediario',
+        63:'Datos adicionales financiero',90:'Datos transacción original',
+        95:'Importes liquidación',100:'Cód. institución receptora',
+        102:'Cuenta deudora',103:'Cuenta acreedora',126:'Datos privados',
     };
 
-    // ── Códigos de respuesta ISO 8583 ──
     const RESP_CODES = {
-        '00': { label: 'Aprobada', tipo: 'aprobado', icon: '✅' },
-        '01': { label: 'Referir al emisor', tipo: 'rechazado', icon: '⚠️' },
-        '05': { label: 'No honrar', tipo: 'rechazado', icon: '❌' },
-        '12': { label: 'Transacción inválida', tipo: 'rechazado', icon: '❌' },
-        '13': { label: 'Monto inválido', tipo: 'rechazado', icon: '❌' },
-        '14': { label: 'Número tarjeta inválido', tipo: 'rechazado', icon: '❌' },
-        '30': { label: 'Error de formato', tipo: 'rechazado', icon: '❌' },
-        '51': { label: 'Fondos insuficientes', tipo: 'rechazado', icon: '❌' },
-        '54': { label: 'Tarjeta expirada', tipo: 'rechazado', icon: '❌' },
-        '55': { label: 'PIN incorrecto', tipo: 'rechazado', icon: '❌' },
-        '57': { label: 'Transacción no permitida', tipo: 'rechazado', icon: '❌' },
-        '58': { label: 'Terminal no permitida', tipo: 'rechazado', icon: '❌' },
-        '62': { label: 'Tarjeta restringida', tipo: 'rechazado', icon: '❌' },
-        '91': { label: 'Emisor no disponible', tipo: 'rechazado', icon: '🔌' },
-        '96': { label: 'Error del sistema', tipo: 'rechazado', icon: '⚠️' },
+        '00':{label:'Aprobada',tipo:'aprobado',icon:'✅'},
+        '01':{label:'Referir al emisor',tipo:'rechazado',icon:'⚠️'},
+        '05':{label:'No honrar',tipo:'rechazado',icon:'❌'},
+        '12':{label:'Transacción inválida',tipo:'rechazado',icon:'❌'},
+        '13':{label:'Monto inválido',tipo:'rechazado',icon:'❌'},
+        '14':{label:'Número tarjeta inválido',tipo:'rechazado',icon:'❌'},
+        '30':{label:'Error de formato',tipo:'rechazado',icon:'❌'},
+        '51':{label:'Fondos insuficientes',tipo:'rechazado',icon:'❌'},
+        '54':{label:'Tarjeta expirada',tipo:'rechazado',icon:'❌'},
+        '55':{label:'PIN incorrecto',tipo:'rechazado',icon:'❌'},
+        '57':{label:'Transacción no permitida',tipo:'rechazado',icon:'❌'},
+        '58':{label:'Terminal no permitida',tipo:'rechazado',icon:'❌'},
+        '62':{label:'Tarjeta restringida',tipo:'rechazado',icon:'❌'},
+        '91':{label:'Emisor no disponible',tipo:'rechazado',icon:'🔌'},
+        '96':{label:'Error del sistema',tipo:'rechazado',icon:'⚠️'},
     };
 
-    // ── Bitmap ──
-    function initBitmap(size = 64) {
+    const MSG_TYPES = {
+        '0100':'Autorización (Solicitud)','0110':'Autorización (Respuesta)',
+        '0200':'Compra / Débito (Solicitud)','0210':'Compra / Débito (Respuesta)',
+        '0220':'Compra (Aviso)','0400':'Reverso (Solicitud)',
+        '0410':'Reverso (Respuesta)','0420':'Reverso (Aviso)',
+        '0800':'Red Management (Solicitud)','0810':'Red Management (Respuesta)',
+    };
+
+    let historial = [], cacheInp = null, cacheOut = null;
+
+    // Bitmap
+    function initBitmap(size=64) {
         const grid = document.getElementById('bitmapGrid');
         grid.innerHTML = '';
-        for (let i = 1; i <= size; i++) {
-            grid.insertAdjacentHTML('beforeend', `<div class="bit-cell" id="bit-${i}">${i}</div>`);
-        }
+        for (let i=1;i<=size;i++) grid.insertAdjacentHTML('beforeend',`<div class="bit-cell" id="bit-${i}">${i}</div>`);
     }
-
     function markBits(nums) {
-        for (let i = 1; i <= 64; i++) {
-            const b = document.getElementById(`bit-${i}`);
-            if (b) b.classList.remove('active');
-        }
-        nums.forEach(n => {
-            const b = document.getElementById(`bit-${n}`);
-            if (b) b.classList.add('active');
-        });
+        for (let i=1;i<=64;i++) { const b=document.getElementById(`bit-${i}`); if(b) b.classList.remove('active'); }
+        nums.forEach(n=>{ const b=document.getElementById(`bit-${n}`); if(b) b.classList.add('active'); });
     }
-
-    function selectModx(btn, val) {
+    function selectModx(btn,val) {
         document.getElementById('modxINP').classList.remove('active');
         document.getElementById('modxOUT').classList.remove('active');
         btn.classList.add('active');
-        document.getElementById('modx').value = val;
+        document.getElementById('modx').value=val;
+    }
+    function setStatus(state,text) {
+        const badge=document.getElementById('statusBadge');
+        badge.className=`status-badge ${state}`;
+        document.getElementById('statusText').textContent=text;
     }
 
-    function setStatus(state, text) {
-        const badge = document.getElementById('statusBadge');
-        badge.className = `status-badge ${state}`;
-        document.getElementById('statusText').textContent = text;
+    // Toast
+    function mostrarToast(msg) {
+        const t=document.getElementById('toast');
+        t.textContent=msg; t.classList.add('show');
+        setTimeout(()=>t.classList.remove('show'),2000);
     }
 
-    // ── Tipos de mensaje ISO 8583 ──
-    const MSG_TYPES = {
-        '0100': 'Autorización (Solicitud)',
-        '0110': 'Autorización (Respuesta)',
-        '0200': 'Compra / Débito (Solicitud)',
-        '0210': 'Compra / Débito (Respuesta)',
-        '0220': 'Compra (Aviso)',
-        '0400': 'Reverso (Solicitud)',
-        '0410': 'Reverso (Respuesta)',
-        '0420': 'Reverso (Aviso)',
-        '0800': 'Red Management (Solicitud)',
-        '0810': 'Red Management (Respuesta)',
-    };
+    // Copiar
+    function copiarValor(valor) {
+        navigator.clipboard.writeText(valor).then(()=>
+            mostrarToast('✓ Copiado: '+(valor.length>25?valor.substring(0,25)+'...':valor))
+        );
+    }
 
-    // ── Parsear respuesta AS/400 ──
+    // Parsear
     function parsearRespuesta(apiData) {
-        let des = [];
-        let code = null;
-        let msgtyp = null;
-        let sinRespuesta = false;
-        let meta = {};
-
-        code = apiData.code || null;
-
-        // Detectar OUT vacío
-        if (code === 'ERR' || !apiData.data ||
-            (typeof apiData.data === 'object' && Object.keys(apiData.data).length === 0)) {
-            sinRespuesta = true;
-            return { code, des, msgtyp, sinRespuesta, meta };
+        let des=[],code=null,msgtyp=null,sinRespuesta=false,meta={};
+        code=apiData.code||null;
+        if (code==='ERR'||!apiData.data||(typeof apiData.data==='object'&&Object.keys(apiData.data).length===0)) {
+            sinRespuesta=true;
+            return {code,des,msgtyp,sinRespuesta,meta};
         }
-
-        // Extraer data
-        let dataObj = null;
-        if (typeof apiData.data === 'string') {
-            try { dataObj = JSON.parse(apiData.data); } catch { dataObj = null; }
-        } else if (typeof apiData.data === 'object') {
-            dataObj = apiData.data;
-        }
-
+        let dataObj=null;
+        if (typeof apiData.data==='string') { try{dataObj=JSON.parse(apiData.data);}catch{} }
+        else if (typeof apiData.data==='object') { dataObj=apiData.data; }
         if (dataObj) {
-            // Capturar campos especiales primero
-            if (dataObj.MTI)            msgtyp        = dataObj.MTI.trim();
-            if (dataObj.HORA)           meta.hora      = dataObj.HORA.trim();
-            if (dataObj.ID_TRANSACCION) meta.idtx      = dataObj.ID_TRANSACCION.trim();
-
-            Object.entries(dataObj).forEach(([key, val]) => {
-                // Saltar campos especiales ya capturados
+            if (dataObj.MTI)            msgtyp=dataObj.MTI.trim();
+            if (dataObj.HORA)           meta.hora=dataObj.HORA.trim();
+            if (dataObj.ID_TRANSACCION) meta.idtx=dataObj.ID_TRANSACCION.trim();
+            Object.entries(dataObj).forEach(([key,val])=>{
                 if (['MTI','HORA','ID_TRANSACCION'].includes(key)) return;
-
-                const match = key.match(/DE[_\(]?(\d+)\)?/i);
-                if (match) {
-                    const num = parseInt(match[1]);
-                    des.push({ num, key, valor: val });
-                } else {
-                    des.push({ num: null, key, valor: val });
-                }
+                const match=key.match(/DE[_\(]?(\d+)\)?/i);
+                if (match) des.push({num:parseInt(match[1]),key,valor:val});
+                else des.push({num:null,key,valor:val});
             });
-            des.sort((a, b) => (a.num || 999) - (b.num || 999));
+            des.sort((a,b)=>(a.num||999)-(b.num||999));
         }
-
-        return { code, des, msgtyp, sinRespuesta, meta };
+        return {code,des,msgtyp,sinRespuesta,meta};
     }
 
-    // ── Renderizar ──
-    function renderizar(apiData) {
-        const { code, des, msgtyp, sinRespuesta, meta } = parsearRespuesta(apiData);
+    // Construir fila
+    function buildRow(num,key,valor,diffVal=null,enableCopy=true) {
+        const nombre=num&&DE_NAMES[num]?DE_NAMES[num]:key;
+        let rowClass='',badgeHtml='',extraInfo='';
+        if (num===39) {
+            const resp=RESP_CODES[valor?.trim()];
+            if (resp) {
+                rowClass=resp.tipo==='aprobado'?'de-row-approved':'de-row-rejected';
+                badgeHtml=`<span class="badge-de ${resp.tipo==='aprobado'?'badge-approved':'badge-rejected'}">${resp.icon} ${resp.label}</span>`;
+            }
+        } else if (num===3) {
+            rowClass='de-row-highlight';
+            if (valor&&valor.length>=6) {
+                const txType=valor.substring(0,2),cuentaTipo=valor.substring(2,4);
+                const txNames={'00':'Compra','01':'Retiro cajero','02':'Anulación','09':'Compra con cashback','20':'Reverso','28':'Pago de servicio','30':'Consulta saldo'};
+                const accNames={'00':'Cuenta principal','10':'Ahorro','20':'Corriente','30':'Crédito'};
+                extraInfo=`<br><small style="color:var(--text-muted);font-size:11px">🔄 ${txNames[txType]||'Tipo '+txType} &nbsp;|&nbsp; 💳 ${accNames[cuentaTipo]||'Cuenta '+cuentaTipo}</small>`;
+            }
+        } else if (num===4||num===11) {
+            rowClass='de-row-highlight';
+        }
+        if (diffVal!==null&&diffVal!==valor) rowClass='diff-highlight';
+        const deLabel=num!==null?String(num).padStart(3,'0'):key;
+        const safeVal=(valor||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+        const copyAttr=enableCopy?`onclick="copiarValor('${safeVal}')" title="Click para copiar"`:'';
+        return `<tr class="${rowClass}">
+            <td><span class="de-num">DE(${deLabel})</span></td>
+            <td><span class="de-name">${nombre}</span></td>
+            <td class="${enableCopy?'copy-cell':''}" ${copyAttr}>
+                <span class="de-val">${valor||''}</span>${extraInfo}${badgeHtml}
+            </td>
+        </tr>`;
+    }
 
-        document.getElementById('emptyState').style.display = 'none';
-        document.getElementById('resultContent').style.display = 'block';
+    // Renderizar
+    function renderizar(apiData,dir='INP') {
+        const {code,des,msgtyp,sinRespuesta,meta}=parsearRespuesta(apiData);
+        document.getElementById('emptyState').style.display='none';
+        document.getElementById('resultContent').style.display='block';
+        const banner=document.getElementById('codeBanner');
 
-        const banner = document.getElementById('codeBanner');
-
-        // ── Sin respuesta OUT ──
         if (sinRespuesta) {
-            banner.className = 'code-banner neutro';
-            document.getElementById('codeIcon').textContent = '⏳';
-            document.getElementById('codeTitle').textContent = 'Sin mensaje de respuesta';
-            document.getElementById('codeDesc').textContent = 'Esta transacción no tiene trama de salida (OUT) registrada en el sistema';
-            document.getElementById('resultMeta').textContent = '0 DEs';
-            document.getElementById('metaBar').style.display = 'none';
-            document.getElementById('deTableBody').innerHTML = `
-                <tr>
-                    <td colspan="3" style="text-align:center; padding:40px; color:var(--text-muted); font-size:13px;">
-                        ⏳ No se encontró mensaje de respuesta para esta transacción
-                    </td>
-                </tr>`;
-            setStatus('idle', 'Sin respuesta OUT');
+            banner.className='code-banner neutro';
+            document.getElementById('codeIcon').textContent='⏳';
+            document.getElementById('codeTitle').textContent='Sin mensaje de respuesta';
+            document.getElementById('codeDesc').textContent='Esta transacción no tiene trama de salida (OUT) registrada';
+            document.getElementById('resultMeta').textContent='0 DEs';
+            document.getElementById('metaBar').style.display='none';
+            document.getElementById('deTableBody').innerHTML=`<tr><td colspan="3" style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px">⏳ No se encontró mensaje de respuesta</td></tr>`;
+            setStatus('idle','Sin respuesta OUT');
             markBits([]);
             return;
         }
 
-        // ── Con respuesta ──
-        const codeInfo = RESP_CODES[code] || { label: '', tipo: 'neutro', icon: '📨' };
-        banner.className = `code-banner neutro`;
-        document.getElementById('codeIcon').textContent = '📨';
+        banner.className='code-banner neutro';
+        document.getElementById('codeIcon').textContent='📨';
+        const mtiDesc=msgtyp&&MSG_TYPES[msgtyp]?MSG_TYPES[msgtyp]:'';
+        document.getElementById('codeTitle').textContent=msgtyp?`[${msgtyp}] ${mtiDesc}`:'Mensaje recibido';
+        document.getElementById('codeDesc').textContent=`${des.length} elementos recibidos`;
 
-        // Solo MTI en banner
-        const mtiDesc = msgtyp && MSG_TYPES[msgtyp] ? MSG_TYPES[msgtyp] : '';
-        const mtiLabel = msgtyp ? `[${msgtyp}] ${mtiDesc}` : 'Mensaje recibido';
-        document.getElementById('codeTitle').textContent = mtiLabel;
-        document.getElementById('codeDesc').textContent = `${des.length} elementos recibidos`;
+        const metaBar=document.getElementById('metaBar');
+        if (meta.hora||meta.idtx) {
+            metaBar.style.display='flex';
+            document.getElementById('metaHora').textContent=meta.hora||'—';
+            document.getElementById('metaIdtx').textContent=meta.idtx||'—';
+        } else { metaBar.style.display='none'; }
 
-        // Meta bar — HORA e ID
-        const metaBar = document.getElementById('metaBar');
-        if (meta.hora || meta.idtx) {
-            metaBar.style.display = 'flex';
-            document.getElementById('metaHora').textContent = meta.hora || '—';
-            document.getElementById('metaIdtx').textContent = meta.idtx || '—';
-        } else {
-            metaBar.style.display = 'none';
-        }
-
-        document.getElementById('resultMeta').textContent = `${des.length} DEs`;
-
-        const tbody = document.getElementById('deTableBody');
-        tbody.innerHTML = '';
-        const bits = [];
-
-        des.forEach(({ num, key, valor }) => {
-            if (num) bits.push(num);
-            const nombre = num && DE_NAMES[num] ? DE_NAMES[num] : key;
-            let rowClass = '';
-            let badgeHtml = '';
-            let extraInfo = '';
-
-            if (num === 39) {
-                const resp = RESP_CODES[valor?.trim()];
-                if (resp) {
-                    rowClass = resp.tipo === 'aprobado' ? 'de-row-approved' : 'de-row-rejected';
-                    badgeHtml = `<span class="badge-de ${resp.tipo === 'aprobado' ? 'badge-approved' : 'badge-rejected'}">${resp.icon} ${resp.label}</span>`;
-                }
-            } else if (num === 3) {
-                rowClass = 'de-row-highlight';
-                if (valor && valor.length >= 6) {
-                    const txType  = valor.substring(0,2);
-                    const fromAcc = valor.substring(2,4);
-                    const toAcc   = valor.substring(4,6);
-                    // Pos 1-2 = tipo de transacción
-                    const txNames  = {
-                        '00':'Compra',
-                        '01':'Retiro cajero',
-                        '02':'Anulación',
-                        '09':'Compra con cashback',
-                        '20':'Reverso',
-                        '28':'Pago de servicio',
-                        '30':'Consulta saldo'
-                    };
-                    // Pos 3-4 = tipo de cuenta
-                    const accNames = {
-                        '00':'Cuenta principal',
-                        '10':'Ahorro',
-                        '20':'Corriente',
-                        '30':'Crédito'
-                    };
-                    const cuentaTipo  = valor.substring(2,4);
-                    const txLabel     = txNames[txType]    || 'Tipo ' + txType;
-                    const cuentaLabel = accNames[cuentaTipo] || 'Cuenta ' + cuentaTipo;
-                    extraInfo = '<br><small style="color:var(--text-muted); font-size:11px;">🔄 ' + txLabel + ' &nbsp;|&nbsp; 💳 ' + cuentaLabel + '</small>';
-                }
-            } else if (num === 4 || num === 11) {
-                rowClass = 'de-row-highlight';
-            }
-
-            tbody.innerHTML += `
-                <tr class="${rowClass}">
-                    <td><span class="de-num">DE(${num !== null ? String(num).padStart(3,'0') : key})</span></td>
-                    <td><span class="de-name">${nombre}</span></td>
-                    <td>
-                        <span class="de-val">${valor || ''}</span>${extraInfo}
-                        ${badgeHtml}
-                    </td>
-                </tr>`;
+        document.getElementById('resultMeta').textContent=`${des.length} DEs`;
+        const tbody=document.getElementById('deTableBody');
+        tbody.innerHTML='';
+        const bits=[];
+        des.forEach(({num,key,valor})=>{
+            if(num) bits.push(num);
+            tbody.innerHTML+=buildRow(num,key,valor,null,true);
         });
-
         markBits(bits);
+        setStatus('ok','Respuesta recibida');
 
-        setStatus('ok', 'Respuesta recibida');
+        if (dir==='INP') cacheInp={des,msgtyp,code};
+        else             cacheOut={des,msgtyp,code};
+
+        document.getElementById('btnComparar').disabled=!(cacheInp&&cacheOut);
+        if (cacheInp&&cacheOut) document.getElementById('tabComparar').style.display='block';
     }
 
-    // ── EJECUTAR ──
+    // Historial
+    function agregarHistorial(idtx,nodx,modx,msgtyp,code) {
+        historial.unshift({
+            idtx,nodx,modx,msgtyp,code,
+            hora:new Date().toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
+        });
+        if (historial.length>10) historial.pop();
+        renderHistorial();
+    }
+
+    function renderHistorial() {
+        const list=document.getElementById('historialList');
+        if (!historial.length) { list.innerHTML='<div class="hist-empty">Sin consultas aún</div>'; return; }
+        list.innerHTML=historial.map((h,i)=>`
+            <div class="hist-item" onclick="cargarHistorial(${i})">
+                <div class="hist-id">${h.idtx}</div>
+                <div class="hist-meta">
+                    <span class="hist-nodo">${h.nodx}</span>
+                    <span class="hist-dir ${h.modx.toLowerCase()}">${h.modx}</span>
+                    <span class="hist-mti">${h.msgtyp?'['+h.msgtyp+']':''}</span>
+                    <span class="hist-hora">${h.hora}</span>
+                </div>
+            </div>`).join('');
+    }
+
+    function cargarHistorial(i) {
+        const h=historial[i];
+        document.getElementById('idtx').value=h.idtx;
+        document.getElementById('nodx').value=h.nodx;
+        selectModx(document.getElementById('modx'+h.modx),h.modx);
+        document.querySelectorAll('.hist-item').forEach((el,idx)=>el.classList.toggle('active-hist',idx===i));
+        ejecutar();
+    }
+
+    function limpiarHistorial() {
+        historial=[]; cacheInp=null; cacheOut=null;
+        renderHistorial();
+        document.getElementById('btnComparar').disabled=true;
+        document.getElementById('tabComparar').style.display='none';
+    }
+
+    // Comparar
+    function comparar() {
+        switchTab('comparar');
+        const outMap={}, inpMap={};
+        if (cacheOut) cacheOut.des.forEach(d=>{outMap[d.num||d.key]=d.valor;});
+        if (cacheInp) cacheInp.des.forEach(d=>{inpMap[d.num||d.key]=d.valor;});
+
+        const inpBody=document.getElementById('compareInpBody');
+        inpBody.innerHTML='';
+        if (cacheInp) cacheInp.des.forEach(({num,key,valor})=>{
+            const outVal=outMap[num||key];
+            inpBody.innerHTML+=buildRow(num,key,valor,outVal!==undefined?outVal:valor,false);
+        });
+        else inpBody.innerHTML='<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted)">Sin datos INP</td></tr>';
+
+        const outBody=document.getElementById('compareOutBody');
+        outBody.innerHTML='';
+        if (cacheOut) cacheOut.des.forEach(({num,key,valor})=>{
+            const inpVal=inpMap[num||key];
+            outBody.innerHTML+=buildRow(num,key,valor,inpVal!==undefined?inpVal:valor,false);
+        });
+        else outBody.innerHTML='<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted)">Sin datos OUT</td></tr>';
+    }
+
+    // Switch tabs
+    function switchTab(tab) {
+        const esNormal=tab==='normal';
+        document.getElementById('vistaId').style.display=esNormal?'flex':'none';
+        document.getElementById('vistaComparar').style.display=esNormal?'none':'block';
+        document.getElementById('vistaId').style.flexDirection='column';
+        document.getElementById('tabNormal').classList.toggle('active',esNormal);
+        document.getElementById('tabComparar').classList.toggle('active',!esNormal);
+    }
+
+    // Ejecutar
     async function ejecutar() {
-        const idtx = document.getElementById('idtx').value.trim();
-        const nodx = document.getElementById('nodx').value;
-        const modx = document.getElementById('modx').value;
+        const idtx=document.getElementById('idtx').value.trim();
+        const nodx=document.getElementById('nodx').value;
+        const modx=document.getElementById('modx').value;
+        if (!idtx||!nodx) return alert('Faltan parámetros');
 
-        if (!idtx || !nodx) return alert("Faltan parámetros");
-
-        const btn = document.getElementById('btnEjecutar');
-        btn.disabled = true;
-        document.getElementById('btnText').innerHTML = '<div class="spinner"></div>';
-        setStatus('loading', 'Consultando...');
+        const btn=document.getElementById('btnEjecutar');
+        btn.disabled=true;
+        document.getElementById('btnText').innerHTML='<div class="spinner"></div>';
+        setStatus('loading','Consultando...');
+        switchTab('normal');
 
         try {
-            const res = await fetch('/api/ejecutar-trarput', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idtx, nodx, modx })
+            const res=await fetch('/api/ejecutar-trarput',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({idtx,nodx,modx})
             });
-
-            const data = await res.json();
-            renderizar(data);
-
-        } catch (e) {
-            setStatus('error', 'Error de conexión');
-            alert("Error de comunicación: " + e.message);
+            const data=await res.json();
+            const {msgtyp,code}=parsearRespuesta(data);
+            renderizar(data,modx);
+            agregarHistorial(idtx,nodx,modx,msgtyp,code);
+        } catch(e) {
+            setStatus('error','Error de conexión');
+            alert('Error de comunicación: '+e.message);
         } finally {
-            btn.disabled = false;
-            document.getElementById('btnText').textContent = 'EJECUTAR';
+            btn.disabled=false;
+            document.getElementById('btnText').textContent='EJECUTAR';
         }
     }
 
-    // ── Limpiar ──
     function limpiarParametros() {
-        document.getElementById('idtx').value = '';
-        document.getElementById('nodx').value = '';
+        document.getElementById('idtx').value='';
+        document.getElementById('nodx').value='';
         markBits([]);
-        document.getElementById('emptyState').style.display = 'block';
-        document.getElementById('resultContent').style.display = 'none';
-        setStatus('idle', 'Listo');
+        document.getElementById('emptyState').style.display='block';
+        document.getElementById('resultContent').style.display='none';
+        setStatus('idle','Listo');
     }
 
     function cerrarSesion() {
-        if (confirm("¿Deseas cerrar la sesión?")) {
+        if (confirm('¿Deseas cerrar la sesión?')) {
             localStorage.removeItem('usuarioLogueado');
-            window.location.href = 'login.html';
+            window.location.href='login.html';
         }
     }
 
-    document.addEventListener('DOMContentLoaded', () => initBitmap(64));
+    document.addEventListener('DOMContentLoaded',()=>initBitmap(64));
 </script>
 </body>
 </html>
+
 
 
 
