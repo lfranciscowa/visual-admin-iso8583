@@ -537,14 +537,15 @@
         }
 
         // ── Con respuesta ──
-        const codeInfo = RESP_CODES[code] || { label: `Código ${code || 'desconocido'}`, tipo: 'neutro', icon: '📋' };
-        banner.className = `code-banner ${codeInfo.tipo}`;
-        document.getElementById('codeIcon').textContent = codeInfo.icon;
+        const codeInfo = RESP_CODES[code] || { label: '', tipo: 'neutro', icon: '📨' };
+        banner.className = `code-banner neutro`;
+        document.getElementById('codeIcon').textContent = '📨';
 
-        // MTI en banner
-        const mtiLabel = msgtyp && MSG_TYPES[msgtyp] ? `[${msgtyp}] ${MSG_TYPES[msgtyp]}` : (msgtyp ? `MTI: ${msgtyp}` : '');
-        document.getElementById('codeTitle').textContent = `${code ? 'DE(039): ' + code + ' — ' : ''}${codeInfo.label}`;
-        document.getElementById('codeDesc').textContent = `${mtiLabel ? mtiLabel + ' · ' : ''}${des.length} elementos recibidos`;
+        // Solo MTI en banner
+        const mtiDesc = msgtyp && MSG_TYPES[msgtyp] ? MSG_TYPES[msgtyp] : '';
+        const mtiLabel = msgtyp ? `[${msgtyp}] ${mtiDesc}` : 'Mensaje recibido';
+        document.getElementById('codeTitle').textContent = mtiLabel;
+        document.getElementById('codeDesc').textContent = `${des.length} elementos recibidos`;
 
         // Meta bar — HORA e ID
         const metaBar = document.getElementById('metaBar');
@@ -605,9 +606,7 @@
 
         markBits(bits);
 
-        if (code === '00') setStatus('ok', 'Aprobada');
-        else if (code && code !== 'ERR') setStatus('error', `Rechazada (${code})`);
-        else setStatus('idle', 'Respuesta recibida');
+        setStatus('ok', 'Respuesta recibida');
     }
 
     // ── EJECUTAR ──
@@ -663,6 +662,7 @@
 </script>
 </body>
 </html>
+
 
 
 
