@@ -166,7 +166,6 @@ app.post('/api/usuarios/:username/reenviar-clave', async (req, res) => {
 app.post('/api/ejecutar-trarput', async (req, res) => {
     const { idtx, nodx, modx } = req.body;
 
-    // Ajuste dinámico para usar el túnel de Serveo o IP local
     const baseUrl = process.env.API_BASE_URL || 'http://172.23.12.2:10022';
     const AS400_URL = `${baseUrl}/web/services/CRUD_PR01/prueba1`;
 
@@ -175,7 +174,11 @@ app.post('/api/ejecutar-trarput', async (req, res) => {
     try {
         const response = await fetch(AS400_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                // AJUSTE: Saltamos la advertencia de Serveo para que el fetch no falle
+                'bypass-tunnel-reminder': 'true' 
+            },
             body: JSON.stringify({
                 id_transaccion: idtx,
                 nodo: nodx,
@@ -196,7 +199,7 @@ app.post('/api/ejecutar-trarput', async (req, res) => {
             try {
                 parsed.data = JSON.parse(parsed.data);
             } catch {
-                // mantener como string si no es JSON
+                // mantener como string
             }
         }
 
