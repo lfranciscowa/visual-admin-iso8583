@@ -311,8 +311,8 @@
                 <option value="0412">0412</option>
                 <option value="0413">0413</option>
                 <option value="MDES">MDES</option>
-                <option value="Naiguata">Naiguata</option>
-                <option value="Everct">Everct</option>
+                <option value="NAIG">Naiguata</option>
+                <option value="EVER">Everct</option>
             </select>
         </div>
         <div class="field">
@@ -655,6 +655,7 @@
             document.getElementById('deTableBody').innerHTML =
                 `<tr><td colspan="3" style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px">⏳ No se encontró mensaje de respuesta</td></tr>`;
             setStatus('idle','Sin respuesta OUT');
+            initBitmap(64);
             markBits([], false);
             return;
         }
@@ -690,6 +691,9 @@
         });
 
         // 🎬 Animación 3 — Bitmap destello escalonado
+        // Solo mostramos 128 bits si hay DEs en el bitmap secundario (num > 64)
+        const necesitaDoble = bits.some(n => n > 64);
+        initBitmap(necesitaDoble ? 128 : 64);
         markBits(bits, true);
 
         setStatus('ok','Respuesta recibida');
@@ -811,6 +815,7 @@
     function limpiarParametros() {
         document.getElementById('idtx').value='';
         document.getElementById('nodx').value='';
+        initBitmap(64);
         markBits([], false);
         document.getElementById('emptyState').style.display='block';
         document.getElementById('resultContent').style.display='none';
@@ -828,12 +833,3 @@
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
