@@ -5,7 +5,7 @@ const crypto  = require('crypto');
 const nodemailer = require('nodemailer');
 const db = require('./database');
 const os = require('os');
-
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 require('dotenv').config();
 
 const app = express();
