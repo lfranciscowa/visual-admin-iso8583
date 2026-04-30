@@ -166,7 +166,8 @@ app.post('/api/usuarios/:username/reenviar-clave', async (req, res) => {
 app.post('/api/ejecutar-trarput', async (req, res) => {
     const { idtx, nodx, modx } = req.body;
 
-    const AS400_URL = 'http://172.23.12.2:10022/web/services/CRUD_PR01/prueba1';
+    // Ajuste dinámico para usar el túnel de Serveo o IP local
+    const baseUrl = process.env.API_BASE_URL || 'http://172.23.12.2:10022';
     const AS400_URL = `${baseUrl}/web/services/CRUD_PR01/prueba1`;
 
     console.log(`📡 Reenviando petición a: ${AS400_URL}`);
@@ -184,7 +185,6 @@ app.post('/api/ejecutar-trarput', async (req, res) => {
 
         const rawText = await response.text();
 
-        // Parsear respuesta principal
         let parsed;
         try {
             parsed = JSON.parse(rawText);
@@ -192,12 +192,11 @@ app.post('/api/ejecutar-trarput', async (req, res) => {
             parsed = { rawData: rawText };
         }
 
-        // Si data viene como string JSON, parsearlo también
         if (parsed.data && typeof parsed.data === 'string') {
             try {
                 parsed.data = JSON.parse(parsed.data);
             } catch {
-                // dejarlo como string si no es JSON válido
+                // mantener como string si no es JSON
             }
         }
 
