@@ -167,6 +167,9 @@ app.post('/api/ejecutar-trarput', async (req, res) => {
     const { idtx, nodx, modx } = req.body;
 
     const AS400_URL = 'http://172.23.12.2:10022/web/services/CRUD_PR01/prueba1';
+    const AS400_URL = `${baseUrl}/web/services/CRUD_PR01/prueba1`;
+
+    console.log(`📡 Reenviando petición a: ${AS400_URL}`);
 
     try {
         const response = await fetch(AS400_URL, {
@@ -201,7 +204,8 @@ app.post('/api/ejecutar-trarput', async (req, res) => {
         res.status(response.status).json({ ok: response.ok, ...parsed });
 
     } catch (err) {
-        res.status(500).json({ ok: false, msg: err.message });
+        console.error('❌ Error en el túnel:', err.message);
+        res.status(500).json({ ok: false, msg: `Error de conexión: ${err.message}` });
     }
 });
 
