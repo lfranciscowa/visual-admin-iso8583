@@ -118,6 +118,12 @@
 
         .sidebar-bitmap { background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:10px; }
         .bitmap-grid-mini { display:grid;grid-template-columns:repeat(8,1fr);gap:3px; }
+        .bitmap-grid-mini .bit-separator {
+            grid-column: 1 / -1;
+            height: 1px;
+            background: var(--border);
+            margin: 2px 0;
+        }
         .bit-cell {
             aspect-ratio:1;border-radius:3px;display:flex;align-items:center;justify-content:center;
             font-family:var(--mono);font-size:7px;font-weight:700;background:#fff;
@@ -484,11 +490,18 @@
     let historial = [], cacheInp = null, cacheOut = null;
 
     // ── Bitmap ──────────────────────────────────────────────────────────────────
-    function initBitmap(size=64) {
+    function initBitmap(size=128) {
         const grid = document.getElementById('bitmapGrid');
         grid.innerHTML = '';
-        for (let i=1;i<=size;i++)
+        for (let i=1;i<=size;i++) {
+            // Separador visual entre bitmap primario (1-64) y secundario (65-128)
+            if (i === 65) {
+                grid.insertAdjacentHTML('beforeend',
+                    `<div class="bit-separator"></div>`
+                );
+            }
             grid.insertAdjacentHTML('beforeend',`<div class="bit-cell" id="bit-${i}">${i}</div>`);
+        }
     }
 
     /**
@@ -497,8 +510,8 @@
      * @param {boolean}  animate  - true = destello escalonado (respuesta nueva)
      */
     function markBits(nums, animate=false) {
-        // Apagar todos
-        for (let i=1;i<=64;i++) {
+        // Apagar todos (ahora hasta 128)
+        for (let i=1;i<=128;i++) {
             const b = document.getElementById(`bit-${i}`);
             if (b) { b.classList.remove('active','flash'); }
         }
@@ -811,7 +824,7 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded',()=>initBitmap(64));
+    document.addEventListener('DOMContentLoaded',()=>initBitmap(128));
 </script>
 </body>
 </html>
