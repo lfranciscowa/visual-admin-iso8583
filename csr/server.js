@@ -25,22 +25,27 @@ app.get('/', (req, res) => {
 const mailConfig = {
     host: process.env.MAIL_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.MAIL_PORT) || 587,
-    secure: false, // true para 465, false para otros puertos
+    secure: false, 
     auth: {
         user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS // ⚠️ Recuerda usar la "Contraseña de Aplicación"
+        pass: process.env.MAIL_PASS
     },
-    // ✅ ESTO CORRIGE EL ERROR ENETUNREACH EN RENDER
+    // 1. Forzamos el uso de IPv4 a nivel de socket
     family: 4, 
+    // 2. FORZAMOS la resolución DNS a IPv4 (Esto elimina el error ENETUNREACH)
     dnsLookup: (hostname, options, callback) => {
-        require('dns').lookup(hostname, { family: 4 }, callback);
+        const dns = require('dns');
+        dns.lookup(hostname, { family: 4 }, (err, address, family) => {
+            callback(err, address, family);
+        });
     },
     tls: {
-        // Ayuda a que la conexión no sea rechazada por certificados
-        rejectUnauthorized: false 
+        // Evita fallos de handshake en servidores compartidos
+        rejectUnauthorized: false,
+        minVersion: 'TLSv1.2'
     },
-    connectionTimeout: 10000, 
-    greetingTimeout: 10000
+    connectionTimeout: 15000, // Damos más margen por la latencia desde Caracas
+    greetingTimeout: 15000
 };
 
 const transporter = nodemailer.createTransport(mailConfig);
