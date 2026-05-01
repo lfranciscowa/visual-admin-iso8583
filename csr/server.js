@@ -23,29 +23,23 @@ app.get('/', (req, res) => {
 // CONFIGURACIÓN DE CORREO (Nodemailer)
 // ============================================================
 const mailConfig = {
-    host: process.env.MAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.MAIL_PORT) || 465,
-    secure: false, 
+   host: '142.251.10.108', 
+    port: 587,
+    secure: false,
     auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASS
     },
-    // 1. Forzamos el uso de IPv4 a nivel de socket
+    // Forzamos IPv4 a nivel de socket
     family: 4, 
-    // 2. FORZAMOS la resolución DNS a IPv4 (Esto elimina el error ENETUNREACH)
-    dnsLookup: (hostname, options, callback) => {
-        const dns = require('dns');
-        dns.lookup(hostname, { family: 4 }, (err, address, family) => {
-            callback(err, address, family);
-        });
-    },
     tls: {
-        // Evita fallos de handshake en servidores compartidos
-        rejectUnauthorized: false,
-        minVersion: 'TLSv1.2'
+        // Obligatorio: como usamos IP en el host, el nombre del servidor no coincidirá
+        // con el certificado, por lo que debemos decir que no rechace la conexión.
+        servername: 'smtp.gmail.com',
+        rejectUnauthorized: false
     },
-    connectionTimeout: 15000, // Damos más margen por la latencia desde Caracas
-    greetingTimeout: 15000
+    connectionTimeout: 20000,
+    greetingTimeout: 20000
 };
 
 const transporter = nodemailer.createTransport(mailConfig);
