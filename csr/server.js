@@ -23,19 +23,26 @@ app.get('/', (req, res) => {
 // CONFIGURACIÓN DE CORREO (Nodemailer)
 // ============================================================
 const mailConfig = {
-    host:   process.env.MAIL_HOST || 'smtp.gmail.com',
-    port:   parseInt(process.env.MAIL_PORT) || 587,
-    secure: false,
+    host: process.env.MAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.MAIL_PORT) || 587,
+    secure: false, // true para 465, false para otros puertos
     auth: {
         user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
+        pass: process.env.MAIL_PASS // ⚠️ Recuerda usar la "Contraseña de Aplicación"
     },
-    // ✅ FIX IPv6: Render no tiene salida IPv6 — forzar IPv4
-    family: 4,
-    connectionTimeout: 8000,
-    greetingTimeout:   5000,
-    socketTimeout:     8000
+    // ✅ ESTO CORRIGE EL ERROR ENETUNREACH EN RENDER
+    family: 4, 
+    dnsLookup: (hostname, options, callback) => {
+        require('dns').lookup(hostname, { family: 4 }, callback);
+    },
+    tls: {
+        // Ayuda a que la conexión no sea rechazada por certificados
+        rejectUnauthorized: false 
+    },
+    connectionTimeout: 10000, 
+    greetingTimeout: 10000
 };
+
 const transporter = nodemailer.createTransport(mailConfig);
 
 // ✅ FIX: Verificar el transporter al arrancar para detectar problemas de credenciales
