@@ -496,8 +496,13 @@
     // ============================================================
     // CREAR USUARIO
     // ============================================================
-    document.getElementById('perfilFormModal').onsubmit = async (e) => {
+   document.getElementById('perfilFormModal').onsubmit = async (e) => {
         e.preventDefault();
+        
+        const btnSubmit = e.target.querySelector('button[type="submit"]');
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = '⏳ Creando...';
+
         const datos = {
             nombre:          document.getElementById('mNombre').value.trim(),
             user:            document.getElementById('mUser').value.toUpperCase().trim(),
@@ -522,9 +527,11 @@
             }
         } catch {
             Swal.fire('Sin conexión', 'No se pudo contactar con el servidor.', 'error');
+        } finally {
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = '💾 Crear y Enviar Clave';
         }
     };
-
     // ============================================================
     // TOGGLE ESTADO
     // ============================================================
