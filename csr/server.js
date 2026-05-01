@@ -30,7 +30,8 @@ const mailConfig = {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASS
     },
-    // ✅ FIX: Timeout para que no bloquee indefinidamente
+    // ✅ FIX IPv6: Render no tiene salida IPv6 — forzar IPv4
+    family: 4,
     connectionTimeout: 8000,
     greetingTimeout:   5000,
     socketTimeout:     8000
