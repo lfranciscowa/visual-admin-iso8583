@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "start": "node index.js",
+    "start": "node server.js",
     "postinstall": "npm rebuild sqlite3 --build-from-source || exit 0"
   },
   "dependencies": {
