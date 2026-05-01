@@ -13,10 +13,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS ---
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- RUTA RAÍZ ---
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
@@ -26,14 +24,28 @@ app.get('/', (req, res) => {
 // ============================================================
 const mailConfig = {
     host:   process.env.MAIL_HOST || 'smtp.gmail.com',
-    port:   process.env.MAIL_PORT || 587,
+    port:   parseInt(process.env.MAIL_PORT) || 587,
     secure: false,
     auth: {
-        user: process.env.MAIL_USER || 'lfranciscowa@gmail.com',
-        pass: process.env.MAIL_PASS || 'qhuahqcuelcwstff'
-    }
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS
+    },
+    // ✅ FIX: Timeout para que no bloquee indefinidamente
+    connectionTimeout: 8000,
+    greetingTimeout:   5000,
+    socketTimeout:     8000
 };
 const transporter = nodemailer.createTransport(mailConfig);
+
+// ✅ FIX: Verificar el transporter al arrancar para detectar problemas de credenciales
+transporter.verify((error) => {
+    if (error) {
+        console.error('❌ SMTP NO conectado:', error.message);
+        console.error('   → Revisa MAIL_USER y MAIL_PASS en tu .env');
+    } else {
+        console.log('✅ SMTP listo para enviar correos');
+    }
+});
 
 async function enviarClaveEmail(email, username, tempPass) {
     const mailOptions = {
@@ -95,6 +107,7 @@ app.get('/api/usuarios', async (req, res) => {
 });
 
 // 3. CREAR USUARIO
+// ✅ FIX PRINCIPAL: Responde al cliente inmediatamente y envía el email en segundo plano
 app.post('/api/usuarios', async (req, res) => {
     const { nombre, user, email, rol, nodos, password, requiere_cambio, estado } = req.body;
     try {
@@ -102,13 +115,15 @@ app.post('/api/usuarios', async (req, res) => {
                      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`;
         await db.query(sql, [nombre, user, email, rol, JSON.stringify(nodos), password, requiere_cambio, estado]);
         console.log(`✅ Usuario ${user} creado en DB`);
-        try {
-            await enviarClaveEmail(email, user, password);
-            console.log(`✅ Email enviado a ${email}`);
-        } catch (mailErr) {
-            console.error(`⚠️ Email falló pero usuario creado:`, mailErr.message);
-        }
+
+        // ✅ FIX: Responder ANTES de enviar el correo — el cliente no espera el SMTP
         res.json({ ok: true });
+
+        // Envío en segundo plano (no bloquea la respuesta)
+        enviarClaveEmail(email, user, password)
+            .then(() => console.log(`✅ Email enviado a ${email}`))
+            .catch(err => console.error(`⚠️  Email falló para ${user} (${email}):`, err.message));
+
     } catch (error) {
         console.error('❌ Error al crear usuario:', error.message);
         res.status(500).json({ ok: false, msg: error.message });
@@ -160,8 +175,14 @@ app.post('/api/usuarios/:username/reenviar-clave', async (req, res) => {
     const nuevaClave = crypto.randomBytes(4).toString('hex').toUpperCase();
     try {
         await db.query('UPDATE usuarios SET password = $1, requiere_cambio = 1 WHERE username = $2', [nuevaClave, username]);
-        await enviarClaveEmail(email, username, nuevaClave);
+
+        // ✅ FIX: También responder primero en reenvío de clave
         res.json({ ok: true });
+
+        enviarClaveEmail(email, username, nuevaClave)
+            .then(() => console.log(`✅ Clave reenviada a ${email}`))
+            .catch(err => console.error(`⚠️  Reenvío falló para ${username}:`, err.message));
+
     } catch (error) {
         res.status(500).json({ ok: false, msg: "Error al reenviar" });
     }
@@ -183,7 +204,6 @@ app.post('/api/ejecutar-trarput', async (req, res) => {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                // AJUSTE: Saltamos la advertencia de Serveo para que el fetch no falle
                 'bypass-tunnel-reminder': 'true' 
             },
             body: JSON.stringify({
@@ -194,20 +214,13 @@ app.post('/api/ejecutar-trarput', async (req, res) => {
         });
 
         const rawText = await response.text();
-
         let parsed;
-        try {
-            parsed = JSON.parse(rawText);
-        } catch {
-            parsed = { rawData: rawText };
-        }
+        try { parsed = JSON.parse(rawText); }
+        catch { parsed = { rawData: rawText }; }
 
         if (parsed.data && typeof parsed.data === 'string') {
-            try {
-                parsed.data = JSON.parse(parsed.data);
-            } catch {
-                // mantener como string
-            }
+            try { parsed.data = JSON.parse(parsed.data); }
+            catch { /* mantener como string */ }
         }
 
         res.status(response.status).json({ ok: response.ok, ...parsed });
@@ -239,7 +252,7 @@ const inicializarAdmin = async () => {
             await db.query(
                 `INSERT INTO usuarios (nombre, username, email, rol, nodos, password, requiere_cambio, estado) 
                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-                ['Administrador', 'admin', 'lfranciscowa@gmail.com', 'ADMIN', '[]', 'admin123', 0, 'ACTIVO']
+                ['Administrador', 'admin', process.env.MAIL_USER, 'ADMIN', '[]', 'admin123', 0, 'ACTIVO']
             );
             console.log('👤 USUARIO ADMIN CREADO EXITOSAMENTE');
         } else {
