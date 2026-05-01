@@ -101,10 +101,17 @@ app.post('/api/usuarios', async (req, res) => {
         const sql = `INSERT INTO usuarios (nombre, username, email, rol, nodos, password, requiere_cambio, estado) 
                      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`;
         await db.query(sql, [nombre, user, email, rol, JSON.stringify(nodos), password, requiere_cambio, estado]);
-        await enviarClaveEmail(email, user, password);
+        console.log(`✅ Usuario ${user} creado en DB`);
+        try {
+            await enviarClaveEmail(email, user, password);
+            console.log(`✅ Email enviado a ${email}`);
+        } catch (mailErr) {
+            console.error(`⚠️ Email falló pero usuario creado:`, mailErr.message);
+        }
         res.json({ ok: true });
     } catch (error) {
-        res.status(500).json({ ok: false, msg: "Error al crear usuario" });
+        console.error('❌ Error al crear usuario:', error.message);
+        res.status(500).json({ ok: false, msg: error.message });
     }
 });
 
