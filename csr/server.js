@@ -24,7 +24,7 @@ app.get('/', (req, res) => {
 // ============================================================
 const mailConfig = {
     host: process.env.MAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.MAIL_PORT) || 587,
+    port: parseInt(process.env.MAIL_PORT) || 465,
     secure: false, 
     auth: {
         user: process.env.MAIL_USER,
