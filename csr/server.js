@@ -166,8 +166,8 @@ app.post('/api/usuarios/:username/reenviar-clave', async (req, res) => {
 app.post('/api/ejecutar-trarput', async (req, res) => {
     const { idtx, nodx, modx } = req.body;
 
-    const baseUrl = process.env.API_BASE_URL || 'http://172.23.12.2:10022';
-    const AS400_URL = `${baseUrl}/web/services/CRUD_PR01/prueba1`;
+    const AS400_URL = process.env.AS400_RELAY_URL 
+    || 'http://172.23.12.2:10022/web/services/CRUD_PR01/prueba1';
 
     console.log(`📡 Reenviando petición a: ${AS400_URL}`);
 
