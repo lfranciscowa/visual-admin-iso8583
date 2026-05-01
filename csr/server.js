@@ -23,19 +23,22 @@ app.get('/', (req, res) => {
 // CONFIGURACIÓN DE CORREO (Nodemailer)
 // ============================================================
 const mailConfig = {
-host: 'smtp.gmail.com',
-    port: 465,         // 👈 Cambiamos 587 por 465
-    secure: true,      // 👈 Cambiamos false por true (SSL obligatorio para 465)
+host: '173.194.76.108', 
+    port: 465,
+    secure: true,
     auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASS
     },
-    // Forzado de IPv4 que ya te funcionó
-    family: 4,
+    // Forzamos IPv4 a nivel de socket por si acaso
+    family: 4, 
     tls: {
+        // MUY IMPORTANTE: Como usamos una IP, debemos decirle a TLS 
+        // que el certificado que debe validar es el de gmail.
+        servername: 'smtp.gmail.com',
         rejectUnauthorized: false
     },
-    connectionTimeout: 20000, // Aumentamos a 20 seg por latencia
+    connectionTimeout: 20000,
     greetingTimeout: 20000
 };
 
