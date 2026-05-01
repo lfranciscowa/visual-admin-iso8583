@@ -167,7 +167,7 @@ app.post('/api/ejecutar-trarput', async (req, res) => {
     const { idtx, nodx, modx } = req.body;
 
     const AS400_URL = process.env.AS400_RELAY_URL 
-    || 'http://172.23.12.2:10022/web/services/CRUD_PR01/prueba1';
+    || 'http://172.23.12.2:10022/web/services/CRUD_PR01/prueba1'; 
 
     console.log(`📡 Reenviando petición a: ${AS400_URL}`);
 
