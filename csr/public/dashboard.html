@@ -1056,9 +1056,9 @@
         cacheInp.des.forEach(d => inpMap[d.num ?? d.key] = d);
         cacheOut.des.forEach(d => outMap[d.num ?? d.key] = d);
 
-        const totalDiff = allNums.filter(key => {
-            return (inpMap[key]?.valor ?? '') !== (outMap[key]?.valor ?? '');
-        }).length;
+        const totalDiff = allNums.filter(key =>
+            (inpMap[key]?.valor ?? '') !== (outMap[key]?.valor ?? '')
+        ).length;
 
         const filas = allNums.map(key => {
             const inp    = inpMap[key], out = outMap[key];
@@ -1070,115 +1070,144 @@
             const outVal = out?.valor ?? '';
             const diff   = inpVal !== outVal;
 
-            // Color de fila según tipo
             let rowBg = '#fff';
             if (num === 39) {
                 const r = RESP_CODES[(outVal || inpVal).trim()];
-                if (r) rowBg = r.tipo === 'aprobado' ? '#dcfce7' : '#fff1f2';
+                if (r) rowBg = r.tipo === 'aprobado' ? '#f0fdf4' : '#fff1f2';
             } else if (diff) {
-                rowBg = '#fffbeb';  // amarillo muy suave para filas con diferencia
+                rowBg = '#fffbeb';
             } else if ([3,4,11].includes(num)) {
                 rowBg = '#eff6ff';
             }
 
-            // Badge DIFF solo en celda OUT, pequeño y discreto
-            const diffBadge = diff
-                ? `<br><span style="font-size:8px;background:#f59e0b;color:#fff;padding:1px 5px;border-radius:3px;font-weight:700;letter-spacing:.04em">DIFF</span>`
+            const diffTag = diff
+                ? `<span style="display:inline-block;margin-top:3px;font-size:8px;background:#f59e0b;color:#fff;padding:1px 6px;border-radius:3px;font-weight:800;letter-spacing:.05em">DIFF</span>`
                 : '';
 
-            // Celdas INP y OUT con fondo diferenciado pero texto siempre legible
-            const inpCell = inpVal
-                ? `<span style="font-family:monospace;font-size:10px;color:#1e3a5f;word-break:break-all">${inpVal}</span>`
-                : `<span style="color:#cbd5e1;font-size:10px">—</span>`;
+            const inpDisplay = inpVal
+                ? `<span style="font-family:monospace;font-size:10px;color:#1e3a5f;word-break:break-all;line-height:1.5">${inpVal}</span>`
+                : `<span style="color:#d1d5db;font-size:10px">—</span>`;
 
-            const outCell = outVal
-                ? `<span style="font-family:monospace;font-size:10px;color:${diff ? '#b45309' : '#1e3a5f'};word-break:break-all;font-weight:${diff ? '700' : '400'}">${outVal}</span>${diffBadge}`
-                : `<span style="color:#cbd5e1;font-size:10px">—</span>`;
+            const outDisplay = outVal
+                ? `<div style="font-family:monospace;font-size:10px;color:${diff?'#92400e':'#1e3a5f'};word-break:break-all;font-weight:${diff?'700':'400'};line-height:1.5">${outVal}</div>${diffTag}`
+                : `<div style="color:#d1d5db;font-size:10px">—</div>${diffTag}`;
 
             return `<tr style="background:${rowBg}">
-                <td style="font-family:monospace;font-weight:700;color:#2563eb;width:70px;font-size:10px;padding:7px 8px;border-bottom:1px solid #f1f5f9;white-space:nowrap">${deLabel}</td>
-                <td style="color:#64748b;font-size:10px;padding:7px 8px;border-bottom:1px solid #f1f5f9;max-width:130px">${nombre}</td>
-                <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;border-left:2px solid #d1fae5;background:${diff ? '#f0fdf4' : 'transparent'}">${inpCell}</td>
-                <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;border-left:2px solid ${diff ? '#fcd34d' : '#fed7aa'};background:${diff ? '#fffbeb' : 'transparent'}">${outCell}</td>
+                <td style="width:65px;white-space:nowrap;padding:7px 8px;border-bottom:1px solid #f1f5f9;vertical-align:top">
+                    <span style="font-family:monospace;font-weight:700;color:#2563eb;font-size:10px">${deLabel}</span>
+                </td>
+                <td style="width:120px;padding:7px 8px;border-bottom:1px solid #f1f5f9;vertical-align:top">
+                    <span style="color:#64748b;font-size:9px;line-height:1.4">${nombre}</span>
+                </td>
+                <td style="width:50%;padding:7px 10px;border-bottom:1px solid #f1f5f9;border-left:3px solid #bbf7d0;vertical-align:top">
+                    ${inpDisplay}
+                </td>
+                <td style="width:50%;padding:7px 10px;border-bottom:1px solid #f1f5f9;border-left:3px solid ${diff?'#fcd34d':'#fed7aa'};vertical-align:top">
+                    ${outDisplay}
+                </td>
             </tr>`;
         }).join('');
 
-        const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-        <title>Comparación INP vs OUT — ${idtx}</title>
-        <style>
-            *{box-sizing:border-box;margin:0;padding:0}
-            body{font-family:Sora,Segoe UI,Arial,sans-serif;color:#1e1b4b;padding:24px;font-size:12px;background:#fff}
-            .hdr{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:3px solid #7c3aed;padding-bottom:12px;margin-bottom:14px}
-            .logo{font-size:20px;font-weight:800;color:#2563eb;letter-spacing:-.5px}
-            .logo span{color:#7c3aed}
-            .sub{font-size:12px;font-weight:700;color:#7c3aed;margin-top:4px}
-            .hdr-right{text-align:right;font-size:10px;color:#64748b}
-            .hdr-right strong{display:block;font-size:12px;color:#1e1b4b;margin-bottom:2px}
-            .meta{display:flex;gap:16px;flex-wrap:wrap;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 16px;margin-bottom:12px}
-            .mi{display:flex;flex-direction:column;gap:2px}
-            .ml{font-size:9px;font-weight:700;text-transform:uppercase;color:#7c7aaa;letter-spacing:.06em}
-            .mv{font-family:monospace;font-size:11px;font-weight:700;color:#1e1b4b;margin-top:1px}
-            .chips{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-            .chip{padding:4px 12px;border-radius:6px;font-size:10px;font-weight:700;border:1px solid transparent}
-            table{width:100%;border-collapse:collapse}
-            thead tr{background:#1e1b4b;color:#fff}
-            thead th{padding:8px 10px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
-            .th-inp{background:#059669 !important}
-            .th-out{background:#b45309 !important}
-            tbody tr:last-child td{border-bottom:none !important}
-            tbody tr:hover{filter:brightness(.97)}
-            .ft{margin-top:14px;text-align:center;font-size:9px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:8px}
-            @media print{body{padding:12px} .ft{position:fixed;bottom:0;width:100%}}
-        </style></head><body>
+        const pdfHtml = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<title>Comparación INP vs OUT — ${idtx}</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family: Segoe UI, Arial, sans-serif; color:#1e1b4b; background:#fff; padding:20px; font-size:11px; }
 
-        <div class="hdr">
-            <div>
-                <div class="logo">Visual <span>Admin</span></div>
-                <div class="sub">⚖️ Comparación INP vs OUT · ISO 8583</div>
-            </div>
-            <div class="hdr-right">
-                <strong>INP [${cacheInp.msgtyp||'—'}] &nbsp;→&nbsp; OUT [${cacheOut.msgtyp||'—'}]</strong>
-                ${ahora}
-            </div>
-        </div>
+  /* HEADER */
+  .hdr { display:flex; justify-content:space-between; align-items:flex-start;
+         border-bottom:3px solid #7c3aed; padding-bottom:10px; margin-bottom:12px; }
+  .logo { font-size:18px; font-weight:800; color:#2563eb; }
+  .logo span { color:#7c3aed; }
+  .sub { font-size:11px; font-weight:700; color:#7c3aed; margin-top:3px; }
+  .hdr-r { text-align:right; font-size:10px; color:#64748b; }
+  .hdr-r strong { display:block; font-size:11px; color:#1e1b4b; margin-bottom:2px; }
 
-        <div class="meta">
-            <div class="mi"><span class="ml">Nodo</span><span class="mv">${nodx}</span></div>
-            <div class="mi"><span class="ml">ID Transacción</span><span class="mv" style="font-size:9px;letter-spacing:-.02em">${idtx}</span></div>
-            <div class="mi"><span class="ml">DEs INP</span><span class="mv">${cacheInp.des.length}</span></div>
-            <div class="mi"><span class="ml">DEs OUT</span><span class="mv">${cacheOut.des.length}</span></div>
-            <div class="mi"><span class="ml">Generado</span><span class="mv" style="font-size:9px">${ahora}</span></div>
-        </div>
+  /* META */
+  .meta { display:flex; gap:14px; flex-wrap:wrap;
+          background:#f5f3ff; border:1px solid #ddd6fe; border-radius:7px;
+          padding:9px 14px; margin-bottom:10px; }
+  .mi { display:flex; flex-direction:column; gap:1px; }
+  .ml { font-size:8px; font-weight:700; text-transform:uppercase; color:#7c7aaa; letter-spacing:.06em; }
+  .mv { font-family:monospace; font-size:10px; font-weight:700; color:#1e1b4b; margin-top:1px; }
 
-        <div class="chips">
-            <div class="chip" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe">📊 ${allNums.length} DEs totales</div>
-            <div class="chip" style="background:${totalDiff>0?'#fef9c3':'#dcfce7'};color:${totalDiff>0?'#92400e':'#15803d'};border-color:${totalDiff>0?'#fcd34d':'#86efac'}">
-                ${totalDiff>0?'⚠️':'✅'} ${totalDiff} diferencias detectadas
-            </div>
-            <div class="chip" style="background:#dcfce7;color:#065f46;border-color:#86efac">📥 INP: ${cacheInp.des.length} DEs</div>
-            <div class="chip" style="background:#fef3c7;color:#78350f;border-color:#fcd34d">📤 OUT: ${cacheOut.des.length} DEs</div>
-        </div>
+  /* CHIPS */
+  .chips { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:12px; }
+  .chip  { padding:3px 11px; border-radius:5px; font-size:10px; font-weight:700; border:1px solid transparent; }
 
-        <table>
-            <thead>
-                <tr>
-                    <th style="width:70px">DE #</th>
-                    <th style="min-width:120px">Nombre</th>
-                    <th class="th-inp">📥 INP — Entrada</th>
-                    <th class="th-out">📤 OUT — Salida</th>
-                </tr>
-            </thead>
-            <tbody>${filas}</tbody>
-        </table>
+  /* TABLE — layout fijo para control exacto de columnas */
+  table  { width:100%; border-collapse:collapse; table-layout:fixed; }
+  thead tr { background:#1e1b4b; color:#fff; }
+  thead th  { padding:8px 10px; text-align:left; font-size:9px;
+              text-transform:uppercase; letter-spacing:.06em; font-weight:700; }
+  .th-de   { width:65px; }
+  .th-nm   { width:120px; }
+  .th-inp  { background:#059669; width:50%; }
+  .th-out  { background:#b45309; width:50%; }
 
-        <div class="ft">
-            Visual Admin v2.0 &nbsp;·&nbsp; Comparación INP vs OUT &nbsp;·&nbsp; ${ahora} &nbsp;·&nbsp;
-            ${totalDiff} diferencias &nbsp;·&nbsp; Infraestructura de datos bancarios
-        </div>
-        </body></html>`;
+  tbody td { vertical-align:top; }
+  tbody tr:hover { filter:brightness(.97); }
 
-        const w = window.open('','_blank','width=1200,height=800');
-        w.document.write(html);
+  /* FOOTER */
+  .ft { margin-top:12px; text-align:center; font-size:9px; color:#94a3b8;
+        border-top:1px solid #e2e8f0; padding-top:8px; }
+
+  @media print {
+    body { padding:12px; }
+    table { page-break-inside:auto; }
+    tr    { page-break-inside:avoid; }
+  }
+</style>
+</head><body>
+
+<div class="hdr">
+  <div>
+    <div class="logo">Visual <span>Admin</span></div>
+    <div class="sub">⚖️ Comparación INP vs OUT · ISO 8583</div>
+  </div>
+  <div class="hdr-r">
+    <strong>INP [${cacheInp.msgtyp||'—'}] &nbsp;→&nbsp; OUT [${cacheOut.msgtyp||'—'}]</strong>
+    ${ahora}
+  </div>
+</div>
+
+<div class="meta">
+  <div class="mi"><span class="ml">Nodo</span><span class="mv">${nodx}</span></div>
+  <div class="mi"><span class="ml">ID Transacción</span><span class="mv" style="font-size:9px">${idtx}</span></div>
+  <div class="mi"><span class="ml">DEs INP</span><span class="mv">${cacheInp.des.length}</span></div>
+  <div class="mi"><span class="ml">DEs OUT</span><span class="mv">${cacheOut.des.length}</span></div>
+</div>
+
+<div class="chips">
+  <div class="chip" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe">📊 ${allNums.length} DEs totales</div>
+  <div class="chip" style="background:${totalDiff>0?'#fef9c3':'#dcfce7'};color:${totalDiff>0?'#92400e':'#15803d'};border-color:${totalDiff>0?'#fcd34d':'#86efac'}">
+    ${totalDiff>0?'⚠️':'✅'} ${totalDiff} diferencias
+  </div>
+  <div class="chip" style="background:#dcfce7;color:#065f46;border-color:#86efac">📥 INP: ${cacheInp.des.length}</div>
+  <div class="chip" style="background:#fef3c7;color:#78350f;border-color:#fcd34d">📤 OUT: ${cacheOut.des.length}</div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th class="th-de">DE #</th>
+      <th class="th-nm">Nombre</th>
+      <th class="th-inp">📥 INP — Entrada</th>
+      <th class="th-out">📤 OUT — Salida</th>
+    </tr>
+  </thead>
+  <tbody>${filas}</tbody>
+</table>
+
+<div class="ft">
+  Visual Admin v2.0 &nbsp;·&nbsp; Comparación INP vs OUT &nbsp;·&nbsp;
+  ${ahora} &nbsp;·&nbsp; ${totalDiff} diferencias &nbsp;·&nbsp; Infraestructura de datos bancarios
+</div>
+</body></html>`;
+
+        const w = window.open('','_blank','width=1200,height=850');
+        w.document.write(pdfHtml);
         w.document.close();
         w.onload = () => { w.focus(); w.print(); };
         mostrarToast('🖨️ PDF comparación listo');
