@@ -1057,91 +1057,129 @@
         cacheOut.des.forEach(d => outMap[d.num ?? d.key] = d);
 
         const totalDiff = allNums.filter(key => {
-            const iv = inpMap[key]?.valor ?? '';
-            const ov = outMap[key]?.valor ?? '';
-            return iv !== ov;
+            return (inpMap[key]?.valor ?? '') !== (outMap[key]?.valor ?? '');
         }).length;
 
         const filas = allNums.map(key => {
             const inp    = inpMap[key], out = outMap[key];
             const num    = inp?.num ?? out?.num;
             const nombre = (num && DE_NAMES[num]) ? DE_NAMES[num] : (inp?.key ?? out?.key ?? key);
-            const deLabel = (num !== null && num !== undefined) ? 'DE(' + String(num).padStart(3,'0') + ')' : String(key);
-            const inpVal = inp?.valor ?? '', outVal = out?.valor ?? '';
+            const deLabel = (num !== null && num !== undefined)
+                ? 'DE(' + String(num).padStart(3,'0') + ')' : String(key);
+            const inpVal = inp?.valor ?? '';
+            const outVal = out?.valor ?? '';
             const diff   = inpVal !== outVal;
 
-            let rowBg = diff ? '#fefce8' : '#fff';
+            // Color de fila según tipo
+            let rowBg = '#fff';
             if (num === 39) {
                 const r = RESP_CODES[(outVal || inpVal).trim()];
                 if (r) rowBg = r.tipo === 'aprobado' ? '#dcfce7' : '#fff1f2';
-            } else if ([3,4,11].includes(num) && !diff) rowBg = '#eff6ff';
+            } else if (diff) {
+                rowBg = '#fffbeb';  // amarillo muy suave para filas con diferencia
+            } else if ([3,4,11].includes(num)) {
+                rowBg = '#eff6ff';
+            }
 
+            // Badge DIFF solo en celda OUT, pequeño y discreto
             const diffBadge = diff
-                ? `<span style="font-size:9px;background:#fbbf24;color:#92400e;padding:1px 5px;border-radius:4px;font-weight:700;margin-left:4px">DIFF</span>`
+                ? `<br><span style="font-size:8px;background:#f59e0b;color:#fff;padding:1px 5px;border-radius:3px;font-weight:700;letter-spacing:.04em">DIFF</span>`
                 : '';
 
+            // Celdas INP y OUT con fondo diferenciado pero texto siempre legible
+            const inpCell = inpVal
+                ? `<span style="font-family:monospace;font-size:10px;color:#1e3a5f;word-break:break-all">${inpVal}</span>`
+                : `<span style="color:#cbd5e1;font-size:10px">—</span>`;
+
+            const outCell = outVal
+                ? `<span style="font-family:monospace;font-size:10px;color:${diff ? '#b45309' : '#1e3a5f'};word-break:break-all;font-weight:${diff ? '700' : '400'}">${outVal}</span>${diffBadge}`
+                : `<span style="color:#cbd5e1;font-size:10px">—</span>`;
+
             return `<tr style="background:${rowBg}">
-                <td style="font-family:monospace;font-weight:700;color:#2563eb;width:75px;font-size:10px">${deLabel}</td>
-                <td style="color:#64748b;font-size:10px">${nombre}</td>
-                <td style="font-family:monospace;font-size:10px;word-break:break-all;background:#f0fdf4;padding:6px 10px">${inpVal || '<span style="color:#cbd5e1">—</span>'}</td>
-                <td style="font-family:monospace;font-size:10px;word-break:break-all;background:#fff7ed;padding:6px 10px">${outVal || '<span style="color:#cbd5e1">—</span>'}${diffBadge}</td>
+                <td style="font-family:monospace;font-weight:700;color:#2563eb;width:70px;font-size:10px;padding:7px 8px;border-bottom:1px solid #f1f5f9;white-space:nowrap">${deLabel}</td>
+                <td style="color:#64748b;font-size:10px;padding:7px 8px;border-bottom:1px solid #f1f5f9;max-width:130px">${nombre}</td>
+                <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;border-left:2px solid #d1fae5;background:${diff ? '#f0fdf4' : 'transparent'}">${inpCell}</td>
+                <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;border-left:2px solid ${diff ? '#fcd34d' : '#fed7aa'};background:${diff ? '#fffbeb' : 'transparent'}">${outCell}</td>
             </tr>`;
         }).join('');
 
         const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
         <title>Comparación INP vs OUT — ${idtx}</title>
         <style>
-            *{box-sizing:border-box;margin:0;padding:0}body{font-family:Sora,Segoe UI,sans-serif;color:#1e1b4b;padding:28px;font-size:12px}
-            .hdr{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #7c3aed;padding-bottom:14px;margin-bottom:16px}
-            .logo{font-size:18px;font-weight:800;color:#2563eb}.logo span{color:#7c3aed}
-            .sub{font-size:13px;font-weight:700;color:#7c3aed;margin-top:3px}
-            .meta{display:flex;gap:20px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:12px 18px;margin-bottom:14px;flex-wrap:wrap}
-            .mi{display:flex;flex-direction:column;gap:2px}.ml{font-size:9px;font-weight:700;text-transform:uppercase;color:#7c7aaa}.mv{font-family:monospace;font-size:11px;font-weight:700;color:#1e1b4b}
-            .chips{display:flex;gap:10px;margin-bottom:14px}
-            .chip{padding:5px 14px;border-radius:8px;font-size:11px;font-weight:700}
-            table{width:100%;border-collapse:collapse;font-size:11px}
-            thead tr{background:#1e1b4b;color:white}
-            thead th{padding:9px 10px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.5px}
-            .th-inp{background:#059669}.th-out{background:#d97706}
-            tbody td{padding:7px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
-            tbody tr:last-child td{border-bottom:none}
-            .ft{margin-top:16px;text-align:center;font-size:10px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:10px}
-            @media print{body{padding:14px}}
+            *{box-sizing:border-box;margin:0;padding:0}
+            body{font-family:Sora,Segoe UI,Arial,sans-serif;color:#1e1b4b;padding:24px;font-size:12px;background:#fff}
+            .hdr{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:3px solid #7c3aed;padding-bottom:12px;margin-bottom:14px}
+            .logo{font-size:20px;font-weight:800;color:#2563eb;letter-spacing:-.5px}
+            .logo span{color:#7c3aed}
+            .sub{font-size:12px;font-weight:700;color:#7c3aed;margin-top:4px}
+            .hdr-right{text-align:right;font-size:10px;color:#64748b}
+            .hdr-right strong{display:block;font-size:12px;color:#1e1b4b;margin-bottom:2px}
+            .meta{display:flex;gap:16px;flex-wrap:wrap;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 16px;margin-bottom:12px}
+            .mi{display:flex;flex-direction:column;gap:2px}
+            .ml{font-size:9px;font-weight:700;text-transform:uppercase;color:#7c7aaa;letter-spacing:.06em}
+            .mv{font-family:monospace;font-size:11px;font-weight:700;color:#1e1b4b;margin-top:1px}
+            .chips{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+            .chip{padding:4px 12px;border-radius:6px;font-size:10px;font-weight:700;border:1px solid transparent}
+            table{width:100%;border-collapse:collapse}
+            thead tr{background:#1e1b4b;color:#fff}
+            thead th{padding:8px 10px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+            .th-inp{background:#059669 !important}
+            .th-out{background:#b45309 !important}
+            tbody tr:last-child td{border-bottom:none !important}
+            tbody tr:hover{filter:brightness(.97)}
+            .ft{margin-top:14px;text-align:center;font-size:9px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:8px}
+            @media print{body{padding:12px} .ft{position:fixed;bottom:0;width:100%}}
         </style></head><body>
+
         <div class="hdr">
-            <div><div class="logo">Visual <span>Admin</span></div><div class="sub">⚖️ Comparación INP vs OUT</div></div>
-            <div style="text-align:right;font-size:10px;color:#64748b">
-                <div style="font-weight:700;font-size:12px;color:#1e1b4b">INP [${cacheInp.msgtyp||'—'}] → OUT [${cacheOut.msgtyp||'—'}]</div>
-                <div>${ahora}</div>
+            <div>
+                <div class="logo">Visual <span>Admin</span></div>
+                <div class="sub">⚖️ Comparación INP vs OUT · ISO 8583</div>
+            </div>
+            <div class="hdr-right">
+                <strong>INP [${cacheInp.msgtyp||'—'}] &nbsp;→&nbsp; OUT [${cacheOut.msgtyp||'—'}]</strong>
+                ${ahora}
             </div>
         </div>
+
         <div class="meta">
             <div class="mi"><span class="ml">Nodo</span><span class="mv">${nodx}</span></div>
-            <div class="mi"><span class="ml">ID Transacción</span><span class="mv" style="font-size:9px">${idtx}</span></div>
+            <div class="mi"><span class="ml">ID Transacción</span><span class="mv" style="font-size:9px;letter-spacing:-.02em">${idtx}</span></div>
             <div class="mi"><span class="ml">DEs INP</span><span class="mv">${cacheInp.des.length}</span></div>
             <div class="mi"><span class="ml">DEs OUT</span><span class="mv">${cacheOut.des.length}</span></div>
+            <div class="mi"><span class="ml">Generado</span><span class="mv" style="font-size:9px">${ahora}</span></div>
         </div>
+
         <div class="chips">
-            <div class="chip" style="background:#eff6ff;color:#1d4ed8">📊 ${allNums.length} DEs totales</div>
-            <div class="chip" style="background:${totalDiff>0?'#fef9c3':'#dcfce7'};color:${totalDiff>0?'#92400e':'#15803d'}">
-                ${totalDiff>0?'⚠️':'✅'} ${totalDiff} diferencias
+            <div class="chip" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe">📊 ${allNums.length} DEs totales</div>
+            <div class="chip" style="background:${totalDiff>0?'#fef9c3':'#dcfce7'};color:${totalDiff>0?'#92400e':'#15803d'};border-color:${totalDiff>0?'#fcd34d':'#86efac'}">
+                ${totalDiff>0?'⚠️':'✅'} ${totalDiff} diferencias detectadas
             </div>
-            <div class="chip" style="background:#dcfce7;color:#059669">📥 INP: ${cacheInp.des.length}</div>
-            <div class="chip" style="background:#fff7ed;color:#c2410c">📤 OUT: ${cacheOut.des.length}</div>
+            <div class="chip" style="background:#dcfce7;color:#065f46;border-color:#86efac">📥 INP: ${cacheInp.des.length} DEs</div>
+            <div class="chip" style="background:#fef3c7;color:#78350f;border-color:#fcd34d">📤 OUT: ${cacheOut.des.length} DEs</div>
         </div>
+
         <table>
-            <thead><tr>
-                <th style="width:75px">DE #</th><th>Nombre</th>
-                <th class="th-inp">📥 INP — Entrada</th>
-                <th class="th-out">📤 OUT — Salida</th>
-            </tr></thead>
+            <thead>
+                <tr>
+                    <th style="width:70px">DE #</th>
+                    <th style="min-width:120px">Nombre</th>
+                    <th class="th-inp">📥 INP — Entrada</th>
+                    <th class="th-out">📤 OUT — Salida</th>
+                </tr>
+            </thead>
             <tbody>${filas}</tbody>
         </table>
-        <div class="ft">Visual Admin v2.0 · Comparación INP vs OUT · ${ahora} · ${totalDiff} diferencias</div>
+
+        <div class="ft">
+            Visual Admin v2.0 &nbsp;·&nbsp; Comparación INP vs OUT &nbsp;·&nbsp; ${ahora} &nbsp;·&nbsp;
+            ${totalDiff} diferencias &nbsp;·&nbsp; Infraestructura de datos bancarios
+        </div>
         </body></html>`;
 
-        const w = window.open('','_blank','width=1100,height=750');
-        w.document.write(html); w.document.close();
+        const w = window.open('','_blank','width=1200,height=800');
+        w.document.write(html);
+        w.document.close();
         w.onload = () => { w.focus(); w.print(); };
         mostrarToast('🖨️ PDF comparación listo');
     }
@@ -1150,3 +1188,4 @@
 </script>
 </body>
 </html>
+
