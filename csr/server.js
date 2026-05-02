@@ -1,8 +1,10 @@
 const express = require('express');
+const net     = require('net');
 const cors    = require('cors');
 const path    = require('path');
 const crypto  = require('crypto');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 const db = require('./database');
 const os = require('os');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
@@ -20,43 +22,13 @@ app.get('/', (req, res) => {
 });
 
 // ============================================================
-// CONFIGURACIÓN DE CORREO (Nodemailer)
+// CONFIGURACIÓN DE CORREO (Resend — funciona en Render via HTTPS)
 // ============================================================
-const mailConfig = {
-host: '173.194.76.108', 
-    port: 465,
-    secure: true,
-    auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
-    },
-    // Forzamos IPv4 a nivel de socket por si acaso
-    family: 4, 
-    tls: {
-        // MUY IMPORTANTE: Como usamos una IP, debemos decirle a TLS 
-        // que el certificado que debe validar es el de gmail.
-        servername: 'smtp.gmail.com',
-        rejectUnauthorized: false
-    },
-    connectionTimeout: 20000,
-    greetingTimeout: 20000
-};
-
-const transporter = nodemailer.createTransport(mailConfig);
-
-// ✅ FIX: Verificar el transporter al arrancar para detectar problemas de credenciales
-transporter.verify((error) => {
-    if (error) {
-        console.error('❌ SMTP NO conectado:', error.message);
-        console.error('   → Revisa MAIL_USER y MAIL_PASS en tu .env');
-    } else {
-        console.log('✅ SMTP listo para enviar correos');
-    }
-});
+// ✅ Resend usa HTTP en vez de SMTP, evitando el bloqueo de Render
 
 async function enviarClaveEmail(email, username, tempPass) {
-    const mailOptions = {
-        from: `"Visual Admin" <${mailConfig.auth.user}>`,
+    const { data, error } = await resend.emails.send({
+        from: 'Visual Admin <onboarding@resend.dev>',
         to: email,
         subject: 'Acceso al Sistema - Clave Temporal',
         html: `<h3>Bienvenido al Sistema</h3>
@@ -66,8 +38,16 @@ async function enviarClaveEmail(email, username, tempPass) {
                  <li><strong>Clave Temporal:</strong> ${tempPass}</li>
                </ul>
                <p>Deberás cambiarla en tu primer ingreso.</p>`
-    };
-    return transporter.sendMail(mailOptions);
+    });
+    if (error) throw new Error(error.message);
+    return data;
+}
+
+// Verificar API key al arrancar
+if (!process.env.RESEND_API_KEY) {
+    console.error('❌ RESEND_API_KEY no definida en variables de entorno');
+} else {
+    console.log('✅ Resend configurado correctamente');
 }
 
 // ============================================================
@@ -195,6 +175,65 @@ app.post('/api/usuarios/:username/reenviar-clave', async (req, res) => {
     }
 });
 
+
+// ============================================================
+// MONITOR DE NODOS — PING AS/400
+// ============================================================
+// Envía una transacción liviana a cada nodo y mide respuesta.
+// Si el AS/400 responde (cualquier HTTP 2xx), el nodo está ACTIVO.
+// Si hay timeout o error de red, está INACTIVO/TIMEOUT.
+
+app.post('/api/monitor/ping', async (req, res) => {
+    const { nodo } = req.body;
+    if (!nodo) return res.status(400).json({ ok: false, msg: 'Nodo requerido' });
+
+    const AS400_URL = process.env.AS400_RELAY_URL
+        || 'http://172.23.12.2:10022/web/services/CRUD_PR01/prueba1';
+
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 5000);
+
+    try {
+        const t0 = Date.now();
+        const response = await fetch(AS400_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'bypass-tunnel-reminder': 'true'
+            },
+            body: JSON.stringify({
+                id_transaccion: 'PING',   // Transacción de healthcheck
+                nodo:           nodo,
+                idx:            '00'
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        const latencia = Date.now() - t0;
+        const rawText  = await response.text();
+
+        // Cualquier respuesta HTTP del AS/400 = nodo activo
+        if (response.ok || response.status < 500) {
+            console.log(`✅ PING OK nodo ${nodo} · ${latencia}ms`);
+            return res.json({ ok: true, nodo, latencia });
+        } else {
+            console.warn(`⚠️  PING FAIL nodo ${nodo} · HTTP ${response.status}`);
+            return res.json({ ok: false, nodo, latencia, msg: `HTTP ${response.status}` });
+        }
+
+    } catch (err) {
+        clearTimeout(timeoutId);
+        const esTimeout = err.name === 'AbortError';
+        console.warn(`❌ PING ${esTimeout ? 'TIMEOUT' : 'ERROR'} nodo ${nodo}: ${err.message}`);
+        return res.status(200).json({
+            ok:  false,
+            nodo,
+            msg: esTimeout ? 'TIMEOUT' : err.message
+        });
+    }
+});
+
 // ============================================================
 // COMUNICACIÓN CON AS/400 (TERMINAL ISO 8583)
 // ============================================================
@@ -236,6 +275,148 @@ app.post('/api/ejecutar-trarput', async (req, res) => {
         console.error('❌ Error en el túnel:', err.message);
         res.status(500).json({ ok: false, msg: `Error de conexión: ${err.message}` });
     }
+});
+
+
+// ============================================================
+// MONITOR DE PUERTOS TCP — AS/400 SOCKET SERVERS
+// ============================================================
+// Usa net.createConnection() para verificar si cada puerto
+// acepta conexiones TCP (igual que lo hace el AS/400 con select()).
+// La IP se configura por ambiente via AS400_IP en .env / Render.
+
+const PUERTOS_AS400 = [
+    { puerto: 34021, nombre: 'Pagos Movistar',       job: 'AISMO34021' },
+    { puerto: 34022, nombre: 'Pagos Digitel',         job: 'AISDI34022' },
+    { puerto: 34023, nombre: 'Pagos Movilnet',        job: 'AISMV34023' },
+    { puerto: 34024, nombre: 'Cierre Aisino',         job: 'AISCI34024' },
+    { puerto: 34025, nombre: 'Pagos Wifi',            job: 'AISWI34025' },
+    { puerto: 34026, nombre: 'Recarga Digitel/Ekk',   job: 'AISRD34026' },
+];
+
+// Estado en memoria de cada puerto
+const portState = {};
+PUERTOS_AS400.forEach(p => {
+    portState[p.puerto] = {
+        puerto:    p.puerto,
+        nombre:    p.nombre,
+        job:       p.job,
+        status:    'unknown',     // up | down | unknown
+        desde:     null,          // timestamp del último cambio de estado
+        downSince: null,          // timestamp cuando cayó (null si está UP)
+        ultimoUp:  null,          // timestamp del último recovery
+        eventos:   [],            // historial [{ts, tipo, duracion}]
+    };
+});
+
+// Clientes SSE conectados
+const sseClients = new Set();
+
+// Verificar un puerto TCP con timeout
+function checkPort(ip, puerto, timeoutMs = 4000) {
+    return new Promise((resolve) => {
+        const t0     = Date.now();
+        const socket = new net.Socket();
+        let done     = false;
+
+        const finish = (up, err) => {
+            if (done) return;
+            done = true;
+            socket.destroy();
+            resolve({ up, latencia: Date.now() - t0, error: err || null });
+        };
+
+        socket.setTimeout(timeoutMs);
+        socket.connect(puerto, ip, () => finish(true, null));
+        socket.on('error',   (e) => finish(false, e.message));
+        socket.on('timeout', ()  => finish(false, 'TCP timeout'));
+    });
+}
+
+// Actualizar estado y emitir eventos SSE si hubo cambio
+function actualizarEstado(puerto, resultado) {
+    const s      = portState[puerto];
+    const ahora  = Date.now();
+    const wasUp  = s.status === 'up';
+    const isUp   = resultado.up;
+
+    if (isUp && !wasUp) {
+        // Recuperación
+        const duracionCaida = s.downSince ? ahora - s.downSince : 0;
+        s.eventos.unshift({ ts: ahora, tipo: 'recovery', duracion: duracionCaida });
+        if (s.eventos.length > 50) s.eventos.pop();
+        s.status    = 'up';
+        s.ultimoUp  = ahora;
+        s.downSince = null;
+        s.desde     = ahora;
+        console.log(`✅ Puerto ${puerto} RECUPERADO · estuvo caído ${Math.round(duracionCaida/1000)}s`);
+
+    } else if (!isUp && wasUp) {
+        // Caída
+        s.eventos.unshift({ ts: ahora, tipo: 'down', error: resultado.error });
+        if (s.eventos.length > 50) s.eventos.pop();
+        s.status    = 'down';
+        s.downSince = ahora;
+        s.desde     = ahora;
+        console.warn(`❌ Puerto ${puerto} CAÍDO: ${resultado.error}`);
+
+    } else if (s.status === 'unknown') {
+        s.status    = isUp ? 'up' : 'down';
+        s.desde     = ahora;
+        if (!isUp) s.downSince = ahora;
+    }
+
+    s.latencia = resultado.latencia;
+}
+
+// Ciclo de verificación cada 10 segundos
+async function cicloMonitor() {
+    const ip = process.env.AS400_IP || '172.23.12.2';
+    await Promise.allSettled(
+        PUERTOS_AS400.map(async ({ puerto }) => {
+            const resultado = await checkPort(ip, puerto);
+            actualizarEstado(puerto, resultado);
+        })
+    );
+    // Emitir estado actualizado a todos los clientes SSE
+    broadcastSSE({ tipo: 'update', data: Object.values(portState) });
+}
+
+function broadcastSSE(payload) {
+    const msg = `data: ${JSON.stringify(payload)}\n\n`;
+    sseClients.forEach(res => {
+        try { res.write(msg); } catch (_) { sseClients.delete(res); }
+    });
+}
+
+// Iniciar ciclo al arrancar (esperar 3s para que el server esté listo)
+setTimeout(() => {
+    cicloMonitor();
+    setInterval(cicloMonitor, 10000);
+}, 3000);
+
+// SSE endpoint — el browser se suscribe aquí
+app.get('/api/monitor/stream', (req, res) => {
+    res.setHeader('Content-Type',  'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection',    'keep-alive');
+    res.flushHeaders();
+
+    // Enviar estado actual inmediatamente al conectar
+    res.write(`data: ${JSON.stringify({ tipo: 'init', data: Object.values(portState) })}\n\n`);
+
+    sseClients.add(res);
+    console.log(`📡 SSE cliente conectado · total: ${sseClients.size}`);
+
+    req.on('close', () => {
+        sseClients.delete(res);
+        console.log(`📡 SSE cliente desconectado · total: ${sseClients.size}`);
+    });
+});
+
+// GET snapshot puntual (para carga inicial sin SSE)
+app.get('/api/monitor/estado', (req, res) => {
+    res.json(Object.values(portState));
 });
 
 // ============================================================
