@@ -786,22 +786,29 @@
         const inpBody=document.getElementById('compareInpBody');
         inpBody.innerHTML='';
         if (cacheInp) cacheInp.des.forEach(({num,key,valor},idx)=>{
-            const outVal=outMap[num||key];
-            inpBody.innerHTML+=buildRow(num,key,valor,outVal!==undefined?outVal:valor,false,idx);
+            const outVal = outMap[num||key];
+            // DIFF solo si OUT también existe y es diferente — si no existe, sin badge
+            const diffVal = (outVal !== undefined && outVal !== valor) ? outVal : valor;
+            inpBody.innerHTML+=buildRow(num,key,valor,diffVal,false,idx);
         });
         else inpBody.innerHTML='<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted)">Sin datos INP</td></tr>';
 
         const outBody=document.getElementById('compareOutBody');
         outBody.innerHTML='';
         if (cacheOut) cacheOut.des.forEach(({num,key,valor},idx)=>{
-            const inpVal=inpMap[num||key];
-            outBody.innerHTML+=buildRow(num,key,valor,inpVal!==undefined?inpVal:valor,false,idx);
+            const inpVal = inpMap[num||key];
+            // DIFF solo si INP también existe y es diferente — si no existe, sin badge
+            const diffVal = (inpVal !== undefined && inpVal !== valor) ? inpVal : valor;
+            outBody.innerHTML+=buildRow(num,key,valor,diffVal,false,idx);
         });
         else outBody.innerHTML='<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted)">Sin datos OUT</td></tr>';
 
         // ✅ Calcular y mostrar badge de diferencias
         const allKeys = new Set([...Object.keys(inpMap), ...Object.keys(outMap)]);
-        const diffs   = [...allKeys].filter(k => inpMap[k] !== outMap[k]).length;
+        // Solo cuenta DIFF cuando ambos lados tienen el campo y los valores son distintos
+        const diffs   = [...allKeys].filter(k =>
+            inpMap[k] !== undefined && outMap[k] !== undefined && inpMap[k] !== outMap[k]
+        ).length;
         const badge   = document.getElementById('diffBadge');
         if (badge) {
             badge.textContent = diffs > 0 ? `⚠️ ${diffs} diferencias` : '✅ Sin diferencias';
@@ -1056,8 +1063,10 @@
         cacheInp.des.forEach(d => inpMap[d.num ?? d.key] = d);
         cacheOut.des.forEach(d => outMap[d.num ?? d.key] = d);
 
+        // Solo DIFF cuando AMBOS campos existen y son distintos
         const totalDiff = allNums.filter(key =>
-            (inpMap[key]?.valor ?? '') !== (outMap[key]?.valor ?? '')
+            inpMap[key] !== undefined && outMap[key] !== undefined &&
+            inpMap[key].valor !== outMap[key].valor
         ).length;
 
         const filas = allNums.map(key => {
@@ -1068,29 +1077,39 @@
                 ? 'DE(' + String(num).padStart(3,'0') + ')' : String(key);
             const inpVal = inp?.valor ?? '';
             const outVal = out?.valor ?? '';
-            const diff   = inpVal !== outVal;
+            // DIFF real: ambos campos existen y son distintos
+            // Ausente: el campo no viene en uno de los lados (no es DIFF, es ausencia)
+            const inpExiste = inp !== undefined;
+            const outExiste = out !== undefined;
+            const diff      = inpExiste && outExiste && (inpVal !== outVal);
+            const ausente   = (inpExiste && !outExiste) || (!inpExiste && outExiste);
 
             let rowBg = '#fff';
             if (num === 39) {
                 const r = RESP_CODES[(outVal || inpVal).trim()];
                 if (r) rowBg = r.tipo === 'aprobado' ? '#f0fdf4' : '#fff1f2';
             } else if (diff) {
-                rowBg = '#fffbeb';
+                rowBg = '#fffbeb';   // amarillo suave = diferencia real
+            } else if (ausente) {
+                rowBg = '#f8fafc';   // gris muy suave = campo ausente en uno
             } else if ([3,4,11].includes(num)) {
                 rowBg = '#eff6ff';
             }
 
+            // Badge DIFF solo en diferencias reales, no en ausencias
             const diffTag = diff
                 ? `<span style="display:inline-block;margin-top:3px;font-size:8px;background:#f59e0b;color:#fff;padding:1px 6px;border-radius:3px;font-weight:800;letter-spacing:.05em">DIFF</span>`
                 : '';
 
-            const inpDisplay = inpVal
+            // Celda INP
+            const inpDisplay = inpExiste && inpVal
                 ? `<span style="font-family:monospace;font-size:10px;color:#1e3a5f;word-break:break-all;line-height:1.5">${inpVal}</span>`
-                : `<span style="color:#d1d5db;font-size:10px">—</span>`;
+                : `<span style="color:#d1d5db;font-size:10px;font-style:italic">no enviado</span>`;
 
-            const outDisplay = outVal
+            // Celda OUT — si no existe, mostrar vacío con nota para verificar bitmap
+            const outDisplay = outExiste && outVal
                 ? `<div style="font-family:monospace;font-size:10px;color:${diff?'#92400e':'#1e3a5f'};word-break:break-all;font-weight:${diff?'700':'400'};line-height:1.5">${outVal}</div>${diffTag}`
-                : `<div style="color:#d1d5db;font-size:10px">—</div>${diffTag}`;
+                : `<div style="color:#94a3b8;font-size:9px;font-style:italic">— verificar bitmap</div>`;
 
             return `<tr style="background:${rowBg}">
                 <td style="width:65px;white-space:nowrap;padding:7px 8px;border-bottom:1px solid #f1f5f9;vertical-align:top">
