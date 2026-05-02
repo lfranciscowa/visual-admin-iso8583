@@ -34,53 +34,34 @@
             overflow: hidden;
         }
 
-        /* ================================================================
-           🎬 ANIMACIONES — Sprint 2 #5
-        ================================================================ */
-
-        /* 1️⃣  Banner: slide-down con rebote suave */
         @keyframes bannerSlideDown {
             0%   { opacity: 0; transform: translateY(-20px) scale(0.97); }
             70%  { opacity: 1; transform: translateY(3px)   scale(1.01); }
             100% { opacity: 1; transform: translateY(0)     scale(1);    }
         }
-        .banner-animate {
-            animation: bannerSlideDown 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
+        .banner-animate { animation: bannerSlideDown 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-        /* 2️⃣  Filas DE: fade-in de abajo hacia arriba, delay variable vía inline style */
         @keyframes rowFadeIn {
             from { opacity: 0; transform: translateY(12px); }
             to   { opacity: 1; transform: translateY(0);    }
         }
-        .de-row-anim {
-            opacity: 0;
-            animation: rowFadeIn 0.32s ease forwards;
-        }
+        .de-row-anim { opacity: 0; animation: rowFadeIn 0.32s ease forwards; }
 
-        /* 3️⃣  Bit del bitmap: destello al encenderse */
         @keyframes bitFlash {
-            0%   { transform: scale(1);    box-shadow: none;                          background: var(--blue-main); }
+            0%   { transform: scale(1);    box-shadow: none; background: var(--blue-main); }
             35%  { transform: scale(1.45); box-shadow: 0 0 10px 2px rgba(37,99,235,.65); background: #93c5fd; }
-            70%  { transform: scale(0.95); box-shadow: 0 0 4px rgba(37,99,235,.3);   background: var(--blue-main); }
-            100% { transform: scale(1);    box-shadow: none;                          background: var(--blue-main); }
+            70%  { transform: scale(0.95); box-shadow: 0 0 4px rgba(37,99,235,.3); background: var(--blue-main); }
+            100% { transform: scale(1);    box-shadow: none; background: var(--blue-main); }
         }
-        .bit-cell.flash {
-            animation: bitFlash 0.5s ease forwards;
-        }
+        .bit-cell.flash { animation: bitFlash 0.5s ease forwards; }
 
-        /* meta-bar: desliza desde la izquierda */
         @keyframes metaSlide {
             from { opacity: 0; transform: translateX(-10px); }
             to   { opacity: 1; transform: translateX(0); }
         }
-        .meta-animate {
-            animation: metaSlide 0.38s ease 0.18s both;
-        }
+        .meta-animate { animation: metaSlide 0.38s ease 0.18s both; }
 
-        /* ================================================================
-           SIDEBAR
-        ================================================================ */
+        /* SIDEBAR */
         .sidebar {
             width: 300px; min-width: 300px;
             background: var(--white);
@@ -119,10 +100,8 @@
         .sidebar-bitmap { background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:10px; }
         .bitmap-grid-mini { display:grid;grid-template-columns:repeat(8,1fr);gap:3px; }
         .bitmap-grid-mini .bit-separator {
-            grid-column: 1 / -1;
-            height: 1px;
-            background: var(--border);
-            margin: 2px 0;
+            grid-column: 1 / -1; height: 1px;
+            background: var(--border); margin: 2px 0;
         }
         .bit-cell {
             aspect-ratio:1;border-radius:3px;display:flex;align-items:center;justify-content:center;
@@ -158,7 +137,6 @@
         }
         .btn-clear:hover { background:#f1f5f9;color:var(--text-dark); }
 
-        /* Historial */
         .historial-section { border-top:1px solid var(--border);padding:16px; }
         .historial-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:10px; }
         .historial-title { font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-muted); }
@@ -180,7 +158,6 @@
         .hist-hora { font-size:9px;color:var(--text-muted);margin-left:auto; }
         .hist-empty { font-size:11px;color:var(--text-muted);text-align:center;padding:12px 0; }
 
-        /* Main */
         .main-view { flex:1;display:flex;flex-direction:column;overflow:hidden; }
         .main-topbar {
             padding:14px 24px;border-bottom:1px solid var(--border);background:var(--white);
@@ -263,6 +240,45 @@
         .compare-label.inp { background:#dcfce7;color:var(--success); }
         .compare-label.out { background:var(--warning-pale);color:var(--warning); }
 
+        /* ── Export dropdown ── */
+        .export-wrap { position:relative; }
+        .btn-export {
+            background: var(--white); border: 1px solid var(--border); border-radius: 8px;
+            padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer;
+            font-family: var(--sans); color: var(--text-dark); transition: all .2s;
+            display: flex; align-items: center; gap: 4px; white-space: nowrap;
+        }
+        .btn-export:hover { border-color: var(--blue-main); color: var(--blue-main); background: var(--blue-pale); }
+        .export-arrow { font-size: 10px; transition: transform .2s; }
+        .export-wrap.open .export-arrow { transform: rotate(180deg); }
+        .export-menu {
+            display: none; position: absolute; right: 0; top: calc(100% + 6px);
+            background: var(--white); border: 1px solid var(--border); border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.10); z-index: 100; min-width: 200px;
+            overflow: hidden;
+        }
+        .export-wrap.open .export-menu { display: block; }
+        .export-menu button {
+            width: 100%; padding: 10px 14px; font-size: 12px; font-weight: 600;
+            text-align: left; background: none; border: none; cursor: pointer;
+            font-family: var(--sans); color: var(--text-dark); transition: background .15s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .export-menu button:hover { background: var(--blue-pale); color: var(--blue-main); }
+        .export-menu button + button { border-top: 1px solid var(--border); }
+
+        /* compare top bar */
+        .compare-topbar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 14px; padding: 10px 14px;
+            background: var(--white); border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+        .diff-badge {
+            font-size: 11px; font-weight: 700; padding: 3px 12px;
+            border-radius: 20px; margin-left: 10px;
+        }
+
         .toast {
             position:fixed;bottom:24px;right:24px;
             background:#1e1b4b;color:white;padding:10px 18px;
@@ -277,32 +293,6 @@
 
         .spinner { width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite; }
         @keyframes spin { to { transform:rotate(360deg); } }
-        /* ── Exportar dropdown ─────────────────────────────────────────────── */
-        .export-wrap { position:relative; }
-        .btn-export {
-            background: var(--white); border: 1px solid var(--border); border-radius: 8px;
-            padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer;
-            font-family: var(--sans); color: var(--text-dark); transition: all .2s;
-            display: flex; align-items: center; gap: 4px; white-space: nowrap;
-        }
-        .btn-export:hover { border-color: var(--blue-main); color: var(--blue-main); background: var(--blue-pale); }
-        .export-arrow { font-size: 10px; transition: transform .2s; }
-        .export-wrap.open .export-arrow { transform: rotate(180deg); }
-        .export-menu {
-            display: none; position: absolute; right: 0; top: calc(100% + 6px);
-            background: var(--white); border: 1px solid var(--border); border-radius: 10px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.10); z-index: 100; min-width: 170px;
-            overflow: hidden;
-        }
-        .export-wrap.open .export-menu { display: block; }
-        .export-menu button {
-            width: 100%; padding: 10px 14px; font-size: 12px; font-weight: 600;
-            text-align: left; background: none; border: none; cursor: pointer;
-            font-family: var(--sans); color: var(--text-dark); transition: background .15s;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .export-menu button:hover { background: var(--blue-pale); color: var(--blue-main); }
-        .export-menu button + button { border-top: 1px solid var(--border); }
     </style>
 </head>
 <body>
@@ -412,6 +402,7 @@
                 <button class="view-tab" id="tabComparar" onclick="switchTab('comparar')" style="display:none">⚖️ Comparar INP / OUT</button>
             </div>
 
+            <!-- VISTA RESULTADO NORMAL -->
             <div id="vistaId" class="result-wrapper">
                 <div id="codeBanner" class="code-banner neutro">
                     <div class="code-icon" id="codeIcon">📋</div>
@@ -437,11 +428,11 @@
                             <span class="result-meta" id="resultMeta"></span>
                             <div class="export-wrap" id="exportWrap">
                                 <button class="btn-export" onclick="toggleExportMenu(event)">
-                                    &#x2B07;&#xFE0F; Exportar <span class="export-arrow">&#9662;</span>
+                                    ⬇️ Exportar <span class="export-arrow">▾</span>
                                 </button>
                                 <div class="export-menu" id="exportMenu">
-                                    <button onclick="exportarTXT()">&#x1F4C4; Descargar TXT</button>
-                                    <button onclick="exportarPDF()">&#x1F5A8;&#xFE0F; Descargar PDF</button>
+                                    <button onclick="exportarTXT()">📄 Descargar TXT</button>
+                                    <button onclick="exportarPDF()">🖨️ Descargar PDF</button>
                                 </div>
                             </div>
                         </div>
@@ -453,7 +444,28 @@
                 </div>
             </div>
 
+            <!-- VISTA COMPARAR INP vs OUT -->
             <div id="vistaComparar" style="display:none">
+
+                <!-- Barra superior con stats y botón exportar -->
+                <div class="compare-topbar">
+                    <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:var(--text-dark);">
+                        ⚖️ Comparando INP vs OUT
+                        <span class="diff-badge" id="diffBadge"
+                              style="background:var(--warning-pale);color:var(--warning)"></span>
+                    </div>
+                    <!-- ✅ Botón exportar comparación -->
+                    <div class="export-wrap" id="exportWrapCmp">
+                        <button class="btn-export" onclick="toggleExportMenuCmp(event)">
+                            ⬇️ Exportar comparación <span class="export-arrow">▾</span>
+                        </button>
+                        <div class="export-menu" id="exportMenuCmp">
+                            <button onclick="exportarTXT()">📄 TXT — INP + OUT</button>
+                            <button onclick="exportarPDF()">🖨️ PDF — INP + OUT</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="compare-grid">
                     <div class="compare-col">
                         <div class="compare-label inp">📥 INP — Entrada</div>
@@ -525,43 +537,30 @@
     };
 
     let historial = [], cacheInp = null, cacheOut = null;
+    let exportCache = { des:[], msgtyp:'', meta:{}, nodx:'', modx:'', idtx:'' };
 
     // ── Bitmap ──────────────────────────────────────────────────────────────────
     function initBitmap(size=128) {
         const grid = document.getElementById('bitmapGrid');
         grid.innerHTML = '';
         for (let i=1;i<=size;i++) {
-            // Separador visual entre bitmap primario (1-64) y secundario (65-128)
-            if (i === 65) {
-                grid.insertAdjacentHTML('beforeend',
-                    `<div class="bit-separator"></div>`
-                );
-            }
+            if (i === 65) grid.insertAdjacentHTML('beforeend',`<div class="bit-separator"></div>`);
             grid.insertAdjacentHTML('beforeend',`<div class="bit-cell" id="bit-${i}">${i}</div>`);
         }
     }
 
-    /**
-     * Marca bits activos.
-     * @param {number[]} nums     - DEs a iluminar
-     * @param {boolean}  animate  - true = destello escalonado (respuesta nueva)
-     */
     function markBits(nums, animate=false) {
-        // Apagar todos (ahora hasta 128)
         for (let i=1;i<=128;i++) {
             const b = document.getElementById(`bit-${i}`);
-            if (b) { b.classList.remove('active','flash'); }
+            if (b) b.classList.remove('active','flash');
         }
         nums.forEach((n, idx) => {
             const b = document.getElementById(`bit-${n}`);
             if (!b) return;
             if (animate) {
-                // Encendemos con delay escalonado, máximo 900 ms de spread total
                 const delay = Math.min(idx * 20, 900);
                 setTimeout(() => {
-                    b.classList.add('active');
-                    // Añadimos flash y lo removemos cuando termina para no bloquear transiciones futuras
-                    b.classList.add('flash');
+                    b.classList.add('active','flash');
                     b.addEventListener('animationend', () => b.classList.remove('flash'), { once: true });
                 }, delay);
             } else {
@@ -587,7 +586,7 @@
     function mostrarToast(msg) {
         const t=document.getElementById('toast');
         t.textContent=msg; t.classList.add('show');
-        setTimeout(()=>t.classList.remove('show'),2000);
+        setTimeout(()=>t.classList.remove('show'),2500);
     }
 
     function copiarValor(valor) {
@@ -622,7 +621,7 @@
         return {code,des,msgtyp,sinRespuesta,meta};
     }
 
-    // ── Construir fila  (rowIndex para el delay de fade-in) ──────────────────────
+    // ── Construir fila ──────────────────────────────────────────────────────────
     function buildRow(num,key,valor,diffVal=null,enableCopy=true,rowIndex=0) {
         const nombre=num&&DE_NAMES[num]?DE_NAMES[num]:key;
         let rowClass='',badgeHtml='',extraInfo='';
@@ -655,8 +654,6 @@
         const deLabel = num!==null ? String(num).padStart(3,'0') : key;
         const safeVal = (valor||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
         const copyAttr = enableCopy ? `onclick="copiarValor('${safeVal}')" title="Click para copiar"` : '';
-
-        // Delay escalonado: 40 ms por fila, cap en 1.2 s
         const delay = Math.min(rowIndex * 40, 1200);
 
         return `<tr class="${rowClass} de-row-anim" style="animation-delay:${delay}ms">
@@ -675,9 +672,6 @@
         document.getElementById('resultContent').style.display = 'block';
 
         const banner = document.getElementById('codeBanner');
-
-        // 🎬 Animación 1 — Banner slide-down
-        // Forzar reflow para que la animación se reinicie si ya estaba visible
         banner.classList.remove('banner-animate');
         void banner.offsetWidth;
         banner.classList.add('banner-animate');
@@ -692,8 +686,7 @@
             document.getElementById('deTableBody').innerHTML =
                 `<tr><td colspan="3" style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px">⏳ No se encontró mensaje de respuesta</td></tr>`;
             setStatus('idle','Sin respuesta OUT');
-            initBitmap(64);
-            markBits([], false);
+            initBitmap(64); markBits([], false);
             return;
         }
 
@@ -703,7 +696,6 @@
         document.getElementById('codeTitle').textContent = msgtyp ? `[${msgtyp}] ${mtiDesc}` : 'Mensaje recibido';
         document.getElementById('codeDesc').textContent = `${des.length} elementos recibidos`;
 
-        // 🎬 Animación meta-bar
         const metaBar = document.getElementById('metaBar');
         if (meta.hora || meta.idtx) {
             metaBar.classList.remove('meta-animate');
@@ -718,7 +710,6 @@
 
         document.getElementById('resultMeta').textContent = `${des.length} DEs`;
 
-        // 🎬 Animación 2 — Filas fade-in escalonado
         const tbody = document.getElementById('deTableBody');
         tbody.innerHTML = '';
         const bits = [];
@@ -727,15 +718,11 @@
             tbody.innerHTML += buildRow(num, key, valor, null, true, idx);
         });
 
-        // 🎬 Animación 3 — Bitmap destello escalonado
-        // Solo mostramos 128 bits si hay DEs en el bitmap secundario (num > 64)
         const necesitaDoble = bits.some(n => n > 64);
         initBitmap(necesitaDoble ? 128 : 64);
         markBits(bits, true);
-
         setStatus('ok','Respuesta recibida');
 
-        // Actualizar cache de exportación con datos actuales
         const idtxVal = document.getElementById('idtx').value.trim();
         const nodxVal = document.getElementById('nodx').value;
         const modxVal = document.getElementById('modx').value;
@@ -811,6 +798,16 @@
             outBody.innerHTML+=buildRow(num,key,valor,inpVal!==undefined?inpVal:valor,false,idx);
         });
         else outBody.innerHTML='<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted)">Sin datos OUT</td></tr>';
+
+        // ✅ Calcular y mostrar badge de diferencias
+        const allKeys = new Set([...Object.keys(inpMap), ...Object.keys(outMap)]);
+        const diffs   = [...allKeys].filter(k => inpMap[k] !== outMap[k]).length;
+        const badge   = document.getElementById('diffBadge');
+        if (badge) {
+            badge.textContent = diffs > 0 ? `⚠️ ${diffs} diferencias` : '✅ Sin diferencias';
+            badge.style.background = diffs > 0 ? 'var(--warning-pale)' : 'var(--success-pale)';
+            badge.style.color      = diffs > 0 ? 'var(--warning)'      : 'var(--success)';
+        }
     }
 
     // ── Switch tabs ─────────────────────────────────────────────────────────────
@@ -858,8 +855,7 @@
     function limpiarParametros() {
         document.getElementById('idtx').value='';
         document.getElementById('nodx').value='';
-        initBitmap(64);
-        markBits([], false);
+        initBitmap(64); markBits([], false);
         document.getElementById('emptyState').style.display='block';
         document.getElementById('resultContent').style.display='none';
         setStatus('idle','Listo');
@@ -872,20 +868,21 @@
         }
     }
 
-
-    // ── Export helpers ──────────────────────────────────────────────────────────
-
-    // Estado actual para exportar
-    let exportCache = { des:[], msgtyp:'', meta:{}, nodx:'', modx:'', idtx:'' };
+    // ============================================================
+    // EXPORT HELPERS
+    // ============================================================
 
     function toggleExportMenu(e) {
         e.stopPropagation();
         document.getElementById('exportWrap').classList.toggle('open');
     }
-    // Cerrar el menú al hacer click fuera
+    function toggleExportMenuCmp(e) {
+        e.stopPropagation();
+        document.getElementById('exportWrapCmp').classList.toggle('open');
+    }
     document.addEventListener('click', () => {
-        const w = document.getElementById('exportWrap');
-        if (w) w.classList.remove('open');
+        document.getElementById('exportWrap')?.classList.remove('open');
+        document.getElementById('exportWrapCmp')?.classList.remove('open');
     });
 
     function formatearFecha() {
@@ -895,141 +892,261 @@
         });
     }
 
-    // ── EXPORTAR TXT ────────────────────────────────────────────────────────────
-    function exportarTXT() {
-        document.getElementById('exportWrap').classList.remove('open');
-        const { des, msgtyp, meta, nodx, modx, idtx } = exportCache;
-        if (!des.length) return mostrarToast('⚠️ No hay datos para exportar');
-
-        const SEP  = '='.repeat(60);
-        const SEP2 = '-'.repeat(60);
-        const mtiDesc = MSG_TYPES[msgtyp] || '';
-        const ahora   = formatearFecha();
-
-        let lines = [];
-        lines.push(SEP);
-        lines.push('  VISUAL ADMIN — Reporte ISO 8583');
-        lines.push(SEP);
-        lines.push(`  Fecha/Hora  : ${ahora}`);
-        lines.push(`  Nodo        : ${nodx}`);
-        lines.push(`  Dirección   : ${modx}`);
-        lines.push(`  ID Transacc.: ${idtx}`);
-        if (meta.hora)  lines.push(`  Hora trama  : ${meta.hora}`);
-        lines.push(`  MTI         : [${msgtyp}] ${mtiDesc}`);
-        lines.push(`  Total DEs   : ${des.length}`);
-        lines.push(SEP);
-        lines.push('');
-        lines.push(SEP2);
-        lines.push(`  ${'DE #'.padEnd(10)} ${'Nombre'.padEnd(36)} Valor`);
-        lines.push(SEP2);
-
-        des.forEach(({ num, key, valor }) => {
-            const deLabel = num !== null ? 'DE(' + String(num).padStart(3,'0') + ')' : key;
-            const nombre  = (num && DE_NAMES[num]) ? DE_NAMES[num] : key;
-            const val     = (valor || '').substring(0, 80);
-            lines.push(`  ${deLabel.padEnd(10)} ${nombre.substring(0,35).padEnd(36)} ${val}`);
-        });
-
-        lines.push(SEP2);
-        lines.push('');
-        lines.push(`  Generado por Visual Admin v2.0`);
-        lines.push(SEP);
-
-       const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-
-        const a    = document.createElement('a');
-        a.href     = URL.createObjectURL(blob);
-        a.download = `trama_${nodx}_${modx}_${idtx.substring(0,8)}_${Date.now()}.txt`;
-        a.click();
-        mostrarToast('📄 TXT descargado');
-    }
-
-    // ── EXPORTAR PDF (via window.print con iframe invisible) ────────────────────
-    function exportarPDF() {
-        document.getElementById('exportWrap').classList.remove('open');
-        const { des, msgtyp, meta, nodx, modx, idtx } = exportCache;
-        if (!des.length) return mostrarToast('⚠️ No hay datos para exportar');
-
-        const mtiDesc = MSG_TYPES[msgtyp] || '';
-        const ahora   = formatearFecha();
-
-        // Construir filas de la tabla
-        const filas = des.map(({ num, key, valor }) => {
+    function buildFilasPDF(des) {
+        return des.map(({ num, key, valor }) => {
             const deLabel = num !== null ? 'DE(' + String(num).padStart(3,'0') + ')' : key;
             const nombre  = (num && DE_NAMES[num]) ? DE_NAMES[num] : key;
             const val     = valor || '';
-            // Colorear DE(039)
-            let rowStyle = '';
+            let rowStyle  = '';
             if (num === 39) {
                 const r = RESP_CODES[val.trim()];
-                if (r) rowStyle = r.tipo === 'aprobado'
-                    ? 'background:#dcfce7'
-                    : 'background:#fff1f2';
-            } else if (num === 3 || num === 4 || num === 11) {
-                rowStyle = 'background:#eff6ff';
-            }
+                if (r) rowStyle = r.tipo === 'aprobado' ? 'background:#dcfce7' : 'background:#fff1f2';
+            } else if ([3,4,11].includes(num)) rowStyle = 'background:#eff6ff';
             return `<tr style="${rowStyle}">
                 <td style="font-family:monospace;font-weight:700;color:#2563eb;width:80px">${deLabel}</td>
                 <td style="color:#64748b;font-size:11px">${nombre}</td>
                 <td style="font-family:monospace;word-break:break-all">${val}</td>
             </tr>`;
         }).join('');
+    }
 
-        const html = `<!DOCTYPE html><html lang="es"><head>
-        <meta charset="UTF-8">
-        <title>Reporte ISO 8583 — ${idtx}</title>
+    // ── EXPORTAR TXT ────────────────────────────────────────────────────────────
+    function exportarTXT() {
+        document.getElementById('exportWrap')?.classList.remove('open');
+        document.getElementById('exportWrapCmp')?.classList.remove('open');
+
+        const enComparar = document.getElementById('tabComparar').classList.contains('active');
+
+        if (enComparar && cacheInp && cacheOut) {
+            const { nodx, idtx } = exportCache;
+            const ahora = formatearFecha();
+            const SEP  = '='.repeat(72);
+            const SEP2 = '-'.repeat(72);
+
+            const allNums = [...new Set([
+                ...cacheInp.des.map(d => d.num ?? d.key),
+                ...cacheOut.des.map(d => d.num ?? d.key)
+            ])];
+            const inpMap = {}, outMap = {};
+            cacheInp.des.forEach(d => inpMap[d.num ?? d.key] = d);
+            cacheOut.des.forEach(d => outMap[d.num ?? d.key] = d);
+
+            let lines = [SEP,
+                '  VISUAL ADMIN — Comparación INP vs OUT · ISO 8583', SEP,
+                `  Fecha/Hora  : ${ahora}`,
+                `  Nodo        : ${nodx}     ID Transacción: ${idtx}`,
+                `  INP MTI     : [${cacheInp.msgtyp || '—'}]   OUT MTI: [${cacheOut.msgtyp || '—'}]`,
+                SEP, '',
+                `  ${'DE #'.padEnd(10)} ${'Nombre'.padEnd(34)} ${'INP'.padEnd(22)} OUT`,
+                SEP2
+            ];
+
+            allNums.forEach(key => {
+                const inp  = inpMap[key], out = outMap[key];
+                const num  = inp?.num ?? out?.num;
+                const nombre = (num && DE_NAMES[num]) ? DE_NAMES[num] : (inp?.key ?? out?.key ?? key);
+                const deLabel = (num !== null && num !== undefined) ? 'DE(' + String(num).padStart(3,'0') + ')' : String(key);
+                const inpVal = (inp?.valor || '—').substring(0,20);
+                const outVal = (out?.valor || '—').substring(0,20);
+                const diff   = (inp?.valor !== out?.valor) ? ' ◄ DIFF' : '';
+                lines.push(`  ${deLabel.padEnd(10)} ${nombre.substring(0,33).padEnd(34)} ${inpVal.padEnd(22)} ${outVal}${diff}`);
+            });
+
+            lines.push(SEP2, '', '  Generado por Visual Admin v2.0', SEP);
+
+            const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `comparacion_${nodx}_${idtx.substring(0,8)}_${Date.now()}.txt`;
+            a.click();
+            mostrarToast('📄 TXT comparación descargado');
+            return;
+        }
+
+        // TXT normal
+        const { des, msgtyp, meta, nodx, modx, idtx } = exportCache;
+        if (!des.length) return mostrarToast('⚠️ No hay datos para exportar');
+
+        const SEP  = '='.repeat(60), SEP2 = '-'.repeat(60);
+        const ahora = formatearFecha();
+        let lines = [SEP, '  VISUAL ADMIN — Reporte ISO 8583', SEP,
+            `  Fecha/Hora  : ${ahora}`, `  Nodo        : ${nodx}`,
+            `  Dirección   : ${modx}`, `  ID Transacc.: ${idtx}`,
+            ...(meta.hora ? [`  Hora trama  : ${meta.hora}`] : []),
+            `  MTI         : [${msgtyp}] ${MSG_TYPES[msgtyp]||''}`,
+            `  Total DEs   : ${des.length}`, SEP, '', SEP2,
+            `  ${'DE #'.padEnd(10)} ${'Nombre'.padEnd(36)} Valor`, SEP2
+        ];
+        des.forEach(({ num, key, valor }) => {
+            const deLabel = num !== null ? 'DE(' + String(num).padStart(3,'0') + ')' : key;
+            const nombre  = (num && DE_NAMES[num]) ? DE_NAMES[num] : key;
+            lines.push(`  ${deLabel.padEnd(10)} ${nombre.substring(0,35).padEnd(36)} ${(valor||'').substring(0,80)}`);
+        });
+        lines.push(SEP2, '', '  Generado por Visual Admin v2.0', SEP);
+
+        const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `trama_${nodx}_${modx}_${idtx.substring(0,8)}_${Date.now()}.txt`;
+        a.click(); mostrarToast('📄 TXT descargado');
+    }
+
+    // ── EXPORTAR PDF ────────────────────────────────────────────────────────────
+    function exportarPDF() {
+        document.getElementById('exportWrap')?.classList.remove('open');
+        document.getElementById('exportWrapCmp')?.classList.remove('open');
+
+        const enComparar = document.getElementById('tabComparar').classList.contains('active');
+        if (enComparar && cacheInp && cacheOut) { _pdfComparacion(); return; }
+
+        // PDF normal
+        const { des, msgtyp, meta, nodx, modx, idtx } = exportCache;
+        if (!des.length) return mostrarToast('⚠️ No hay datos para exportar');
+
+        const mtiDesc = MSG_TYPES[msgtyp] || '';
+        const ahora   = formatearFecha();
+        const filas   = buildFilasPDF(des);
+
+        const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+        <title>ISO 8583 — ${idtx}</title>
         <style>
-            * { box-sizing:border-box; margin:0; padding:0; }
-            body { font-family:Sora,Segoe UI,sans-serif; color:#1e1b4b; background:#fff; padding:32px; font-size:12px; }
-            .header { display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #2563eb; padding-bottom:14px; margin-bottom:20px; }
-            .logo   { font-size:18px; font-weight:800; color:#2563eb; letter-spacing:-0.5px; }
-            .logo span { color:#7c3aed; }
-            .meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px 24px; background:#f8f7ff; border-radius:10px; padding:14px 18px; margin-bottom:20px; border:1px solid #e2e8f0; }
-            .meta-row { display:flex; gap:6px; }
-            .meta-lbl { font-size:10px; font-weight:700; text-transform:uppercase; color:#64748b; min-width:100px; }
-            .meta-val { font-family:monospace; font-size:11px; font-weight:600; }
-            table { width:100%; border-collapse:collapse; font-size:11px; }
-            thead tr { background:#2563eb; color:white; }
-            thead th { padding:9px 12px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.5px; }
-            tbody td { padding:8px 12px; border-bottom:1px solid #f1f5f9; }
-            tbody tr:last-child td { border-bottom:none; }
-            .footer { margin-top:20px; text-align:center; font-size:10px; color:#94a3b8; border-top:1px solid #e2e8f0; padding-top:10px; }
-            @media print { body { padding:16px; } }
-        </style>
-        </head><body>
-        <div class="header">
-            <div>
-                <div class="logo">Visual <span>Admin</span></div>
-                <div style="font-size:10px;color:#64748b;margin-top:2px">Sistema de monitoreo ISO 8583</div>
-            </div>
+            *{box-sizing:border-box;margin:0;padding:0}body{font-family:Sora,Segoe UI,sans-serif;color:#1e1b4b;padding:32px;font-size:12px}
+            .hdr{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #2563eb;padding-bottom:14px;margin-bottom:20px}
+            .logo{font-size:18px;font-weight:800;color:#2563eb}.logo span{color:#7c3aed}
+            .meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;background:#f8f7ff;border-radius:10px;padding:14px 18px;margin-bottom:20px;border:1px solid #e2e8f0}
+            .mr{display:flex;gap:6px}.ml{font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;min-width:100px}.mv{font-family:monospace;font-size:11px;font-weight:600}
+            table{width:100%;border-collapse:collapse;font-size:11px}thead tr{background:#2563eb;color:white}
+            thead th{padding:9px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+            tbody td{padding:8px 12px;border-bottom:1px solid #f1f5f9}tbody tr:last-child td{border-bottom:none}
+            .ft{margin-top:20px;text-align:center;font-size:10px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:10px}
+            @media print{body{padding:16px}}
+        </style></head><body>
+        <div class="hdr">
+            <div><div class="logo">Visual <span>Admin</span></div><div style="font-size:10px;color:#64748b;margin-top:2px">Sistema ISO 8583</div></div>
             <div style="text-align:right;font-size:10px;color:#64748b">
-                <div style="font-weight:700;font-size:13px;color:#1e1b4b">[${msgtyp}] ${mtiDesc}</div>
-                <div>${ahora}</div>
+                <div style="font-weight:700;font-size:13px;color:#1e1b4b">[${msgtyp}] ${mtiDesc}</div><div>${ahora}</div>
             </div>
         </div>
-        <div class="meta-grid">
-            <div class="meta-row"><span class="meta-lbl">Nodo</span><span class="meta-val">${nodx}</span></div>
-            <div class="meta-row"><span class="meta-lbl">Dirección</span><span class="meta-val">${modx}</span></div>
-            <div class="meta-row"><span class="meta-lbl">ID Transacción</span><span class="meta-val" style="font-size:9px">${idtx}</span></div>
-            ${meta.hora ? `<div class="meta-row"><span class="meta-lbl">Hora trama</span><span class="meta-val">${meta.hora}</span></div>` : ''}
-            <div class="meta-row"><span class="meta-lbl">Total DEs</span><span class="meta-val">${des.length}</span></div>
+        <div class="meta">
+            <div class="mr"><span class="ml">Nodo</span><span class="mv">${nodx}</span></div>
+            <div class="mr"><span class="ml">Dirección</span><span class="mv">${modx}</span></div>
+            <div class="mr"><span class="ml">ID Transacción</span><span class="mv" style="font-size:9px">${idtx}</span></div>
+            ${meta.hora?`<div class="mr"><span class="ml">Hora trama</span><span class="mv">${meta.hora}</span></div>`:''}
+            <div class="mr"><span class="ml">Total DEs</span><span class="mv">${des.length}</span></div>
         </div>
-        <table>
-            <thead><tr><th style="width:80px">DE #</th><th>Nombre</th><th>Valor</th></tr></thead>
-            <tbody>${filas}</tbody>
-        </table>
-        <div class="footer">Visual Admin v2.0 &nbsp;·&nbsp; Generado el ${ahora} &nbsp;·&nbsp; Infraestructura de datos bancarios</div>
+        <table><thead><tr><th style="width:80px">DE #</th><th>Nombre</th><th>Valor</th></tr></thead><tbody>${filas}</tbody></table>
+        <div class="ft">Visual Admin v2.0 · ${ahora} · Infraestructura de datos bancarios</div>
         </body></html>`;
 
-        const w = window.open('', '_blank', 'width=900,height=700');
-        w.document.write(html);
-        w.document.close();
+        const w = window.open('','_blank','width=900,height=700');
+        w.document.write(html); w.document.close();
         w.onload = () => { w.focus(); w.print(); };
         mostrarToast('🖨️ Preparando PDF...');
     }
 
-    document.addEventListener('DOMContentLoaded',()=>initBitmap(64));
+    // ── PDF COMPARACIÓN INP vs OUT ──────────────────────────────────────────────
+    function _pdfComparacion() {
+        const { nodx, idtx } = exportCache;
+        const ahora = formatearFecha();
+
+        const allNums = [...new Set([
+            ...cacheInp.des.map(d => d.num ?? d.key),
+            ...cacheOut.des.map(d => d.num ?? d.key)
+        ])];
+        const inpMap = {}, outMap = {};
+        cacheInp.des.forEach(d => inpMap[d.num ?? d.key] = d);
+        cacheOut.des.forEach(d => outMap[d.num ?? d.key] = d);
+
+        const totalDiff = allNums.filter(key => {
+            const iv = inpMap[key]?.valor ?? '';
+            const ov = outMap[key]?.valor ?? '';
+            return iv !== ov;
+        }).length;
+
+        const filas = allNums.map(key => {
+            const inp    = inpMap[key], out = outMap[key];
+            const num    = inp?.num ?? out?.num;
+            const nombre = (num && DE_NAMES[num]) ? DE_NAMES[num] : (inp?.key ?? out?.key ?? key);
+            const deLabel = (num !== null && num !== undefined) ? 'DE(' + String(num).padStart(3,'0') + ')' : String(key);
+            const inpVal = inp?.valor ?? '', outVal = out?.valor ?? '';
+            const diff   = inpVal !== outVal;
+
+            let rowBg = diff ? '#fefce8' : '#fff';
+            if (num === 39) {
+                const r = RESP_CODES[(outVal || inpVal).trim()];
+                if (r) rowBg = r.tipo === 'aprobado' ? '#dcfce7' : '#fff1f2';
+            } else if ([3,4,11].includes(num) && !diff) rowBg = '#eff6ff';
+
+            const diffBadge = diff
+                ? `<span style="font-size:9px;background:#fbbf24;color:#92400e;padding:1px 5px;border-radius:4px;font-weight:700;margin-left:4px">DIFF</span>`
+                : '';
+
+            return `<tr style="background:${rowBg}">
+                <td style="font-family:monospace;font-weight:700;color:#2563eb;width:75px;font-size:10px">${deLabel}</td>
+                <td style="color:#64748b;font-size:10px">${nombre}</td>
+                <td style="font-family:monospace;font-size:10px;word-break:break-all;background:#f0fdf4;padding:6px 10px">${inpVal || '<span style="color:#cbd5e1">—</span>'}</td>
+                <td style="font-family:monospace;font-size:10px;word-break:break-all;background:#fff7ed;padding:6px 10px">${outVal || '<span style="color:#cbd5e1">—</span>'}${diffBadge}</td>
+            </tr>`;
+        }).join('');
+
+        const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+        <title>Comparación INP vs OUT — ${idtx}</title>
+        <style>
+            *{box-sizing:border-box;margin:0;padding:0}body{font-family:Sora,Segoe UI,sans-serif;color:#1e1b4b;padding:28px;font-size:12px}
+            .hdr{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #7c3aed;padding-bottom:14px;margin-bottom:16px}
+            .logo{font-size:18px;font-weight:800;color:#2563eb}.logo span{color:#7c3aed}
+            .sub{font-size:13px;font-weight:700;color:#7c3aed;margin-top:3px}
+            .meta{display:flex;gap:20px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:12px 18px;margin-bottom:14px;flex-wrap:wrap}
+            .mi{display:flex;flex-direction:column;gap:2px}.ml{font-size:9px;font-weight:700;text-transform:uppercase;color:#7c7aaa}.mv{font-family:monospace;font-size:11px;font-weight:700;color:#1e1b4b}
+            .chips{display:flex;gap:10px;margin-bottom:14px}
+            .chip{padding:5px 14px;border-radius:8px;font-size:11px;font-weight:700}
+            table{width:100%;border-collapse:collapse;font-size:11px}
+            thead tr{background:#1e1b4b;color:white}
+            thead th{padding:9px 10px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.5px}
+            .th-inp{background:#059669}.th-out{background:#d97706}
+            tbody td{padding:7px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+            tbody tr:last-child td{border-bottom:none}
+            .ft{margin-top:16px;text-align:center;font-size:10px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:10px}
+            @media print{body{padding:14px}}
+        </style></head><body>
+        <div class="hdr">
+            <div><div class="logo">Visual <span>Admin</span></div><div class="sub">⚖️ Comparación INP vs OUT</div></div>
+            <div style="text-align:right;font-size:10px;color:#64748b">
+                <div style="font-weight:700;font-size:12px;color:#1e1b4b">INP [${cacheInp.msgtyp||'—'}] → OUT [${cacheOut.msgtyp||'—'}]</div>
+                <div>${ahora}</div>
+            </div>
+        </div>
+        <div class="meta">
+            <div class="mi"><span class="ml">Nodo</span><span class="mv">${nodx}</span></div>
+            <div class="mi"><span class="ml">ID Transacción</span><span class="mv" style="font-size:9px">${idtx}</span></div>
+            <div class="mi"><span class="ml">DEs INP</span><span class="mv">${cacheInp.des.length}</span></div>
+            <div class="mi"><span class="ml">DEs OUT</span><span class="mv">${cacheOut.des.length}</span></div>
+        </div>
+        <div class="chips">
+            <div class="chip" style="background:#eff6ff;color:#1d4ed8">📊 ${allNums.length} DEs totales</div>
+            <div class="chip" style="background:${totalDiff>0?'#fef9c3':'#dcfce7'};color:${totalDiff>0?'#92400e':'#15803d'}">
+                ${totalDiff>0?'⚠️':'✅'} ${totalDiff} diferencias
+            </div>
+            <div class="chip" style="background:#dcfce7;color:#059669">📥 INP: ${cacheInp.des.length}</div>
+            <div class="chip" style="background:#fff7ed;color:#c2410c">📤 OUT: ${cacheOut.des.length}</div>
+        </div>
+        <table>
+            <thead><tr>
+                <th style="width:75px">DE #</th><th>Nombre</th>
+                <th class="th-inp">📥 INP — Entrada</th>
+                <th class="th-out">📤 OUT — Salida</th>
+            </tr></thead>
+            <tbody>${filas}</tbody>
+        </table>
+        <div class="ft">Visual Admin v2.0 · Comparación INP vs OUT · ${ahora} · ${totalDiff} diferencias</div>
+        </body></html>`;
+
+        const w = window.open('','_blank','width=1100,height=750');
+        w.document.write(html); w.document.close();
+        w.onload = () => { w.focus(); w.print(); };
+        mostrarToast('🖨️ PDF comparación listo');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => initBitmap(64));
 </script>
 </body>
 </html>
-
