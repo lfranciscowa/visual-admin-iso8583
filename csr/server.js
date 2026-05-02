@@ -4,7 +4,6 @@ const cors    = require('cors');
 const path    = require('path');
 const crypto  = require('crypto');
 const { Resend } = require('resend');
-const resend = new Resend(process.env.RESEND_API_KEY);
 const db = require('./database');
 const os = require('os');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
