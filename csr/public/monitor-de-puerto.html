@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Puertos TCP — AS/400</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --blue-pale:   #eff6ff;
+            --text-dark:   #1e1b4b;
+            --text-muted:  #64748b;
+            --border:      #e2e8f0;
+            --bg:          #f8f7ff;
+            --white:       #ffffff;
+            --sans:        'Sora', sans-serif;
+            --mono:        'IBM Plex Mono', monospace;
+            --danger:      #e11d48;
+            --success-pale:#dcfce7;
+            --warning:     #d97706;
+            --warning-pale:#fef3c7;
+            
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Subtle grid background */
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(0,232,122,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,232,122,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none; z-index: 0;
+        }
+
+        /* ---- HEADER ---- */
+        header {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(6,9,15,0.95);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+            padding: 0 28px;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 60px;
+        }
+        .hdr-left { display: flex; align-items: center; gap: 14px; }
+        .hdr-badge {
+            font-family: var(--mono); font-size: 11px; font-weight: 700;
+            background: var(--green-glow); color: var(--green);
+            border: 1px solid rgba(0,232,122,0.3);
+            padding: 5px 10px; border-radius: 5px; letter-spacing: .08em;
+        }
+        .hdr-title { font-size: 14px; font-weight: 700; color: var(--bright); }
+        .hdr-sub   { font-family: var(--mono); font-size: 10px; color: var(--text); margin-top: 1px; }
+
+        .hdr-right { display: flex; align-items: center; gap: 16px; }
+        .sse-indicator {
+            display: flex; align-items: center; gap: 6px;
+            font-family: var(--mono); font-size: 11px; color: var(--text);
+        }
+        .sse-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--text); transition: background .3s;
+        }
+        .sse-dot.live { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+        .sse-dot.dead { background: var(--red); }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+        .clock { font-family: var(--mono); font-size: 13px; color: var(--green); letter-spacing: .1em; }
+        .btn { 
+            font-family: var(--sans); font-size: 12px; font-weight: 600;
+            padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border);
+            background: transparent; color: var(--text); cursor: pointer; transition: .2s;
+        }
+        .btn:hover { border-color: var(--green); color: var(--green); }
+
+        /* ---- SUMMARY ---- */
+        .summary {
+            display: flex; gap: 12px; flex-wrap: wrap;
+            padding: 18px 28px;
+            border-bottom: 1px solid var(--border);
+            position: relative; z-index: 1;
+        }
+        .s-card {
+            display: flex; align-items: center; gap: 12px;
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 10px; padding: 14px 20px; min-width: 140px;
+        }
+        .s-icon { font-size: 20px; }
+        .s-num { font-family: var(--mono); font-size: 28px; font-weight: 700; line-height: 1; }
+        .s-lbl { font-size: 10px; letter-spacing: .08em; color: var(--text); margin-top: 3px; }
+        .s-card.up   .s-num { color: var(--green); }
+        .s-card.down .s-num { color: var(--red); }
+        .s-card.info .s-num { color: var(--yellow); }
+
+        /* health bar */
+        .health-card {
+            margin-left: auto; background: var(--panel); border: 1px solid var(--border);
+            border-radius: 10px; padding: 14px 20px; display: flex; align-items: center; gap: 16px;
+        }
+        .health-lbl { font-size: 10px; color: var(--text); letter-spacing: .08em; }
+        .health-track { width: 160px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+        .health-fill  { height: 100%; border-radius: 3px; transition: width .6s ease, background .6s; }
+        .health-pct   { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+
+        /* ---- MAIN ---- */
+        main { padding: 24px 28px; position: relative; z-index: 1; }
+
+        .section-hdr {
+            font-family: var(--mono); font-size: 11px; color: var(--text);
+            letter-spacing: .15em; text-transform: uppercase; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .section-hdr::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+        /* ---- PORT CARDS ---- */
+        .ports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px; margin-bottom: 28px;
+        }
+
+        .port-card {
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden;
+            transition: border-color .3s, box-shadow .3s, transform .2s;
+        }
+        .port-card:hover { transform: translateY(-2px); }
+        .port-card.up   { border-color: rgba(0,232,122,.3); box-shadow: 0 0 24px var(--green-glow); }
+        .port-card.down { border-color: rgba(255,64,96,.3);  box-shadow: 0 0 24px var(--red-glow);   }
+        .port-card.unknown { border-color: var(--border); }
+
+        /* accent top bar */
+        .pc-bar { height: 3px; transition: background .3s; }
+        .up      .pc-bar { background: linear-gradient(90deg, var(--green), #00a855); }
+        .down    .pc-bar { background: linear-gradient(90deg, var(--red),   #aa2040); }
+        .unknown .pc-bar { background: var(--border); }
+
+        .pc-body { padding: 18px 20px 20px; }
+
+        .pc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+
+        .pc-port {
+            font-family: var(--mono); font-size: 26px; font-weight: 700; letter-spacing: .05em;
+            line-height: 1;
+        }
+        .up   .pc-port { color: var(--green); }
+        .down .pc-port { color: var(--red); }
+        .unknown .pc-port { color: var(--text); }
+
+        .pc-name { font-size: 11px; color: var(--text); margin-top: 4px; }
+        .pc-job  { font-family: var(--mono); font-size: 10px; color: rgba(122,156,192,.6); margin-top: 2px; }
+
+        .status-pill {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 10px; font-weight: 700; letter-spacing: .1em;
+            padding: 5px 12px; border-radius: 100px;
+        }
+        .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .up   .status-pill { background: var(--green-glow);  color: var(--green); }
+        .up   .status-pill .dot { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+        .down .status-pill { background: var(--red-glow);    color: var(--red); }
+        .down .status-pill .dot { background: var(--red); animation: pulse .8s infinite; }
+        .unknown .status-pill { background: rgba(122,156,192,.08); color: var(--text); }
+        .unknown .status-pill .dot { background: var(--text); }
+
+        /* metrics */
+        .pc-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+        .pc-metric {
+            background: rgba(255,255,255,.02); border: 1px solid var(--border);
+            border-radius: 8px; padding: 10px 12px;
+        }
+        .pm-lbl { font-size: 9px; color: var(--text); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
+        .pm-val { font-family: var(--mono); font-size: 13px; color: var(--bright); }
+        .pm-val.green { color: var(--green) !important; }
+        .pm-val.red   { color: var(--red)   !important; }
+        .pm-val.yellow{ color: var(--yellow)!important; }
+
+        /* downtime timer */
+        .downtime-box {
+            display: none;
+            background: rgba(255,64,96,.08); border: 1px solid rgba(255,64,96,.2);
+            border-radius: 8px; padding: 10px 14px; margin-bottom: 14px;
+            align-items: center; gap: 10px;
+        }
+        .down .downtime-box { display: flex; }
+        .dt-label { font-size: 10px; color: var(--red); letter-spacing: .05em; text-transform: uppercase; }
+        .dt-timer { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--red); margin-top: 2px; }
+
+        /* history mini bars */
+        .pc-history { }
+        .ph-lbl { font-size: 9px; color: var(--text); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+        .ph-bars { display: flex; gap: 3px; align-items: flex-end; height: 22px; }
+        .ph-bar  { flex: 1; border-radius: 2px 2px 0 0; min-height: 4px; transition: height .3s; }
+        .ph-bar.b-up      { background: var(--green); opacity: .7; }
+        .ph-bar.b-down    { background: var(--red);   opacity: .7; height: 22px !important; }
+        .ph-bar.b-empty   { background: var(--border); height: 8px; }
+
+        /* last seen */
+        .pc-footer {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 12px; font-family: var(--mono); font-size: 10px; color: rgba(122,156,192,.5);
+        }
+
+        /* ---- EVENT LOG ---- */
+        .log-panel {
+            background: var(--panel); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden;
+        }
+        .log-hdr {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 18px; border-bottom: 1px solid var(--border);
+        }
+        .log-hdr-title { font-family: var(--mono); font-size: 11px; color: var(--green); letter-spacing: .1em; }
+        .btn-clr {
+            font-family: var(--mono); font-size: 10px; background: none;
+            border: 1px solid var(--border); color: var(--text); padding: 3px 10px;
+            border-radius: 4px; cursor: pointer; transition: .2s;
+        }
+        .btn-clr:hover { border-color: var(--red); color: var(--red); }
+
+        .log-body { max-height: 200px; overflow-y: auto; padding: 10px 18px; }
+        .log-row {
+            display: flex; gap: 10px; align-items: baseline;
+            font-family: var(--mono); font-size: 11px; margin-bottom: 5px;
+            animation: slideIn .25s ease;
+        }
+        @keyframes slideIn { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:none} }
+        .lr-ts    { color: rgba(122,156,192,.5); flex-shrink: 0; }
+        .lr-port  { width: 55px; font-weight: 700; flex-shrink: 0; }
+        .lr-tipo  { width: 80px; flex-shrink: 0; }
+        .lr-msg   { color: var(--bright); }
+        .log-row.ev-up       .lr-port { color: var(--green); }
+        .log-row.ev-up       .lr-tipo { color: var(--green); }
+        .log-row.ev-down     .lr-port { color: var(--red);   }
+        .log-row.ev-down     .lr-tipo { color: var(--red);   }
+        .log-row.ev-recovery .lr-port { color: var(--yellow);}
+        .log-row.ev-recovery .lr-tipo { color: var(--yellow);}
+        .log-row.ev-info     .lr-port { color: #6090ff;      }
+        .log-row.ev-info     .lr-tipo { color: #6090ff;      }
+
+        .log-body::-webkit-scrollbar { width: 4px; }
+        .log-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="hdr-left">
+        <div class="hdr-badge">TRA402A</div>
+        <div>
+            <div class="hdr-title">Monitor de Puertos TCP</div>
+            <div class="hdr-sub">Sistema: TR0976DE · Subsistema transaccional ISO 8583</div>
+        </div>
+    </div>
+    <div class="hdr-right">
+        <div class="sse-indicator">
+            <div class="sse-dot" id="sseDot"></div>
+            <span id="sseLabel">Conectando...</span>
+        </div>
+        <div class="clock" id="clock">--:--:--</div>
+        <button class="btn" onclick="history.back()">← Volver</button>
+    </div>
+</header>
+
+<!-- SUMMARY -->
+<div class="summary">
+    <div class="s-card up">
+        <span class="s-icon">🟢</span>
+        <div>
+            <div class="s-num" id="sumUp">—</div>
+            <div class="s-lbl">PUERTOS UP</div>
+        </div>
+    </div>
+    <div class="s-card down">
+        <span class="s-icon">🔴</span>
+        <div>
+            <div class="s-num" id="sumDown">—</div>
+            <div class="s-lbl">PUERTOS DOWN</div>
+        </div>
+    </div>
+    <div class="s-card info">
+        <span class="s-icon">⚡</span>
+        <div>
+            <div class="s-num" id="sumLat">—</div>
+            <div class="s-lbl">LAT. PROM (ms)</div>
+        </div>
+    </div>
+    <div class="s-card info">
+        <span class="s-icon">🔄</span>
+        <div>
+            <div class="s-num" id="sumCiclo">—</div>
+            <div class="s-lbl">ÚLTIMO CICLO</div>
+        </div>
+    </div>
+    <div class="health-card">
+        <div>
+            <div class="health-lbl">DISPONIBILIDAD</div>
+            <div class="health-track" style="margin-top:8px">
+                <div class="health-fill" id="healthFill" style="width:0"></div>
+            </div>
+        </div>
+        <div class="health-pct" id="healthPct">—</div>
+    </div>
+</div>
+
+<main>
+    <div class="section-hdr">// Puertos TCP · AS/400 TRO976DE</div>
+    <div class="ports-grid" id="portsGrid"></div>
+
+    <div class="section-hdr">// Event Log</div>
+    <div class="log-panel">
+        <div class="log-hdr">
+            <span class="log-hdr-title">// REGISTRO DE EVENTOS EN TIEMPO REAL</span>
+            <button class="btn-clr" onclick="clearLog()">CLR</button>
+        </div>
+        <div class="log-body" id="logBody"></div>
+    </div>
+</main>
+
+<script>
+    // ── Estado local ──────────────────────────────────────────────
+    const localState  = {};   // puerto → { ...serverData, downSince_local }
+    const MAX_HIST    = 16;
+    const localHist   = {};   // puerto → []
+
+    // ── Reloj ─────────────────────────────────────────────────────
+    setInterval(() => {
+        document.getElementById('clock').textContent =
+            new Date().toTimeString().substring(0, 8);
+    }, 1000);
+
+    // ── Formatear duración ─────────────────────────────────────────
+    function fmtDur(ms) {
+        if (!ms || ms < 0) return '00:00:00';
+        const s = Math.floor(ms / 1000);
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        return [h, m, sec].map(x => String(x).padStart(2, '0')).join(':');
+    }
+
+    function fmtTime(ts) {
+        if (!ts) return '—';
+        return new Date(ts).toTimeString().substring(0, 8);
+    }
+
+    function fmtLat(lat) {
+        if (!lat) return '—';
+        return lat < 500  ? { val: lat + ' ms', cls: 'green' } :
+               lat < 2000 ? { val: lat + ' ms', cls: 'yellow' } :
+                            { val: lat + ' ms', cls: 'red' };
+    }
+
+    // ── Construir tarjeta ─────────────────────────────────────────
+    function buildCard(s) {
+        const hist    = localHist[s.puerto] || [];
+        const empties = MAX_HIST - hist.length;
+        let histHTML  = '';
+        for (let i = 0; i < empties; i++) histHTML += `<div class="ph-bar b-empty"></div>`;
+        hist.forEach(h => {
+            const hpx = h === 'up' ? 16 : 22;
+            histHTML += `<div class="ph-bar b-${h}" style="height:${hpx}px"></div>`;
+        });
+
+        const lat   = fmtLat(s.latencia);
+        const isDown = s.status === 'down';
+
+        const ultimoUpStr   = s.ultimoUp   ? fmtTime(s.ultimoUp)   : '—';
+        const downSinceStr  = s.downSince  ? fmtTime(s.downSince)  : '—';
+
+        return `
+        <div class="port-card ${s.status || 'unknown'}" id="card-${s.puerto}">
+            <div class="pc-bar"></div>
+            <div class="pc-body">
+                <div class="pc-top">
+                    <div>
+                        <div class="pc-port">${s.puerto}</div>
+                        <div class="pc-name">${s.nombre}</div>
+                        <div class="pc-job">${s.job}</div>
+                    </div>
+                    <div class="status-pill">
+                        <div class="dot"></div>
+                        ${(s.status || 'DESCONOCIDO').toUpperCase()}
+                    </div>
+                </div>
+
+                <div class="downtime-box" id="dtbox-${s.puerto}">
+                    <div>
+                        <div class="dt-label">⚠ TIEMPO CAÍDO</div>
+                        <div class="dt-timer" id="dttimer-${s.puerto}">
+                            ${isDown && s.downSince ? fmtDur(Date.now() - s.downSince) : '—'}
+                        </div>
+                    </div>
+                    <div style="margin-left:auto;text-align:right">
+                        <div class="dt-label">DESDE LAS</div>
+                        <div style="font-family:var(--mono);font-size:14px;color:var(--red);margin-top:2px">
+                            ${downSinceStr}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pc-metrics">
+                    <div class="pc-metric">
+                        <div class="pm-lbl">Latencia TCP</div>
+                        <div class="pm-val ${lat ? lat.cls : ''}">${lat ? lat.val : '—'}</div>
+                    </div>
+                    <div class="pc-metric">
+                        <div class="pm-lbl">Último UP</div>
+                        <div class="pm-val">${ultimoUpStr}</div>
+                    </div>
+                </div>
+
+                <div class="pc-history">
+                    <div class="ph-lbl">Historial TCP (últimos ${MAX_HIST} ciclos)</div>
+                    <div class="ph-bars">${histHTML}</div>
+                </div>
+
+                <div class="pc-footer">
+                    <span>ciclo: ${fmtTime(s.desde)}</span>
+                    <span>${s.eventos?.length || 0} eventos</span>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // ── Render grid completo ──────────────────────────────────────
+    function renderGrid() {
+        const grid = document.getElementById('portsGrid');
+        grid.innerHTML = Object.values(localState).map(buildCard).join('');
+    }
+
+    // ── Update summary ────────────────────────────────────────────
+    function updateSummary() {
+        const ports  = Object.values(localState);
+        const up     = ports.filter(p => p.status === 'up').length;
+        const down   = ports.filter(p => p.status === 'down').length;
+        const lats   = ports.filter(p => p.latencia).map(p => p.latencia);
+        const avgLat = lats.length ? Math.round(lats.reduce((a,b) => a+b,0)/lats.length) : null;
+        const pct    = ports.length ? Math.round((up/ports.length)*100) : 0;
+        const color  = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--yellow)' : 'var(--red)';
+
+        document.getElementById('sumUp').textContent   = up;
+        document.getElementById('sumDown').textContent = down;
+        document.getElementById('sumLat').textContent  = avgLat ?? '—';
+        document.getElementById('sumCiclo').textContent = new Date().toTimeString().substring(0,5);
+        document.getElementById('healthFill').style.width      = pct + '%';
+        document.getElementById('healthFill').style.background = color;
+        document.getElementById('healthPct').textContent = pct + '%';
+        document.getElementById('healthPct').style.color = color;
+    }
+
+    // ── Downtime live timers ──────────────────────────────────────
+    setInterval(() => {
+        Object.values(localState).forEach(s => {
+            if (s.status === 'down' && s.downSince) {
+                const el = document.getElementById(`dttimer-${s.puerto}`);
+                if (el) el.textContent = fmtDur(Date.now() - s.downSince);
+            }
+        });
+    }, 1000);
+
+    // ── Log ───────────────────────────────────────────────────────
+    function addLog(tipo, puerto, nombre, msg) {
+        const ts  = new Date().toTimeString().substring(0, 8);
+        const log = document.getElementById('logBody');
+        const el  = document.createElement('div');
+        el.className = `log-row ev-${tipo}`;
+        el.innerHTML = `
+            <span class="lr-ts">[${ts}]</span>
+            <span class="lr-port">${puerto}</span>
+            <span class="lr-tipo">${tipo.toUpperCase()}</span>
+            <span class="lr-msg">${nombre} · ${msg}</span>`;
+        log.insertBefore(el, log.firstChild);
+        while (log.children.length > 60) log.removeChild(log.lastChild);
+    }
+
+    function clearLog() { document.getElementById('logBody').innerHTML = ''; }
+
+    // ── Procesar update del servidor ──────────────────────────────
+    function applyUpdate(ports, isInit) {
+        ports.forEach(s => {
+            const prev = localState[s.puerto];
+
+            // Detectar cambio de estado para el log
+            if (!isInit && prev) {
+                if (prev.status !== 'down' && s.status === 'down') {
+                    addLog('down', s.puerto, s.nombre, `Puerto caído · ${s.latencia ?? '—'}ms`);
+                } else if (prev.status === 'down' && s.status === 'up') {
+                    const dur = prev.downSince ? fmtDur(Date.now() - prev.downSince) : '—';
+                    addLog('recovery', s.puerto, s.nombre, `Recuperado · estuvo caído ${dur}`);
+                } else if (isInit || prev.status !== s.status) {
+                    // primer ciclo
+                }
+            }
+
+            // Actualizar historial local
+            if (!localHist[s.puerto]) localHist[s.puerto] = [];
+            if (!isInit) {
+                localHist[s.puerto].push(s.status === 'up' ? 'up' : 'down');
+                if (localHist[s.puerto].length > MAX_HIST) localHist[s.puerto].shift();
+            }
+
+            localState[s.puerto] = s;
+        });
+
+        if (isInit) {
+            addLog('info', 'SYS', 'Monitor', `Conectado · ${ports.length} puertos bajo vigilancia`);
+        }
+
+        renderGrid();
+        updateSummary();
+    }
+
+    // ── SSE connection ────────────────────────────────────────────
+    function connectSSE() {
+        const dot   = document.getElementById('sseDot');
+        const label = document.getElementById('sseLabel');
+
+        dot.className   = 'sse-dot';
+        label.textContent = 'Conectando...';
+
+        const es = new EventSource('/api/monitor/stream');
+
+        es.onopen = () => {
+            dot.className     = 'sse-dot live';
+            label.textContent = 'EN VIVO';
+        };
+
+        es.onmessage = (e) => {
+            const msg = JSON.parse(e.data);
+            if (msg.tipo === 'init')   applyUpdate(msg.data, true);
+            if (msg.tipo === 'update') applyUpdate(msg.data, false);
+        };
+
+        es.onerror = () => {
+            dot.className     = 'sse-dot dead';
+            label.textContent = 'Reconectando...';
+            es.close();
+            setTimeout(connectSSE, 5000);
+        };
+    }
+
+    // ── Init ──────────────────────────────────────────────────────
+    connectSSE();
+</script>
+</body>
+</html>
