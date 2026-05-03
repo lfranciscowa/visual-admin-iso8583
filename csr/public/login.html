@@ -161,6 +161,7 @@
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('session');
+    localStorage.setItem('modulos', JSON.stringify(data.user.modulos || []));
 
     // Mejora 4: Forzar limpieza de inputs al cargar la página físicamente
     window.onload = () => {
