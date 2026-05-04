@@ -240,7 +240,6 @@
         .compare-label.inp { background:#dcfce7;color:var(--success); }
         .compare-label.out { background:var(--warning-pale);color:var(--warning); }
 
-        /* ── Export dropdown ── */
         .export-wrap { position:relative; }
         .btn-export {
             background: var(--white); border: 1px solid var(--border); border-radius: 8px;
@@ -267,7 +266,6 @@
         .export-menu button:hover { background: var(--blue-pale); color: var(--blue-main); }
         .export-menu button + button { border-top: 1px solid var(--border); }
 
-        /* compare top bar */
         .compare-topbar {
             display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 14px; padding: 10px 14px;
@@ -296,6 +294,26 @@
     </style>
 </head>
 <body>
+
+<!-- ============================================================
+     GUARD DE ACCESO — NO MOVER NI BORRAR ESTE BLOQUE
+     Verifica sesión y permiso antes de mostrar cualquier contenido
+     ============================================================ -->
+<script>
+(function guardTrama() {
+    const MODULE_ID   = 'trama';
+    const ROLES_ADMIN = ['ADMIN', 'Administrador'];
+    const username = localStorage.getItem('username');
+    const rol      = localStorage.getItem('rol_actual');
+    const modulos  = JSON.parse(localStorage.getItem('modulos') || '[]');
+    if (!username) { window.location.replace('/login.html'); return; }
+    if (ROLES_ADMIN.includes(rol)) return;
+    if (!modulos.includes(MODULE_ID)) {
+        window.location.replace('/sin-acceso.html');
+    }
+})();
+</script>
+<!-- ============================================================ -->
 
 <div class="toast" id="toast">✓ Copiado</div>
 
@@ -402,7 +420,6 @@
                 <button class="view-tab" id="tabComparar" onclick="switchTab('comparar')" style="display:none">⚖️ Comparar INP / OUT</button>
             </div>
 
-            <!-- VISTA RESULTADO NORMAL -->
             <div id="vistaId" class="result-wrapper">
                 <div id="codeBanner" class="code-banner neutro">
                     <div class="code-icon" id="codeIcon">📋</div>
@@ -444,17 +461,13 @@
                 </div>
             </div>
 
-            <!-- VISTA COMPARAR INP vs OUT -->
             <div id="vistaComparar" style="display:none">
-
-                <!-- Barra superior con stats y botón exportar -->
                 <div class="compare-topbar">
                     <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:var(--text-dark);">
                         ⚖️ Comparando INP vs OUT
                         <span class="diff-badge" id="diffBadge"
                               style="background:var(--warning-pale);color:var(--warning)"></span>
                     </div>
-                    <!-- ✅ Botón exportar comparación -->
                     <div class="export-wrap" id="exportWrapCmp">
                         <button class="btn-export" onclick="toggleExportMenuCmp(event)">
                             ⬇️ Exportar comparación <span class="export-arrow">▾</span>
@@ -539,7 +552,6 @@
     let historial = [], cacheInp = null, cacheOut = null;
     let exportCache = { des:[], msgtyp:'', meta:{}, nodx:'', modx:'', idtx:'' };
 
-    // ── Bitmap ──────────────────────────────────────────────────────────────────
     function initBitmap(size=128) {
         const grid = document.getElementById('bitmapGrid');
         grid.innerHTML = '';
@@ -569,7 +581,6 @@
         });
     }
 
-    // ── Utils ───────────────────────────────────────────────────────────────────
     function selectModx(btn,val) {
         document.getElementById('modxINP').classList.remove('active');
         document.getElementById('modxOUT').classList.remove('active');
@@ -595,7 +606,6 @@
         );
     }
 
-    // ── Parsear ─────────────────────────────────────────────────────────────────
     function parsearRespuesta(apiData) {
         let des=[],code=null,msgtyp=null,sinRespuesta=false,meta={};
         code=apiData.code||null;
@@ -621,11 +631,9 @@
         return {code,des,msgtyp,sinRespuesta,meta};
     }
 
-    // ── Construir fila ──────────────────────────────────────────────────────────
     function buildRow(num,key,valor,diffVal=null,enableCopy=true,rowIndex=0) {
         const nombre=num&&DE_NAMES[num]?DE_NAMES[num]:key;
         let rowClass='',badgeHtml='',extraInfo='';
-
         if (num===39) {
             const resp=RESP_CODES[valor?.trim()];
             if (resp) {
@@ -648,14 +656,11 @@
         } else if (num===4||num===11) {
             rowClass='de-row-highlight';
         }
-
         if (diffVal!==null&&diffVal!==valor) rowClass='diff-highlight';
-
         const deLabel = num!==null ? String(num).padStart(3,'0') : key;
         const safeVal = (valor||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
         const copyAttr = enableCopy ? `onclick="copiarValor('${safeVal}')" title="Click para copiar"` : '';
         const delay = Math.min(rowIndex * 40, 1200);
-
         return `<tr class="${rowClass} de-row-anim" style="animation-delay:${delay}ms">
             <td><span class="de-num">DE(${deLabel})</span></td>
             <td><span class="de-name">${nombre}</span></td>
@@ -665,17 +670,14 @@
         </tr>`;
     }
 
-    // ── Renderizar ──────────────────────────────────────────────────────────────
     function renderizar(apiData, dir='INP') {
         const {code,des,msgtyp,sinRespuesta,meta} = parsearRespuesta(apiData);
         document.getElementById('emptyState').style.display = 'none';
         document.getElementById('resultContent').style.display = 'block';
-
         const banner = document.getElementById('codeBanner');
         banner.classList.remove('banner-animate');
         void banner.offsetWidth;
         banner.classList.add('banner-animate');
-
         if (sinRespuesta) {
             banner.className = 'code-banner neutro banner-animate';
             document.getElementById('codeIcon').textContent = '⏳';
@@ -689,13 +691,11 @@
             initBitmap(64); markBits([], false);
             return;
         }
-
         banner.className = 'code-banner neutro banner-animate';
         document.getElementById('codeIcon').textContent = '📨';
         const mtiDesc = msgtyp && MSG_TYPES[msgtyp] ? MSG_TYPES[msgtyp] : '';
         document.getElementById('codeTitle').textContent = msgtyp ? `[${msgtyp}] ${mtiDesc}` : 'Mensaje recibido';
         document.getElementById('codeDesc').textContent = `${des.length} elementos recibidos`;
-
         const metaBar = document.getElementById('metaBar');
         if (meta.hora || meta.idtx) {
             metaBar.classList.remove('meta-animate');
@@ -707,9 +707,7 @@
         } else {
             metaBar.style.display = 'none';
         }
-
         document.getElementById('resultMeta').textContent = `${des.length} DEs`;
-
         const tbody = document.getElementById('deTableBody');
         tbody.innerHTML = '';
         const bits = [];
@@ -717,25 +715,20 @@
             if (num) bits.push(num);
             tbody.innerHTML += buildRow(num, key, valor, null, true, idx);
         });
-
         const necesitaDoble = bits.some(n => n > 64);
         initBitmap(necesitaDoble ? 128 : 64);
         markBits(bits, true);
         setStatus('ok','Respuesta recibida');
-
         const idtxVal = document.getElementById('idtx').value.trim();
         const nodxVal = document.getElementById('nodx').value;
         const modxVal = document.getElementById('modx').value;
         exportCache = { des, msgtyp, meta, nodx: nodxVal, modx: modxVal, idtx: idtxVal };
-
         if (dir==='INP') cacheInp={des,msgtyp,code};
         else             cacheOut={des,msgtyp,code};
-
         document.getElementById('btnComparar').disabled = !(cacheInp && cacheOut);
         if (cacheInp && cacheOut) document.getElementById('tabComparar').style.display = 'block';
     }
 
-    // ── Historial ───────────────────────────────────────────────────────────────
     function agregarHistorial(idtx,nodx,modx,msgtyp,code) {
         historial.unshift({
             idtx,nodx,modx,msgtyp,code,
@@ -776,36 +769,28 @@
         document.getElementById('tabComparar').style.display='none';
     }
 
-    // ── Comparar ────────────────────────────────────────────────────────────────
     function comparar() {
         switchTab('comparar');
         const outMap={}, inpMap={};
         if (cacheOut) cacheOut.des.forEach(d=>{outMap[d.num||d.key]=d.valor;});
         if (cacheInp) cacheInp.des.forEach(d=>{inpMap[d.num||d.key]=d.valor;});
-
         const inpBody=document.getElementById('compareInpBody');
         inpBody.innerHTML='';
         if (cacheInp) cacheInp.des.forEach(({num,key,valor},idx)=>{
             const outVal = outMap[num||key];
-            // DIFF solo si OUT también existe y es diferente — si no existe, sin badge
             const diffVal = (outVal !== undefined && outVal !== valor) ? outVal : valor;
             inpBody.innerHTML+=buildRow(num,key,valor,diffVal,false,idx);
         });
         else inpBody.innerHTML='<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted)">Sin datos INP</td></tr>';
-
         const outBody=document.getElementById('compareOutBody');
         outBody.innerHTML='';
         if (cacheOut) cacheOut.des.forEach(({num,key,valor},idx)=>{
             const inpVal = inpMap[num||key];
-            // DIFF solo si INP también existe y es diferente — si no existe, sin badge
             const diffVal = (inpVal !== undefined && inpVal !== valor) ? inpVal : valor;
             outBody.innerHTML+=buildRow(num,key,valor,diffVal,false,idx);
         });
         else outBody.innerHTML='<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted)">Sin datos OUT</td></tr>';
-
-        // ✅ Calcular y mostrar badge de diferencias
         const allKeys = new Set([...Object.keys(inpMap), ...Object.keys(outMap)]);
-        // Solo cuenta DIFF cuando ambos lados tienen el campo y los valores son distintos
         const diffs   = [...allKeys].filter(k =>
             inpMap[k] !== undefined && outMap[k] !== undefined && inpMap[k] !== outMap[k]
         ).length;
@@ -817,7 +802,6 @@
         }
     }
 
-    // ── Switch tabs ─────────────────────────────────────────────────────────────
     function switchTab(tab) {
         const esNormal=tab==='normal';
         document.getElementById('vistaId').style.display=esNormal?'flex':'none';
@@ -827,19 +811,16 @@
         document.getElementById('tabComparar').classList.toggle('active',!esNormal);
     }
 
-    // ── Ejecutar ────────────────────────────────────────────────────────────────
     async function ejecutar() {
         const idtx=document.getElementById('idtx').value.trim();
         const nodx=document.getElementById('nodx').value;
         const modx=document.getElementById('modx').value;
         if (!idtx||!nodx) return alert('Faltan parámetros');
-
         const btn=document.getElementById('btnEjecutar');
         btn.disabled=true;
         document.getElementById('btnText').innerHTML='<div class="spinner"></div>';
         setStatus('loading','Consultando...');
         switchTab('normal');
-
         try {
             const res=await fetch('/api/ejecutar-trarput',{
                 method:'POST',
@@ -868,16 +849,14 @@
         setStatus('idle','Listo');
     }
 
+    // ── CERRAR SESIÓN — limpia localStorage completo ────────────
     function cerrarSesion() {
         if (confirm('¿Deseas cerrar la sesión?')) {
-            localStorage.removeItem('usuarioLogueado');
-            window.location.href='login.html';
+            ['rol_actual', 'usuario_actual', 'username', 'token', 'modulos']
+                .forEach(k => localStorage.removeItem(k));
+            window.location.href = '/login.html';
         }
     }
-
-    // ============================================================
-    // EXPORT HELPERS
-    // ============================================================
 
     function toggleExportMenu(e) {
         e.stopPropagation();
@@ -917,19 +896,15 @@
         }).join('');
     }
 
-    // ── EXPORTAR TXT ────────────────────────────────────────────────────────────
     function exportarTXT() {
         document.getElementById('exportWrap')?.classList.remove('open');
         document.getElementById('exportWrapCmp')?.classList.remove('open');
-
         const enComparar = document.getElementById('tabComparar').classList.contains('active');
-
         if (enComparar && cacheInp && cacheOut) {
             const { nodx, idtx } = exportCache;
             const ahora = formatearFecha();
             const SEP  = '='.repeat(72);
             const SEP2 = '-'.repeat(72);
-
             const allNums = [...new Set([
                 ...cacheInp.des.map(d => d.num ?? d.key),
                 ...cacheOut.des.map(d => d.num ?? d.key)
@@ -937,7 +912,6 @@
             const inpMap = {}, outMap = {};
             cacheInp.des.forEach(d => inpMap[d.num ?? d.key] = d);
             cacheOut.des.forEach(d => outMap[d.num ?? d.key] = d);
-
             let lines = [SEP,
                 '  VISUAL ADMIN — Comparación INP vs OUT · ISO 8583', SEP,
                 `  Fecha/Hora  : ${ahora}`,
@@ -947,7 +921,6 @@
                 `  ${'DE #'.padEnd(10)} ${'Nombre'.padEnd(34)} ${'INP'.padEnd(22)} OUT`,
                 SEP2
             ];
-
             allNums.forEach(key => {
                 const inp  = inpMap[key], out = outMap[key];
                 const num  = inp?.num ?? out?.num;
@@ -958,9 +931,7 @@
                 const diff   = (inp?.valor !== out?.valor) ? ' ◄ DIFF' : '';
                 lines.push(`  ${deLabel.padEnd(10)} ${nombre.substring(0,33).padEnd(34)} ${inpVal.padEnd(22)} ${outVal}${diff}`);
             });
-
             lines.push(SEP2, '', '  Generado por Visual Admin v2.0', SEP);
-
             const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -969,11 +940,8 @@
             mostrarToast('📄 TXT comparación descargado');
             return;
         }
-
-        // TXT normal
         const { des, msgtyp, meta, nodx, modx, idtx } = exportCache;
         if (!des.length) return mostrarToast('⚠️ No hay datos para exportar');
-
         const SEP  = '='.repeat(60), SEP2 = '-'.repeat(60);
         const ahora = formatearFecha();
         let lines = [SEP, '  VISUAL ADMIN — Reporte ISO 8583', SEP,
@@ -990,29 +958,22 @@
             lines.push(`  ${deLabel.padEnd(10)} ${nombre.substring(0,35).padEnd(36)} ${(valor||'').substring(0,80)}`);
         });
         lines.push(SEP2, '', '  Generado por Visual Admin v2.0', SEP);
-
         const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
         a.download = `trama_${nodx}_${modx}_${idtx.substring(0,8)}_${Date.now()}.txt`;
         a.click(); mostrarToast('📄 TXT descargado');
     }
 
-    // ── EXPORTAR PDF ────────────────────────────────────────────────────────────
     function exportarPDF() {
         document.getElementById('exportWrap')?.classList.remove('open');
         document.getElementById('exportWrapCmp')?.classList.remove('open');
-
         const enComparar = document.getElementById('tabComparar').classList.contains('active');
         if (enComparar && cacheInp && cacheOut) { _pdfComparacion(); return; }
-
-        // PDF normal
         const { des, msgtyp, meta, nodx, modx, idtx } = exportCache;
         if (!des.length) return mostrarToast('⚠️ No hay datos para exportar');
-
         const mtiDesc = MSG_TYPES[msgtyp] || '';
         const ahora   = formatearFecha();
         const filas   = buildFilasPDF(des);
-
         const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
         <title>ISO 8583 — ${idtx}</title>
         <style>
@@ -1043,18 +1004,15 @@
         <table><thead><tr><th style="width:80px">DE #</th><th>Nombre</th><th>Valor</th></tr></thead><tbody>${filas}</tbody></table>
         <div class="ft">Visual Admin v2.0 · ${ahora} · Infraestructura de datos bancarios</div>
         </body></html>`;
-
         const w = window.open('','_blank','width=900,height=700');
         w.document.write(html); w.document.close();
         w.onload = () => { w.focus(); w.print(); };
         mostrarToast('🖨️ Preparando PDF...');
     }
 
-    // ── PDF COMPARACIÓN INP vs OUT ──────────────────────────────────────────────
     function _pdfComparacion() {
         const { nodx, idtx } = exportCache;
         const ahora = formatearFecha();
-
         const allNums = [...new Set([
             ...cacheInp.des.map(d => d.num ?? d.key),
             ...cacheOut.des.map(d => d.num ?? d.key)
@@ -1062,13 +1020,10 @@
         const inpMap = {}, outMap = {};
         cacheInp.des.forEach(d => inpMap[d.num ?? d.key] = d);
         cacheOut.des.forEach(d => outMap[d.num ?? d.key] = d);
-
-        // Solo DIFF cuando AMBOS campos existen y son distintos
         const totalDiff = allNums.filter(key =>
             inpMap[key] !== undefined && outMap[key] !== undefined &&
             inpMap[key].valor !== outMap[key].valor
         ).length;
-
         const filas = allNums.map(key => {
             const inp    = inpMap[key], out = outMap[key];
             const num    = inp?.num ?? out?.num;
@@ -1077,40 +1032,26 @@
                 ? 'DE(' + String(num).padStart(3,'0') + ')' : String(key);
             const inpVal = inp?.valor ?? '';
             const outVal = out?.valor ?? '';
-            // DIFF real: ambos campos existen y son distintos
-            // Ausente: el campo no viene en uno de los lados (no es DIFF, es ausencia)
             const inpExiste = inp !== undefined;
             const outExiste = out !== undefined;
             const diff      = inpExiste && outExiste && (inpVal !== outVal);
             const ausente   = (inpExiste && !outExiste) || (!inpExiste && outExiste);
-
             let rowBg = '#fff';
             if (num === 39) {
                 const r = RESP_CODES[(outVal || inpVal).trim()];
                 if (r) rowBg = r.tipo === 'aprobado' ? '#f0fdf4' : '#fff1f2';
-            } else if (diff) {
-                rowBg = '#fffbeb';   // amarillo suave = diferencia real
-            } else if (ausente) {
-                rowBg = '#f8fafc';   // gris muy suave = campo ausente en uno
-            } else if ([3,4,11].includes(num)) {
-                rowBg = '#eff6ff';
-            }
-
-            // Badge DIFF solo en diferencias reales, no en ausencias
+            } else if (diff) { rowBg = '#fffbeb';
+            } else if (ausente) { rowBg = '#f8fafc';
+            } else if ([3,4,11].includes(num)) { rowBg = '#eff6ff'; }
             const diffTag = diff
                 ? `<span style="display:inline-block;margin-top:3px;font-size:8px;background:#f59e0b;color:#fff;padding:1px 6px;border-radius:3px;font-weight:800;letter-spacing:.05em">DIFF</span>`
                 : '';
-
-            // Celda INP
             const inpDisplay = inpExiste && inpVal
                 ? `<span style="font-family:monospace;font-size:10px;color:#1e3a5f;word-break:break-all;line-height:1.5">${inpVal}</span>`
                 : `<span style="color:#d1d5db;font-size:10px;font-style:italic">no enviado</span>`;
-
-            // Celda OUT — si no existe, mostrar vacío con nota para verificar bitmap
             const outDisplay = outExiste && outVal
                 ? `<div style="font-family:monospace;font-size:10px;color:${diff?'#92400e':'#1e3a5f'};word-break:break-all;font-weight:${diff?'700':'400'};line-height:1.5">${outVal}</div>${diffTag}`
                 : `<div style="color:#94a3b8;font-size:9px;font-style:italic">— verificar bitmap</div>`;
-
             return `<tr style="background:${rowBg}">
                 <td style="width:65px;white-space:nowrap;padding:7px 8px;border-bottom:1px solid #f1f5f9;vertical-align:top">
                     <span style="font-family:monospace;font-weight:700;color:#2563eb;font-size:10px">${deLabel}</span>
@@ -1126,108 +1067,29 @@
                 </td>
             </tr>`;
         }).join('');
-
-        const pdfHtml = `<!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8">
-<title>Comparación INP vs OUT — ${idtx}</title>
-<style>
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body { font-family: Segoe UI, Arial, sans-serif; color:#1e1b4b; background:#fff; padding:20px; font-size:11px; }
-
-  /* HEADER */
-  .hdr { display:flex; justify-content:space-between; align-items:flex-start;
-         border-bottom:3px solid #7c3aed; padding-bottom:10px; margin-bottom:12px; }
-  .logo { font-size:18px; font-weight:800; color:#2563eb; }
-  .logo span { color:#7c3aed; }
-  .sub { font-size:11px; font-weight:700; color:#7c3aed; margin-top:3px; }
-  .hdr-r { text-align:right; font-size:10px; color:#64748b; }
-  .hdr-r strong { display:block; font-size:11px; color:#1e1b4b; margin-bottom:2px; }
-
-  /* META */
-  .meta { display:flex; gap:14px; flex-wrap:wrap;
-          background:#f5f3ff; border:1px solid #ddd6fe; border-radius:7px;
-          padding:9px 14px; margin-bottom:10px; }
-  .mi { display:flex; flex-direction:column; gap:1px; }
-  .ml { font-size:8px; font-weight:700; text-transform:uppercase; color:#7c7aaa; letter-spacing:.06em; }
-  .mv { font-family:monospace; font-size:10px; font-weight:700; color:#1e1b4b; margin-top:1px; }
-
-  /* CHIPS */
-  .chips { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:12px; }
-  .chip  { padding:3px 11px; border-radius:5px; font-size:10px; font-weight:700; border:1px solid transparent; }
-
-  /* TABLE — layout fijo para control exacto de columnas */
-  table  { width:100%; border-collapse:collapse; table-layout:fixed; }
-  thead tr { background:#1e1b4b; color:#fff; }
-  thead th  { padding:8px 10px; text-align:left; font-size:9px;
-              text-transform:uppercase; letter-spacing:.06em; font-weight:700; }
-  .th-de   { width:65px; }
-  .th-nm   { width:120px; }
-  .th-inp  { background:#059669; width:50%; }
-  .th-out  { background:#b45309; width:50%; }
-
-  tbody td { vertical-align:top; }
-  tbody tr:hover { filter:brightness(.97); }
-
-  /* FOOTER */
-  .ft { margin-top:12px; text-align:center; font-size:9px; color:#94a3b8;
-        border-top:1px solid #e2e8f0; padding-top:8px; }
-
-  @media print {
-    body { padding:12px; }
-    table { page-break-inside:auto; }
-    tr    { page-break-inside:avoid; }
-  }
-</style>
+        const pdfHtml = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Comparación INP vs OUT — ${idtx}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Segoe UI,Arial,sans-serif;color:#1e1b4b;background:#fff;padding:20px;font-size:11px}.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #7c3aed;padding-bottom:10px;margin-bottom:12px}.logo{font-size:18px;font-weight:800;color:#2563eb}.logo span{color:#7c3aed}.sub{font-size:11px;font-weight:700;color:#7c3aed;margin-top:3px}.hdr-r{text-align:right;font-size:10px;color:#64748b}.hdr-r strong{display:block;font-size:11px;color:#1e1b4b;margin-bottom:2px}.meta{display:flex;gap:14px;flex-wrap:wrap;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:7px;padding:9px 14px;margin-bottom:10px}.mi{display:flex;flex-direction:column;gap:1px}.ml{font-size:8px;font-weight:700;text-transform:uppercase;color:#7c7aaa;letter-spacing:.06em}.mv{font-family:monospace;font-size:10px;font-weight:700;color:#1e1b4b;margin-top:1px}.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}.chip{padding:3px 11px;border-radius:5px;font-size:10px;font-weight:700;border:1px solid transparent}table{width:100%;border-collapse:collapse;table-layout:fixed}thead tr{background:#1e1b4b;color:#fff}thead th{padding:8px 10px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}.th-de{width:65px}.th-nm{width:120px}.th-inp{background:#059669;width:50%}.th-out{background:#b45309;width:50%}tbody td{vertical-align:top}.ft{margin-top:12px;text-align:center;font-size:9px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:8px}@media print{body{padding:12px}table{page-break-inside:auto}tr{page-break-inside:avoid}}</style>
 </head><body>
-
-<div class="hdr">
-  <div>
-    <div class="logo">Visual <span>Admin</span></div>
-    <div class="sub">⚖️ Comparación INP vs OUT · ISO 8583</div>
-  </div>
-  <div class="hdr-r">
-    <strong>INP [${cacheInp.msgtyp||'—'}] &nbsp;→&nbsp; OUT [${cacheOut.msgtyp||'—'}]</strong>
-    ${ahora}
-  </div>
-</div>
-
+<div class="hdr"><div><div class="logo">Visual <span>Admin</span></div><div class="sub">⚖️ Comparación INP vs OUT · ISO 8583</div></div>
+<div class="hdr-r"><strong>INP [${cacheInp.msgtyp||'—'}] → OUT [${cacheOut.msgtyp||'—'}]</strong>${ahora}</div></div>
 <div class="meta">
   <div class="mi"><span class="ml">Nodo</span><span class="mv">${nodx}</span></div>
   <div class="mi"><span class="ml">ID Transacción</span><span class="mv" style="font-size:9px">${idtx}</span></div>
   <div class="mi"><span class="ml">DEs INP</span><span class="mv">${cacheInp.des.length}</span></div>
   <div class="mi"><span class="ml">DEs OUT</span><span class="mv">${cacheOut.des.length}</span></div>
 </div>
-
 <div class="chips">
   <div class="chip" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe">📊 ${allNums.length} DEs totales</div>
-  <div class="chip" style="background:${totalDiff>0?'#fef9c3':'#dcfce7'};color:${totalDiff>0?'#92400e':'#15803d'};border-color:${totalDiff>0?'#fcd34d':'#86efac'}">
-    ${totalDiff>0?'⚠️':'✅'} ${totalDiff} diferencias
-  </div>
+  <div class="chip" style="background:${totalDiff>0?'#fef9c3':'#dcfce7'};color:${totalDiff>0?'#92400e':'#15803d'};border-color:${totalDiff>0?'#fcd34d':'#86efac'}">${totalDiff>0?'⚠️':'✅'} ${totalDiff} diferencias</div>
   <div class="chip" style="background:#dcfce7;color:#065f46;border-color:#86efac">📥 INP: ${cacheInp.des.length}</div>
   <div class="chip" style="background:#fef3c7;color:#78350f;border-color:#fcd34d">📤 OUT: ${cacheOut.des.length}</div>
 </div>
-
-<table>
-  <thead>
-    <tr>
-      <th class="th-de">DE #</th>
-      <th class="th-nm">Nombre</th>
-      <th class="th-inp">📥 INP — Entrada</th>
-      <th class="th-out">📤 OUT — Salida</th>
-    </tr>
-  </thead>
-  <tbody>${filas}</tbody>
-</table>
-
-<div class="ft">
-  Visual Admin v2.0 &nbsp;·&nbsp; Comparación INP vs OUT &nbsp;·&nbsp;
-  ${ahora} &nbsp;·&nbsp; ${totalDiff} diferencias &nbsp;·&nbsp; Infraestructura de datos bancarios
-</div>
+<table><thead><tr><th class="th-de">DE #</th><th class="th-nm">Nombre</th><th class="th-inp">📥 INP — Entrada</th><th class="th-out">📤 OUT — Salida</th></tr></thead>
+<tbody>${filas}</tbody></table>
+<div class="ft">Visual Admin v2.0 · Comparación INP vs OUT · ${ahora} · ${totalDiff} diferencias</div>
 </body></html>`;
-
         const w = window.open('','_blank','width=1200,height=850');
-        w.document.write(pdfHtml);
-        w.document.close();
+        w.document.write(pdfHtml); w.document.close();
         w.onload = () => { w.focus(); w.print(); };
         mostrarToast('🖨️ PDF comparación listo');
     }
@@ -1236,4 +1098,3 @@
 </script>
 </body>
 </html>
-

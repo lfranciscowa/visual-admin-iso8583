@@ -8,218 +8,488 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
-            --blue-main: #2563eb;
-            --text-dark: #1e1b4b;
-            --border: #e2e8f0;
-            --bg: #f8f7ff;
+            --blue-main:   #2563eb;
+            --blue-pale:   #eff6ff;
+            --text-dark:   #1e1b4b;
+            --text-muted:  #64748b;
+            --border:      #e2e8f0;
+            --bg:          #f8f7ff;
+            --white:       #ffffff;
+            --success:     #16a34a;
+            --success-pale:#dcfce7;
+            --danger:      #e11d48;
+            --purple:      #7c3aed;
+            --purple-pale: #f5f3ff;
+            --orange:      #ea580c;
+            --orange-pale: #fff7ed;
         }
 
-        body { 
-            font-family: 'Sora', sans-serif; 
-            background: var(--bg); 
-            padding: 40px; margin: 0;
-            display: flex; flex-direction: column; align-items: flex-end;
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Sora', sans-serif;
+            background: var(--bg);
+            padding: 40px;
+            min-height: 100vh;
         }
 
-        .container-usuarios { max-width: 1000px; width: 100%; }
+        .container-usuarios { max-width: 1100px; width: 100%; margin: 0 auto; }
 
-        /* Estilo de Tarjetas */
+        /* ── USER CARD ─────────────────────────────────────────── */
         .user-card {
-            background: white; border-radius: 12px; padding: 20px;
-            display: flex; align-items: center; border: 1px solid #edf2f7;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: relative;
-            transition: 0.3s;
-        }
-
-        /* Estilo para usuarios desactivados */
-        .card-disabled { opacity: 0.6; filter: grayscale(0.8); background: #f1f5f9; }
-
-        .btn-blue {
-            background: var(--blue-main); color: white; border: none;
-            padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;
-        }
-
-        /* Área de acciones (Botones a la derecha) */
-        .actions-area {
+            background: var(--white);
+            border-radius: 14px;
+            padding: 20px;
             display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-left: 15px;
+            align-items: flex-start;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            transition: box-shadow .2s, transform .2s;
+        }
+        .user-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-1px); }
+        .card-disabled   { opacity: 0.55; filter: grayscale(0.7); background: #f1f5f9; }
+
+        .avatar {
+            width: 46px; height: 46px; background: var(--blue-main); color: white;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 15px; margin-right: 14px; flex-shrink: 0;
         }
 
-        .btn-action {
-            border: 1px solid #e2e8f0;
-            background: white;
-            border-radius: 6px;
-            width: 30px;
-            height: 30px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            transition: 0.2s;
-        }
-
-        .btn-delete:hover { background: #fee2e2; border-color: #ef4444; }
+        .card-info { flex-grow: 1; min-width: 0; }
+        .card-info h4 { margin: 0; font-size: 14px; font-weight: 700; }
+        .card-info .sub { margin: 2px 0 10px; font-size: 11px; color: var(--text-muted); }
 
         /* Nodos Tags */
         .nodo-tag {
-            background: #eff6ff; color: #2563eb; font-size: 10px; 
-            padding: 2px 8px; border-radius: 4px; font-weight: 600;
+            background: var(--blue-pale); color: var(--blue-main);
+            font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 700;
         }
 
-        /* Modal Styles */
+        /* ── MÓDULOS TAGS en la tarjeta ────────────────────────── */
+        .tags-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+
+        .mod-tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 10px; font-weight: 700; padding: 3px 9px;
+            border-radius: 20px; border: 1px solid;
+        }
+        .mod-tag.dashboard {
+            background: var(--purple-pale); color: var(--purple);
+            border-color: #ddd6fe;
+        }
+        .mod-tag.monitor {
+            background: var(--orange-pale); color: var(--orange);
+            border-color: #fed7aa;
+        }
+        /* si hay más módulos futuros */
+        .mod-tag.extra {
+            background: #f0fdf4; color: var(--success);
+            border-color: #bbf7d0;
+        }
+
+        /* ── ACCIONES ─────────────────────────────────────────── */
+        .actions-area {
+            display: flex; flex-direction: column;
+            gap: 6px; margin-left: 12px; flex-shrink: 0;
+        }
+        .btn-action {
+            border: 1px solid var(--border); background: var(--white);
+            border-radius: 6px; width: 30px; height: 30px;
+            cursor: pointer; display: flex; align-items: center;
+            justify-content: center; font-size: 14px; transition: .2s;
+        }
+        .btn-delete:hover { background: #fee2e2; border-color: #ef4444; }
+
+        /* ── BUTTONS ──────────────────────────────────────────── */
+        .btn-blue {
+            background: var(--blue-main); color: white; border: none;
+            padding: 10px 22px; border-radius: 8px;
+            font-weight: 700; font-size: 13px; cursor: pointer;
+            font-family: 'Sora', sans-serif; transition: .2s;
+        }
+        .btn-blue:hover { background: #1d4ed8; }
+
+        /* ── MODAL ────────────────────────────────────────────── */
         .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px);
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.45); backdrop-filter: blur(4px);
             z-index: 1000; justify-content: center; align-items: center;
         }
         .modal-content {
-            background: white; width: 90%; max-width: 500px;
-            border-radius: 16px; padding: 25px; box-shadow: 0 20px 25px rgba(0,0,0,0.1);
+            background: var(--white); width: 90%; max-width: 520px;
+            border-radius: 18px; padding: 28px;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.14);
+            max-height: 90vh; overflow-y: auto;
         }
+        .modal-title {
+            font-size: 16px; font-weight: 700; margin-bottom: 20px;
+            color: var(--text-dark); display: flex; align-items: center; gap: 8px;
+        }
+
+        .field { margin-bottom: 16px; }
+        .field label {
+            display: block; font-size: 10px; font-weight: 700;
+            text-transform: uppercase; color: var(--text-muted);
+            letter-spacing: .05em; margin-bottom: 5px;
+        }
+        .field input, .field select {
+            width: 100%; padding: 10px 12px;
+            border: 1px solid var(--border); border-radius: 8px;
+            font-size: 13px; outline: none; font-family: 'Sora', sans-serif;
+            transition: border-color .2s, box-shadow .2s; margin: 0;
+        }
+        .field input:focus, .field select:focus {
+            border-color: var(--blue-main);
+            box-shadow: 0 0 0 3px var(--blue-pale);
+        }
+
+        /* ── Nodos grid ───────────────────────────────────────── */
         .nodos-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr);
-            gap: 10px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #f1f5f9;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+            background: #f8fafc; padding: 14px; border-radius: 8px;
+            border: 1px solid #f1f5f9;
         }
-        input, select {
-            width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px;
-            border: 1px solid var(--border); border-radius: 8px; outline: none;
+        .nodos-grid label {
+            font-size: 11px; font-weight: 600; color: var(--text-dark);
+            text-transform: none; letter-spacing: 0;
+            display: flex; align-items: center; gap: 4px;
         }
-        label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+
+        /* ── SECCIÓN MÓDULOS en el modal ──────────────────────── */
+        .modulos-section {
+            margin-bottom: 16px;
+        }
+        .modulos-section > .section-label {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            color: var(--text-muted); letter-spacing: .05em; margin-bottom: 8px;
+            display: block;
+        }
+        .modulos-grid {
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .modulo-toggle {
+            display: flex; align-items: center; gap: 12px;
+            background: #f8fafc; border: 2px solid var(--border);
+            border-radius: 10px; padding: 12px 14px;
+            cursor: pointer; transition: border-color .2s, background .2s;
+            user-select: none;
+        }
+        .modulo-toggle:hover { background: var(--blue-pale); border-color: #bfdbfe; }
+        .modulo-toggle.checked-dashboard {
+            background: var(--purple-pale); border-color: #c4b5fd;
+        }
+        .modulo-toggle.checked-monitor {
+            background: var(--orange-pale); border-color: #fdba74;
+        }
+        .modulo-toggle input[type="checkbox"] {
+            width: 16px; height: 16px; margin: 0; cursor: pointer; flex-shrink: 0;
+            accent-color: var(--blue-main);
+        }
+        .modulo-icon { font-size: 20px; flex-shrink: 0; }
+        .modulo-info { flex: 1; }
+        .modulo-info .modulo-name {
+            font-size: 13px; font-weight: 700; color: var(--text-dark);
+        }
+        .modulo-info .modulo-desc {
+            font-size: 10px; color: var(--text-muted); margin-top: 1px;
+        }
+        .modulo-badge {
+            font-size: 9px; font-weight: 700; padding: 2px 8px;
+            border-radius: 20px; flex-shrink: 0;
+        }
+        .modulo-badge.dashboard { background: var(--purple-pale); color: var(--purple); }
+        .modulo-badge.monitor   { background: var(--orange-pale);  color: var(--orange); }
+
+        /* ── SEPARADOR ────────────────────────────────────────── */
+        .divider {
+            height: 1px; background: var(--border); margin: 18px 0;
+        }
+
+        /* ── MODAL FOOTER ─────────────────────────────────────── */
+        .modal-footer {
+            display: flex; justify-content: flex-end;
+            gap: 10px; margin-top: 20px;
+        }
+        .btn-cancel {
+            background: none; border: 1px solid var(--border);
+            border-radius: 8px; padding: 10px 18px; font-size: 13px;
+            font-weight: 600; color: var(--text-muted); cursor: pointer;
+            font-family: 'Sora', sans-serif; transition: .2s;
+        }
+        .btn-cancel:hover { background: #f1f5f9; color: var(--text-dark); }
+
+        /* ── SECTION DIVIDER (módulos / nodos en tarjeta) ─────── */
+        .card-section-label {
+            font-size: 9px; font-weight: 700; text-transform: uppercase;
+            color: #94a3b8; letter-spacing: .06em; margin-bottom: 4px;
+        }
+        .card-divider { height: 1px; background: #f1f5f9; margin: 8px 0; }
     </style>
 </head>
 <body>
 
-    <div class="container-usuarios">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-            <div>
-                <h2 style="margin:0">Gestión de Perfiles</h2>
-                <p style="font-size: 13px; color: #64748b; margin: 5px 0 0 0;">Usuarios con acceso al sistema operativo</p>
-            </div>
-            <button onclick="abrirModal()" class="btn-blue">+ Nuevo Perfil</button>
+<div class="container-usuarios">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:28px;">
+        <div>
+            <h2 style="margin:0; font-size:20px; color:var(--text-dark)">Gestión de Perfiles</h2>
+            <p style="font-size:13px; color:var(--text-muted); margin:4px 0 0">Usuarios con acceso al sistema operativo</p>
         </div>
-
-        <div id="usuariosContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
-        </div>
+        <button onclick="abrirModal()" class="btn-blue">+ Nuevo Perfil</button>
     </div>
 
-    <div id="modalPerfil" class="modal-overlay">
-        <div class="modal-content">
-            <h3 style="margin-top:0">👤 Nuevo Perfil de Usuario</h3>
-            <form id="perfilFormModal">
+    <div id="usuariosContainer"
+         style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:18px;">
+    </div>
+</div>
+
+<!-- ── MODAL NUEVO PERFIL ───────────────────────────────────────── -->
+<div id="modalPerfil" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-title">👤 Nuevo Perfil de Usuario</div>
+
+        <form id="perfilFormModal">
+
+            <!-- Nombre y Usuario -->
+            <div class="field">
                 <label>Nombre Completo</label>
                 <input type="text" id="mNombre" placeholder="Ej: Juan Pérez" required>
-
+            </div>
+            <div class="field">
                 <label>Usuario (Login)</label>
                 <input type="text" id="mUser" placeholder="JPEREZ" required>
-
+            </div>
+            <div class="field">
                 <label>Rol</label>
                 <select id="mRol">
                     <option value="Administrador">Administrador</option>
                     <option value="Operador">Operador</option>
                     <option value="Soporte">Soporte</option>
                 </select>
+            </div>
 
+            <!-- Nodos -->
+            <div class="field">
                 <label>Nodos Permitidos</label>
                 <div class="nodos-grid" id="mNodos">
-                    <label style="font-size: 10px;"><input type="checkbox" value="0401"> 0401</label>
-                    <label style="font-size: 10px;"><input type="checkbox" value="0402"> 0402</label>
-                    <label style="font-size: 10px;"><input type="checkbox" value="0403"> 0403</label>
-                    <label style="font-size: 10px;"><input type="checkbox" value="0404"> 0404</label>
+                    <label><input type="checkbox" value="0146"> 0146</label>
+                    <label><input type="checkbox" value="0401"> 0401</label>
+                    <label><input type="checkbox" value="0402"> 0402</label>
+                    <label><input type="checkbox" value="0403"> 0403</label>
+                    <label><input type="checkbox" value="0404"> 0404</label>
+                    <label><input type="checkbox" value="0405"> 0405</label>
+                    <label><input type="checkbox" value="0407"> 0407</label>
+                    <label><input type="checkbox" value="0408"> 0408</label>
+                    <label><input type="checkbox" value="0409"> 0409</label>
+                    <label><input type="checkbox" value="0410"> 0410</label>
+                    <label><input type="checkbox" value="0411"> 0411</label>
+                    <label><input type="checkbox" value="0412"> 0412</label>
+                    <label><input type="checkbox" value="0413"> 0413</label>
+                    <label><input type="checkbox" value="MDES"> MDES</label>
+                    <label><input type="checkbox" value="NAIG"> NAIG</label>
+                    <label><input type="checkbox" value="EVER"> EVER</label>
                 </div>
+            </div>
 
-                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                    <button type="button" onclick="cerrarModal()" style="background:none; border:none; cursor:pointer; color:#64748b">Cancelar</button>
-                    <button type="submit" class="btn-blue">💾 Guardar Perfil</button>
+            <div class="divider"></div>
+
+            <!-- ── MÓDULOS ── NUEVA SECCIÓN ─────────────────────── -->
+            <div class="modulos-section">
+                <span class="section-label">Módulos Asignados</span>
+                <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">
+                    Selecciona los módulos a los que tendrá acceso este usuario.
+                </p>
+
+                <div class="modulos-grid">
+
+                    <!-- Módulo 1: Dashboard ISO 8583 -->
+                    <label class="modulo-toggle" id="toggleDashboard"
+                           onclick="actualizarToggle('modDashboard','toggleDashboard','checked-dashboard')">
+                        <input type="checkbox" id="modDashboard" value="dashboard">
+                        <span class="modulo-icon">📊</span>
+                        <div class="modulo-info">
+                            <div class="modulo-name">Dashboard ISO 8583</div>
+                            <div class="modulo-desc">Consulta y análisis de tramas transaccionales</div>
+                        </div>
+                        <span class="modulo-badge dashboard">TRAMA</span>
+                    </label>
+
+                    <!-- Módulo 2: Monitor de Puertos -->
+                    <label class="modulo-toggle" id="toggleMonitor"
+                           onclick="actualizarToggle('modMonitor','toggleMonitor','checked-monitor')">
+                        <input type="checkbox" id="modMonitor" value="monitor">
+                        <span class="modulo-icon">🖥️</span>
+                        <div class="modulo-info">
+                            <div class="modulo-name">Monitor de Puertos TCP</div>
+                            <div class="modulo-desc">Monitoreo en tiempo real del AS/400</div>
+                        </div>
+                        <span class="modulo-badge monitor">TCP</span>
+                    </label>
+
                 </div>
-            </form>
-        </div>
+            </div>
+            <!-- ── FIN MÓDULOS ──────────────────────────────────── -->
+
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+                <button type="submit" class="btn-blue">💾 Guardar Perfil</button>
+            </div>
+        </form>
     </div>
+</div>
 
 <script>
-    // Agregamos la propiedad 'activo' a la lista inicial
+    // ── CATÁLOGO DE MÓDULOS ────────────────────────────────────────
+    // Aquí agregas futuros módulos fácilmente
+    const MODULOS_CATALOGO = {
+        dashboard: { label: 'Dashboard ISO 8583', icon: '📊', clase: 'dashboard' },
+        monitor:   { label: 'Monitor de Puertos', icon: '🖥️', clase: 'monitor'   },
+    };
+
+    // ── DATOS INICIALES ────────────────────────────────────────────
     let listaUsuarios = [
-        { nombre: "Carlos Ramírez", user: "CRAMIREZ", rol: "Administrador", nodos: ["0401", "0402"], activo: true },
-        { nombre: "María González", user: "MGONZALEZ", rol: "Operador", nodos: ["0402"], activo: true }
+        {
+            nombre: "Carlos Ramírez", user: "CRAMIREZ",
+            rol: "Administrador", nodos: ["0401", "0402"],
+            modulos: ["dashboard", "monitor"], activo: true
+        },
+        {
+            nombre: "María González", user: "MGONZALEZ",
+            rol: "Operador", nodos: ["0402"],
+            modulos: ["dashboard"], activo: true
+        }
     ];
 
-    function abrirModal() { 
-        document.getElementById('perfilFormModal').reset();
-        document.getElementById('modalPerfil').style.display = 'flex'; 
+    // ── TOGGLE VISUAL DEL MÓDULO ───────────────────────────────────
+    // Se llama al hacer click en el label del módulo
+    function actualizarToggle(checkId, toggleId, claseActiva) {
+        // El click en el label ya cambia el checkbox por defecto;
+        // leemos el estado DESPUÉS de que el navegador lo procese
+        setTimeout(() => {
+            const cb = document.getElementById(checkId);
+            const tg = document.getElementById(toggleId);
+            if (cb && tg) {
+                // Quitar todas las clases "checked-*"
+                tg.classList.remove('checked-dashboard', 'checked-monitor');
+                if (cb.checked) tg.classList.add(claseActiva);
+            }
+        }, 0);
     }
-    
-    function cerrarModal() { document.getElementById('modalPerfil').style.display = 'none'; }
 
+    // ── ABRIR / CERRAR MODAL ───────────────────────────────────────
+    function abrirModal() {
+        document.getElementById('perfilFormModal').reset();
+        // Limpiar estilos de toggles
+        document.getElementById('toggleDashboard').classList.remove('checked-dashboard');
+        document.getElementById('toggleMonitor').classList.remove('checked-monitor');
+        document.getElementById('modalPerfil').style.display = 'flex';
+    }
+    function cerrarModal() {
+        document.getElementById('modalPerfil').style.display = 'none';
+    }
+
+    // ── RENDER LISTA ───────────────────────────────────────────────
     function renderUsuarios() {
         const container = document.getElementById('usuariosContainer');
         container.innerHTML = '';
 
         listaUsuarios.forEach((u, index) => {
             const iniciales = u.nombre.substring(0, 2).toUpperCase();
-            const nodosHTML = u.nodos.map(n => `<span class="nodo-tag">${n}</span>`).join(' ');
 
-            container.innerHTML += `
+            // Nodos tags
+            const nodosHTML = (u.nodos || [])
+                .map(n => `<span class="nodo-tag">${n}</span>`)
+                .join('');
+
+            // Módulos tags
+            const modulosHTML = (u.modulos || []).map(m => {
+                const cat = MODULOS_CATALOGO[m];
+                if (!cat) return '';
+                return `<span class="mod-tag ${cat.clase}">${cat.icon} ${cat.label}</span>`;
+            }).join('');
+
+            container.insertAdjacentHTML('beforeend', `
                 <div class="user-card ${u.activo ? '' : 'card-disabled'}">
-                    <div style="width: 45px; height: 45px; background: #2563eb; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin-right: 15px; flex-shrink: 0;">${iniciales}</div>
-                    
-                    <div style="flex-grow: 1;">
-                        <h4 style="margin: 0; font-size: 14px;">${u.nombre}</h4>
-                        <p style="margin: 0; font-size: 11px; color: #64748b;">${u.user} • ${u.rol}</p>
-                        <div style="margin-top: 8px; display: flex; gap: 5px; flex-wrap: wrap;">${nodosHTML}</div>
+                    <div class="avatar">${iniciales}</div>
+
+                    <div class="card-info">
+                        <h4>${u.nombre}</h4>
+                        <p class="sub">${u.user} · ${u.rol}</p>
+
+                        <!-- Nodos -->
+                        ${nodosHTML ? `
+                        <div class="card-section-label">Nodos</div>
+                        <div class="tags-row">${nodosHTML}</div>` : ''}
+
+                        <!-- Módulos -->
+                        ${modulosHTML ? `
+                        <div class="card-divider"></div>
+                        <div class="card-section-label">Módulos</div>
+                        <div class="tags-row">${modulosHTML}</div>` : `
+                        <div class="card-divider"></div>
+                        <div style="font-size:11px; color:#94a3b8; font-style:italic">Sin módulos asignados</div>`}
                     </div>
 
                     <div class="actions-area">
-                        <button onclick="toggleEstado(${index})" class="btn-action" title="${u.activo ? 'Desactivar' : 'Activar'}">
+                        <button onclick="toggleEstado(${index})" class="btn-action"
+                                title="${u.activo ? 'Desactivar' : 'Activar'}">
                             ${u.activo ? '🟢' : '⚪'}
                         </button>
-                        <button onclick="confirmarEliminar(${index})" class="btn-action btn-delete" title="Eliminar">
-                            🗑️
-                        </button>
+                        <button onclick="confirmarEliminar(${index})" class="btn-action btn-delete"
+                                title="Eliminar">🗑️</button>
                     </div>
                 </div>
-            `;
+            `);
         });
     }
 
-    // Guardar nuevo perfil
+    // ── GUARDAR NUEVO PERFIL ───────────────────────────────────────
     document.getElementById('perfilFormModal').onsubmit = function(e) {
         e.preventDefault();
-        const checkboxes = document.querySelectorAll('#mNodos input:checked');
-        const nodosSeleccionados = Array.from(checkboxes).map(cb => cb.value);
+
+        const nodos = Array.from(
+            document.querySelectorAll('#mNodos input:checked')
+        ).map(cb => cb.value);
+
+        const modulos = Array.from(
+            document.querySelectorAll('#modDashboard, #modMonitor')
+        ).filter(cb => cb.checked).map(cb => cb.value);
 
         const nuevoUsuario = {
-            nombre: document.getElementById('mNombre').value,
-            user: document.getElementById('mUser').value,
-            rol: document.getElementById('mRol').value,
-            nodos: nodosSeleccionados,
-            activo: true // Por defecto nacen activos
+            nombre:  document.getElementById('mNombre').value.trim(),
+            user:    document.getElementById('mUser').value.trim(),
+            rol:     document.getElementById('mRol').value,
+            nodos,
+            modulos,
+            activo:  true
         };
 
         listaUsuarios.push(nuevoUsuario);
         renderUsuarios();
         cerrarModal();
-        Swal.fire('¡Creado!', 'El perfil se ha añadido correctamente.', 'success');
+
+        // Feedback de módulos en el toast
+        const modLabels = modulos.map(m => MODULOS_CATALOGO[m]?.label || m).join(', ') || 'ninguno';
+        Swal.fire({
+            icon: 'success',
+            title: '¡Perfil creado!',
+            html: `<span style="font-size:13px">Módulos asignados: <strong>${modLabels}</strong></span>`,
+            confirmButtonColor: '#2563eb'
+        });
     };
 
-    // Función para Activar/Desactivar
+    // ── TOGGLE ESTADO ──────────────────────────────────────────────
     function toggleEstado(index) {
         listaUsuarios[index].activo = !listaUsuarios[index].activo;
         renderUsuarios();
-        
-        const estadoTxt = listaUsuarios[index].activo ? 'activado' : 'desactivado';
+        const estado = listaUsuarios[index].activo ? 'activado' : 'desactivado';
         Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'info',
-            title: `Usuario ${estadoTxt}`,
-            showConfirmButton: false,
-            timer: 1500
+            toast: true, position: 'top-end', icon: 'info',
+            title: `Usuario ${estado}`,
+            showConfirmButton: false, timer: 1500
         });
     }
 
-    // Función para Eliminar con confirmación de SweetAlert
+    // ── ELIMINAR ───────────────────────────────────────────────────
     async function confirmarEliminar(index) {
         const result = await Swal.fire({
             title: '¿Estás seguro?',
@@ -231,60 +501,15 @@
             confirmButtonText: 'Sí, eliminar',
             cancelButtonText: 'Cancelar'
         });
-
         if (result.isConfirmed) {
             listaUsuarios.splice(index, 1);
             renderUsuarios();
             Swal.fire('Eliminado', 'El perfil ha sido removido.', 'success');
         }
     }
-// Dentro del script de usuarios.html
-async function cargarUsuarios() {
-    try {
-        // Pedimos a la API los usuarios (incluyendo el que acabas de crear en perfiles)
-        const res = await fetch('/api/usuarios');
-        const usuarios = await res.json();
-        
-        const container = document.getElementById('usuariosContainer');
-        container.innerHTML = ''; 
 
-        usuarios.forEach((u, index) => {
-            const esActivo = u.estado === 'ACTIVO';
-            const iniciales = u.username ? u.username.substring(0, 2).toUpperCase() : '??';
-            
-            // Generamos los tags de nodos que vienen de la base de datos
-            const nodosHTML = u.nodos ? u.nodos.map(n => `<span class="nodo-tag">${n}</span>`).join('') : '';
-
-            const cardHTML = `
-                <div class="user-card ${esActivo ? '' : 'card-disabled'}">
-                    <div style="width: 45px; height: 45px; background: #2563eb; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin-right: 15px; flex-shrink: 0;">
-                        ${iniciales}
-                    </div>
-                    <div style="flex-grow: 1;">
-                        <h4 style="margin: 0; font-size: 14px;">${u.username}</h4>
-                        <p style="margin: 0; font-size: 11px; color: #64748b;">${u.rol}</p>
-                        <div style="margin-top: 8px; display: flex; gap: 5px; flex-wrap: wrap;">
-                            ${nodosHTML}
-                        </div>
-                    </div>
-                    <div class="actions-area">
-                        <button onclick="toggleEstado('${u.username}', '${u.estado}')" class="btn-action">
-                            ${esActivo ? '🟢' : '⚪'}
-                        </button>
-                        <button onclick="confirmarEliminar('${u.username}')" class="btn-action btn-delete">
-                            🗑️
-                        </button>
-                    </div>
-                </div>
-            `;
-            container.insertAdjacentHTML('beforeend', cardHTML);
-        });
-    } catch (error) {
-        console.log("Esperando conexión con la base de datos...");
-    }
-}
+    // ── INIT ───────────────────────────────────────────────────────
     window.onload = renderUsuarios;
 </script>
-
 </body>
 </html>

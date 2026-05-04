@@ -153,23 +153,27 @@
 
 <script>
     // ============================================================
-    // LIMPIEZA DE SESIÓN Y CAMPOS AL CARGAR
+    // MAPA DE MÓDULOS → URL
+    // Debe coincidir con MODULOS_SISTEMA en server.js
     // ============================================================
-    localStorage.removeItem('rol_actual');
-    localStorage.removeItem('usuario_actual');
-    localStorage.removeItem('username');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('session');
-    localStorage.setItem('modulos', JSON.stringify(data.user.modulos || []));
-
-    // Mejora 4: Forzar limpieza de inputs al cargar la página físicamente
-    window.onload = () => {
-        document.getElementById('user').value = "";
-        document.getElementById('pass').value = "";
+    const MODULO_URLS = {
+        trama:    '/dashboard.html',          // Terminal ISO 8583
+        monitor:  '/monitor-de-puerto.html',  // Monitor de Puertos TCP
+        perfiles: '/perfil.html',             // Gestión de Perfiles
     };
 
     const ROLES_ADMIN = ['ADMIN', 'Administrador'];
+
+    // ── Limpiar sesión anterior al entrar al login ──────────────
+    ['rol_actual', 'usuario_actual', 'username', 'token', 'modulos'].forEach(k =>
+        localStorage.removeItem(k)
+    );
+
+    // ── Limpiar inputs al cargar ────────────────────────────────
+    window.onload = () => {
+        document.getElementById('user').value = '';
+        document.getElementById('pass').value = '';
+    };
 
     function togglePass() {
         const inp = document.getElementById('pass');
@@ -177,6 +181,21 @@
         inp.type === 'password'
             ? (inp.type = 'text',     btn.textContent = '🙈')
             : (inp.type = 'password', btn.textContent = '👁️');
+    }
+
+    // ── Calcular destino según módulos asignados ────────────────
+    function calcularDestino(modulos, rol) {
+        // Admins siempre a perfiles primero
+        if (ROLES_ADMIN.includes(rol)) return '/perfil.html';
+
+        // Para el resto: primer módulo disponible en el orden del mapa
+        const orden = ['trama', 'monitor', 'perfiles'];
+        for (const mod of orden) {
+            if (modulos.includes(mod)) return MODULO_URLS[mod];
+        }
+
+        // Sin módulos asignados → pantalla de aviso (o login de nuevo)
+        return '/sin-acceso.html';
     }
 
     async function login() {
@@ -200,22 +219,25 @@
             const data = await res.json();
 
             if (data.ok) {
+                // ── Guardar sesión completa en localStorage ─────
                 localStorage.setItem('username',   data.user.username);
                 localStorage.setItem('rol_actual', data.user.rol);
+                localStorage.setItem('modulos',    JSON.stringify(data.user.modulos || []));
                 if (data.user.token) localStorage.setItem('token', data.user.token);
 
                 txt.textContent = '✓ Acceso concedido';
 
                 setTimeout(() => {
+                    // Primero verificar si requiere cambio de clave
                     if (data.user.requiere_cambio === 1) {
                         window.location.href = '/cambiar-clave.html';
                         return;
                     }
-                    if (ROLES_ADMIN.includes(data.user.rol)) {
-                        window.location.href = '/perfil.html';
-                    } else {
-                        window.location.href = '/dashboard.html';
-                    }
+                    // Redirigir al destino según módulos
+                    window.location.href = calcularDestino(
+                        data.user.modulos || [],
+                        data.user.rol
+                    );
                 }, 600);
 
             } else {
@@ -226,9 +248,7 @@
             msg.innerHTML   = '❌ ' + err.message;
             txt.textContent = 'Entrar al sistema';
             btn.disabled    = false;
-
-            // Mejora 5: Limpiar campo de clave inmediatamente tras el error
-            document.getElementById('pass').value = "";
+            document.getElementById('pass').value = '';
 
             card.classList.add('shake');
             document.getElementById('pass').style.borderColor = 'var(--error)';

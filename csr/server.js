@@ -20,9 +20,10 @@ app.get('/', (req, res) => {
 
 // ============================================================
 // MÓDULOS DEL SISTEMA — fuente única de verdad
+// ⚠️  Las URLs deben coincidir con los archivos reales en /public
 // ============================================================
 const MODULOS_SISTEMA = [
-    { id: 'trama',    nombre: 'Terminal ISO 8583',   url: '/trama.html',              icon: '⚡' },
+    { id: 'trama',    nombre: 'Terminal ISO 8583',   url: '/dashboard.html',          icon: '⚡' },
     { id: 'monitor',  nombre: 'Monitor de Puertos',  url: '/monitor-de-puerto.html',  icon: '📡' },
     { id: 'perfiles', nombre: 'Gestión de Perfiles', url: '/perfil.html',             icon: '👥' },
 ];
@@ -46,13 +47,22 @@ async function enviarClaveEmail(email, username, tempPass) {
         from: 'Visual Admin <onboarding@resend.dev>',
         to: email,
         subject: 'Acceso al Sistema - Clave Temporal',
-        html: `<h3>Bienvenido al Sistema</h3>
-               <p>Se ha creado tu perfil de usuario:</p>
-               <ul>
-                 <li><strong>Usuario:</strong> ${username}</li>
-                 <li><strong>Clave Temporal:</strong> ${tempPass}</li>
-               </ul>
-               <p>Deberás cambiarla en tu primer ingreso.</p>`
+        html: `
+        <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:32px;background:#f5f3ff;border-radius:12px">
+            <h2 style="color:#7c3aed;margin-bottom:4px">Visual Admin</h2>
+            <p style="color:#7c7aaa;font-size:13px;margin-bottom:24px">Sistema de Administración</p>
+            <div style="background:white;border-radius:10px;padding:24px;border:1px solid #ddd6fe">
+                <h3 style="color:#1e1b4b;margin-top:0">Acceso creado exitosamente</h3>
+                <p style="color:#4c4472;font-size:14px">Se ha configurado tu perfil de usuario:</p>
+                <table style="width:100%;border-collapse:collapse;margin:16px 0">
+                    <tr><td style="padding:8px 0;color:#7c7aaa;font-size:13px">Usuario</td>
+                        <td style="padding:8px 0;font-weight:700;color:#1e1b4b">${username}</td></tr>
+                    <tr><td style="padding:8px 0;color:#7c7aaa;font-size:13px">Clave temporal</td>
+                        <td style="padding:8px 0"><code style="background:#f0fdf4;color:#059669;padding:4px 10px;border-radius:6px;font-size:16px;font-weight:700;letter-spacing:1px">${tempPass}</code></td></tr>
+                </table>
+                <p style="color:#ef4444;font-size:12px;margin-bottom:0">⚠️ Deberás cambiar esta clave en tu primer ingreso.</p>
+            </div>
+        </div>`
     });
     if (error) throw new Error(error.message);
     return data;
@@ -84,19 +94,23 @@ setTimeout(migrarDB, 2000);
 // RUTAS API
 // ============================================================
 
-// 1. LOGIN — devuelve modulos para que el dashboard los use
+// ── 1. LOGIN ─────────────────────────────────────────────────
+// Devuelve los módulos del usuario para que el frontend
+// los guarde en localStorage y pueda hacer la guardia de acceso
 app.post('/api/login', async (req, res) => {
     const { user, pass } = req.body;
     try {
         const usuario = await db.get(
             'SELECT * FROM usuarios WHERE username = $1 OR email = $1', [user]
         );
-        if (!usuario) return res.status(404).json({ ok: false, msg: 'Usuario no existe' });
+        if (!usuario)
+            return res.status(404).json({ ok: false, msg: 'Usuario no existe' });
         if (usuario.estado === 'INACTIVO')
-            return res.status(403).json({ ok: false, msg: 'Cuenta desactivada.' });
+            return res.status(403).json({ ok: false, msg: 'Cuenta desactivada. Contacta a un administrador.' });
         if (usuario.password !== pass)
             return res.status(401).json({ ok: false, msg: 'Contraseña incorrecta' });
 
+        // Parsear módulos del usuario
         let modulos = [];
         try {
             modulos = typeof usuario.modulos === 'string'
@@ -104,9 +118,11 @@ app.post('/api/login', async (req, res) => {
                 : (usuario.modulos || []);
         } catch { modulos = []; }
 
-        // ADMIN y Administrador ven todos los módulos
+        // ADMIN y Administrador tienen acceso a todo siempre
         const esAdmin = ['ADMIN', 'Administrador'].includes(usuario.rol);
         if (esAdmin) modulos = MODULOS_SISTEMA.map(m => m.id);
+
+        console.log(`✅ Login: ${usuario.username} | Rol: ${usuario.rol} | Módulos: [${modulos.join(', ')}]`);
 
         res.json({
             ok: true,
@@ -115,15 +131,16 @@ app.post('/api/login', async (req, res) => {
                 nombre:          usuario.nombre,
                 rol:             usuario.rol,
                 requiere_cambio: usuario.requiere_cambio,
-                modulos
+                modulos                          // ← el frontend los guarda en localStorage
             }
         });
     } catch (error) {
+        console.error('❌ Error en login:', error.message);
         res.status(500).json({ ok: false, msg: 'Error en el servidor' });
     }
 });
 
-// 2. OBTENER USUARIOS
+// ── 2. OBTENER USUARIOS ───────────────────────────────────────
 app.get('/api/usuarios', async (req, res) => {
     try {
         const rows = await db.all(
@@ -140,7 +157,7 @@ app.get('/api/usuarios', async (req, res) => {
     }
 });
 
-// 3. CREAR USUARIO
+// ── 3. CREAR USUARIO ──────────────────────────────────────────
 app.post('/api/usuarios', async (req, res) => {
     const { nombre, user, email, rol, nodos, modulos, password, requiere_cambio, estado } = req.body;
     try {
@@ -153,29 +170,33 @@ app.post('/api/usuarios', async (req, res) => {
             JSON.stringify(modulos || []),
             password, requiere_cambio, estado
         ]);
-        console.log(`✅ Usuario ${user} creado`);
+        console.log(`✅ Usuario ${user} creado | Módulos: [${(modulos||[]).join(', ')}]`);
         res.json({ ok: true });
 
-        enviarClaveEmail(email, user, password)
-            .then(() => console.log(`✅ Email enviado a ${email}`))
-            .catch(err => console.error(`⚠️  Email falló: ${err.message}`));
+        // Enviar email en background (no bloquea la respuesta)
+        if (email) {
+            enviarClaveEmail(email, user, password)
+                .then(() => console.log(`✅ Email enviado a ${email}`))
+                .catch(err => console.error(`⚠️  Email falló: ${err.message}`));
+        }
     } catch (error) {
         console.error('❌ Error al crear usuario:', error.message);
         res.status(500).json({ ok: false, msg: error.message });
     }
 });
 
-// 4. CAMBIAR ESTADO
+// ── 4. CAMBIAR ESTADO ─────────────────────────────────────────
 app.patch('/api/usuarios/:username/estado', async (req, res) => {
     const { username } = req.params;
     const { estado } = req.body;
     try {
         await db.query('UPDATE usuarios SET estado=$1 WHERE username=$2', [estado, username]);
+        console.log(`🔄 Usuario ${username} → ${estado}`);
         res.json({ ok: true });
     } catch { res.status(500).json({ ok: false }); }
 });
 
-// 5. ACTUALIZAR MÓDULOS DE UN USUARIO
+// ── 5. ACTUALIZAR MÓDULOS ─────────────────────────────────────
 app.patch('/api/usuarios/:username/modulos', async (req, res) => {
     const { username } = req.params;
     const { modulos } = req.body;
@@ -184,22 +205,24 @@ app.patch('/api/usuarios/:username/modulos', async (req, res) => {
             'UPDATE usuarios SET modulos=$1 WHERE username=$2',
             [JSON.stringify(modulos || []), username]
         );
+        console.log(`🧩 Módulos de ${username} actualizados: [${(modulos||[]).join(', ')}]`);
         res.json({ ok: true });
     } catch (error) {
         res.status(500).json({ ok: false, msg: error.message });
     }
 });
 
-// 6. ELIMINAR USUARIO
+// ── 6. ELIMINAR USUARIO ───────────────────────────────────────
 app.delete('/api/usuarios/:username', async (req, res) => {
     const { username } = req.params;
     try {
         await db.query('DELETE FROM usuarios WHERE username=$1', [username]);
+        console.log(`🗑️  Usuario ${username} eliminado`);
         res.json({ ok: true });
     } catch { res.status(500).json({ ok: false }); }
 });
 
-// 7. ACTUALIZAR CONTRASEÑA
+// ── 7. ACTUALIZAR CONTRASEÑA ──────────────────────────────────
 app.post('/api/update-password', async (req, res) => {
     const { username, currentPassword, newPassword } = req.body;
     try {
@@ -216,7 +239,7 @@ app.post('/api/update-password', async (req, res) => {
     }
 });
 
-// 8. REENVIAR CLAVE
+// ── 8. REENVIAR CLAVE ─────────────────────────────────────────
 app.post('/api/usuarios/:username/reenviar-clave', async (req, res) => {
     const { username } = req.params;
     const { email } = req.body;
@@ -254,10 +277,9 @@ app.post('/api/monitor/ping', async (req, res) => {
         });
         clearTimeout(timeoutId);
         const latencia = Date.now() - t0;
-        if (response.ok || response.status < 500) {
-            return res.json({ ok: true, nodo, latencia });
-        }
-        return res.json({ ok: false, nodo, latencia, msg: `HTTP ${response.status}` });
+        return response.ok || response.status < 500
+            ? res.json({ ok: true, nodo, latencia })
+            : res.json({ ok: false, nodo, latencia, msg: `HTTP ${response.status}` });
     } catch (err) {
         clearTimeout(timeoutId);
         return res.status(200).json({ ok: false, nodo, msg: err.name === 'AbortError' ? 'TIMEOUT' : err.message });
@@ -303,8 +325,11 @@ const PUERTOS_AS400 = [
 
 const portState = {};
 PUERTOS_AS400.forEach(p => {
-    portState[p.puerto] = { puerto: p.puerto, nombre: p.nombre, job: p.job,
-        status: 'unknown', desde: null, downSince: null, ultimoUp: null, eventos: [] };
+    portState[p.puerto] = {
+        puerto: p.puerto, nombre: p.nombre, job: p.job,
+        status: 'unknown', desde: null, downSince: null,
+        ultimoUp: null, eventos: []
+    };
 });
 
 const sseClients = new Set();
@@ -355,9 +380,7 @@ async function cicloMonitor() {
 }
 
 function broadcastSSE(payload) {
-    const msg = `data: ${JSON.stringify(payload)}
-
-`;
+    const msg = `data: ${JSON.stringify(payload)}\n\n`;
     sseClients.forEach(res => { try { res.write(msg); } catch { sseClients.delete(res); } });
 }
 
@@ -368,9 +391,7 @@ app.get('/api/monitor/stream', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
-    res.write(`data: ${JSON.stringify({ tipo: 'init', data: Object.values(portState) })}
-
-`);
+    res.write(`data: ${JSON.stringify({ tipo: 'init', data: Object.values(portState) })}\n\n`);
     sseClients.add(res);
     console.log(`📡 SSE cliente · total: ${sseClients.size}`);
     req.on('close', () => { sseClients.delete(res); });
@@ -383,9 +404,9 @@ app.get('/api/monitor/estado', (req, res) => res.json(Object.values(portState)))
 // ============================================================
 const SERVER_PORT = process.env.PORT || 3001;
 app.listen(SERVER_PORT, () => {
-    console.log("===============================================");
+    console.log('===============================================');
     console.log(`🚀 Visual Admin activo en puerto: ${SERVER_PORT}`);
-    console.log("===============================================");
+    console.log('===============================================');
 });
 
 // ============================================================
@@ -398,11 +419,15 @@ const inicializarAdmin = async () => {
             await db.query(
                 `INSERT INTO usuarios (nombre,username,email,rol,nodos,modulos,password,requiere_cambio,estado)
                  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-                ['Administrador','admin', process.env.MAIL_USER || 'admin@sistema.com',
-                 'ADMIN','[]', JSON.stringify(['trama','monitor','perfiles']),
-                 'admin123', 0, 'ACTIVO']
+                [
+                    'Administrador', 'admin',
+                    process.env.MAIL_USER || 'admin@sistema.com',
+                    'ADMIN', '[]',
+                    JSON.stringify(['trama', 'monitor', 'perfiles']),
+                    'admin123', 0, 'ACTIVO'
+                ]
             );
-            console.log('👤 USUARIO ADMIN CREADO');
+            console.log('👤 USUARIO ADMIN CREADO — user: admin / pass: admin123');
         }
     } catch (err) { console.error('❌ Error init:', err.message); }
 };
