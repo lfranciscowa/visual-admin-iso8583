@@ -186,7 +186,8 @@
     // ── Calcular destino según módulos asignados ────────────────
     function calcularDestino(modulos, rol) {
         // Admins siempre a perfiles primero
-        if (ROLES_ADMIN.includes(rol)) return '/perfil.html';
+        if (!modulos || modulos.length === 0) return '/sin-acceso.html'; 
+       return '/home.html';
 
         // Para el resto: primer módulo disponible en el orden del mapa
         const orden = ['trama', 'monitor', 'perfiles'];
