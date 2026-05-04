@@ -148,7 +148,12 @@
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
                 <div class="input-group"><label>Rol del Sistema</label>
-                    <select id="mRol" onchange="renderModulosGrid('mModulos', [])"></select>
+                    <select id="mRol" onchange="renderModulosGrid('mModulos', [])">
+                         <option value="Administrador">Administrador</option>
+                         <option value="Operador" selected>Operador</option>
+                        <option value="Auditor">Auditor</option>
+                      <option value="Soporte">Soporte</option>
+                     </select>
                 </div>
                 <div class="input-group"><label>Correo Electrónico</label><input type="email" id="mEmail" placeholder="usuario@empresa.com" required></div>
             </div>

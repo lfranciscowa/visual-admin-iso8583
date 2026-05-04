@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Admin — Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --lila:        #7c3aed;
+            --lila-light:  #8b5cf6;
+            --lila-pale:   #f5f3ff;
+            --lila-border: #ddd6fe;
+            --blue:        #2563eb;
+            --blue-pale:   #eff6ff;
+            --orange:      #ea580c;
+            --orange-pale: #fff7ed;
+            --green:       #059669;
+            --green-pale:  #f0fdf4;
+            --text-dark:   #1e1b4b;
+            --text-mid:    #4c4472;
+            --text-gray:   #7c7aaa;
+            --border:      #e8e4f9;
+            --bg:          #f5f3ff;
+            --white:       #ffffff;
+            --sans:        'Sora', sans-serif;
+            --mono:        'IBM Plex Mono', monospace;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── FONDO ─────────────────────────────────────────────── */
+        body::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0;
+            background:
+                radial-gradient(ellipse 70% 50% at 15% 10%, #ddd6fe 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 85% 90%, #c7d2fe 0%, transparent 60%),
+                radial-gradient(ellipse 40% 30% at 50% 50%, #ede9fe 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* Patrón de puntos sutil */
+        body::after {
+            content: '';
+            position: fixed; inset: 0; z-index: 0;
+            background-image: radial-gradient(circle, #c4b5fd 1px, transparent 1px);
+            background-size: 32px 32px;
+            opacity: .18;
+            pointer-events: none;
+        }
+
+        /* ── TOPBAR ────────────────────────────────────────────── */
+        .topbar {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--lila-border);
+            padding: 0 40px;
+            height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        .topbar-brand {
+            display: flex; align-items: center; gap: 12px;
+        }
+        .brand-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: var(--lila);
+            box-shadow: 0 0 0 3px #ddd6fe;
+            animation: breathe 3s ease-in-out infinite;
+        }
+        @keyframes breathe {
+            0%,100% { box-shadow: 0 0 0 3px #ddd6fe; }
+            50%      { box-shadow: 0 0 0 6px #ede9fe; }
+        }
+        .brand-name {
+            font-size: 16px; font-weight: 800; color: var(--text-dark);
+            letter-spacing: -.5px;
+        }
+        .brand-name span { color: var(--lila); }
+
+        .topbar-right {
+            display: flex; align-items: center; gap: 16px;
+        }
+        .user-pill {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--lila-pale);
+            border: 1px solid var(--lila-border);
+            border-radius: 100px;
+            padding: 7px 16px;
+        }
+        .user-avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--lila), var(--lila-light));
+            color: white; font-size: 11px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .user-info { line-height: 1.2; }
+        .user-name { font-size: 12px; font-weight: 700; color: var(--text-dark); }
+        .user-rol  { font-size: 10px; color: var(--text-gray); }
+
+        .btn-logout {
+            display: flex; align-items: center; gap: 6px;
+            padding: 8px 16px; border-radius: 8px;
+            border: 1px solid #fecdd3; background: #fff1f2;
+            color: #e11d48; font-size: 12px; font-weight: 700;
+            cursor: pointer; font-family: var(--sans);
+            transition: .2s;
+        }
+        .btn-logout:hover { background: #e11d48; color: white; border-color: #e11d48; }
+
+        /* ── CONTENIDO PRINCIPAL ───────────────────────────────── */
+        .main {
+            flex: 1; position: relative; z-index: 1;
+            display: flex; flex-direction: column;
+            align-items: center;
+            padding: 60px 24px 80px;
+        }
+
+        /* ── HERO ──────────────────────────────────────────────── */
+        .hero {
+            text-align: center; margin-bottom: 56px;
+            animation: fadeDown .6s cubic-bezier(.34,1.2,.64,1) both;
+        }
+        @keyframes fadeDown {
+            from { opacity:0; transform: translateY(-16px); }
+            to   { opacity:1; transform: none; }
+        }
+
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: white; border: 1px solid var(--lila-border);
+            border-radius: 100px; padding: 6px 16px;
+            font-size: 11px; font-weight: 700; color: var(--lila);
+            letter-spacing: .05em; text-transform: uppercase;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(124,58,237,.08);
+        }
+        .hero-badge-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--green); box-shadow: 0 0 0 2px #dcfce7;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+        .hero h1 {
+            font-size: clamp(28px, 5vw, 42px);
+            font-weight: 800; color: var(--text-dark);
+            letter-spacing: -1.5px; line-height: 1.1;
+            margin-bottom: 12px;
+        }
+        .hero h1 em { font-style: normal; color: var(--lila); }
+        .hero p {
+            font-size: 15px; color: var(--text-gray);
+            max-width: 420px; margin: 0 auto; line-height: 1.6;
+        }
+
+        /* ── GRID DE MÓDULOS ───────────────────────────────────── */
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        /* ── TARJETA DE MÓDULO ─────────────────────────────────── */
+        .mod-card {
+            background: var(--white);
+            border: 1.5px solid var(--lila-border);
+            border-radius: 20px;
+            padding: 32px 28px;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex; flex-direction: column;
+            gap: 20px;
+            position: relative; overflow: hidden;
+            transition: transform .25s, box-shadow .25s, border-color .25s;
+            animation: cardIn .5s cubic-bezier(.34,1.2,.64,1) both;
+            box-shadow: 0 2px 12px rgba(124,58,237,.06);
+        }
+        .mod-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(124,58,237,.14);
+        }
+
+        @keyframes cardIn {
+            from { opacity:0; transform: translateY(20px) scale(.97); }
+            to   { opacity:1; transform: none; }
+        }
+        .mod-card:nth-child(1) { animation-delay: .1s; }
+        .mod-card:nth-child(2) { animation-delay: .2s; }
+        .mod-card:nth-child(3) { animation-delay: .3s; }
+
+        /* Línea de color superior */
+        .mod-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 3px;
+            border-radius: 20px 20px 0 0;
+        }
+        .mod-card.trama::before    { background: linear-gradient(90deg, var(--blue), #60a5fa); }
+        .mod-card.monitor::before  { background: linear-gradient(90deg, var(--orange), #fb923c); }
+        .mod-card.perfiles::before { background: linear-gradient(90deg, var(--lila), var(--lila-light)); }
+
+        /* Brillo decorativo en esquina */
+        .mod-card::after {
+            content: '';
+            position: absolute; top: -60px; right: -60px;
+            width: 160px; height: 160px; border-radius: 50%;
+            opacity: .07; pointer-events: none;
+        }
+        .mod-card.trama::after    { background: var(--blue); }
+        .mod-card.monitor::after  { background: var(--orange); }
+        .mod-card.perfiles::after { background: var(--lila); }
+
+        .mod-card:hover::after { opacity: .12; }
+
+        /* Icono */
+        .mod-icon-wrap {
+            width: 56px; height: 56px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 26px; flex-shrink: 0;
+            transition: transform .25s;
+        }
+        .mod-card:hover .mod-icon-wrap { transform: scale(1.08) rotate(-3deg); }
+
+        .mod-card.trama    .mod-icon-wrap { background: var(--blue-pale); }
+        .mod-card.monitor  .mod-icon-wrap { background: var(--orange-pale); }
+        .mod-card.perfiles .mod-icon-wrap { background: var(--lila-pale); }
+
+        /* Texto */
+        .mod-content { flex: 1; }
+        .mod-name {
+            font-size: 18px; font-weight: 800;
+            color: var(--text-dark); margin-bottom: 6px;
+            letter-spacing: -.3px;
+        }
+        .mod-desc {
+            font-size: 13px; color: var(--text-gray); line-height: 1.6;
+        }
+
+        /* Tags de info */
+        .mod-tags {
+            display: flex; flex-wrap: wrap; gap: 6px;
+            margin-top: 16px;
+        }
+        .mod-tag {
+            font-size: 10px; font-weight: 700;
+            padding: 3px 10px; border-radius: 100px;
+            font-family: var(--mono);
+            letter-spacing: .04em;
+        }
+        .mod-card.trama    .mod-tag { background: var(--blue-pale);   color: var(--blue); }
+        .mod-card.monitor  .mod-tag { background: var(--orange-pale);  color: var(--orange); }
+        .mod-card.perfiles .mod-tag { background: var(--lila-pale);    color: var(--lila); }
+
+        /* Flecha */
+        .mod-arrow {
+            position: absolute; bottom: 24px; right: 24px;
+            width: 32px; height: 32px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px;
+            transition: transform .25s, background .25s;
+        }
+        .mod-card.trama    .mod-arrow { background: var(--blue-pale);   color: var(--blue); }
+        .mod-card.monitor  .mod-arrow { background: var(--orange-pale);  color: var(--orange); }
+        .mod-card.perfiles .mod-arrow { background: var(--lila-pale);    color: var(--lila); }
+        .mod-card:hover .mod-arrow { transform: translate(3px, -3px); }
+
+        /* ── SIN MÓDULOS ───────────────────────────────────────── */
+        .empty-state {
+            text-align: center; padding: 60px 20px;
+            animation: fadeDown .5s ease both;
+        }
+        .empty-icon { font-size: 56px; margin-bottom: 16px; opacity: .4; }
+        .empty-state h3 { font-size: 18px; font-weight: 700; color: var(--text-dark); margin-bottom: 8px; }
+        .empty-state p  { font-size: 13px; color: var(--text-gray); line-height: 1.6; }
+
+        /* ── FOOTER ────────────────────────────────────────────── */
+        .footer {
+            position: relative; z-index: 1;
+            text-align: center; padding: 20px;
+            font-size: 11px; color: var(--text-gray);
+            font-family: var(--mono);
+            border-top: 1px solid var(--lila-border);
+            background: rgba(255,255,255,.6);
+            backdrop-filter: blur(8px);
+        }
+
+        /* ── RESPONSIVE ────────────────────────────────────────── */
+        @media (max-width: 600px) {
+            .topbar { padding: 0 20px; }
+            .main   { padding: 40px 16px 60px; }
+            .hero   { margin-bottom: 36px; }
+            .user-info { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── GUARD ──────────────────────────────────────────────────── -->
+<script>
+(function guard() {
+    const username = localStorage.getItem('username');
+    if (!username) window.location.replace('/login.html');
+})();
+</script>
+
+<!-- ── TOPBAR ──────────────────────────────────────────────────── -->
+<nav class="topbar">
+    <div class="topbar-brand">
+        <div class="brand-dot"></div>
+        <div class="brand-name">Visual <span>Admin</span></div>
+    </div>
+    <div class="topbar-right">
+        <div class="user-pill">
+            <div class="user-avatar" id="userAvatar">—</div>
+            <div class="user-info">
+                <div class="user-name" id="userName">—</div>
+                <div class="user-rol"  id="userRol">—</div>
+            </div>
+        </div>
+        <button class="btn-logout" onclick="cerrarSesion()">
+            🚪 Salir
+        </button>
+    </div>
+</nav>
+
+<!-- ── MAIN ────────────────────────────────────────────────────── -->
+<main class="main">
+
+    <div class="hero">
+        <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
+            Sistema Activo
+        </div>
+        <h1>Bienvenido,<br><em id="heroNombre">—</em></h1>
+        <p>Selecciona el módulo al que deseas acceder. Solo verás los módulos habilitados para tu perfil.</p>
+    </div>
+
+    <div class="modules-grid" id="modulesGrid">
+        <!-- Se genera dinámicamente -->
+    </div>
+
+</main>
+
+<!-- ── FOOTER ──────────────────────────────────────────────────── -->
+<footer class="footer">
+    Visual Admin v2.0 &nbsp;·&nbsp; Infraestructura de datos bancarios
+    &nbsp;·&nbsp; <span id="footerHora">—</span>
+</footer>
+
+<script>
+    // ── CATÁLOGO DE MÓDULOS ────────────────────────────────────────
+    const CATALOGO = {
+        trama: {
+            clase:  'trama',
+            icon:   '⚡',
+            nombre: 'Terminal ISO 8583',
+            desc:   'Consulta, análisis y comparación de tramas transaccionales en tiempo real.',
+            tags:   ['ISO 8583', 'INP / OUT', 'Bitmap'],
+            url:    '/dashboard.html',
+        },
+        monitor: {
+            clase:  'monitor',
+            icon:   '📡',
+            nombre: 'Monitor de Puertos TCP',
+            desc:   'Monitoreo en tiempo real del estado de puertos del AS/400 transaccional.',
+            tags:   ['TCP', 'AS/400', 'SSE Live'],
+            url:    '/monitor-de-puerto.html',
+        },
+        perfiles: {
+            clase:  'perfiles',
+            icon:   '👥',
+            nombre: 'Gestión de Perfiles',
+            desc:   'Administración de usuarios, roles, nodos y permisos de acceso al sistema.',
+            tags:   ['Usuarios', 'Roles', 'Permisos'],
+            url:    '/perfil.html',
+        },
+    };
+
+    // ── LEER SESIÓN ───────────────────────────────────────────────
+    const username = localStorage.getItem('username') || 'Usuario';
+    const rol      = localStorage.getItem('rol_actual') || '';
+    const modulos  = JSON.parse(localStorage.getItem('modulos') || '[]');
+
+    // ── TOPBAR ────────────────────────────────────────────────────
+    const iniciales = username.substring(0, 2).toUpperCase();
+    document.getElementById('userAvatar').textContent = iniciales;
+    document.getElementById('userName').textContent   = username;
+    document.getElementById('userRol').textContent    = rol;
+    document.getElementById('heroNombre').textContent = username;
+
+    // ── RELOJ ─────────────────────────────────────────────────────
+    function actualizarHora() {
+        document.getElementById('footerHora').textContent =
+            new Date().toLocaleTimeString('es-VE', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    }
+    actualizarHora();
+    setInterval(actualizarHora, 1000);
+
+    // ── RENDER MÓDULOS ────────────────────────────────────────────
+    function renderModulos() {
+        const grid = document.getElementById('modulesGrid');
+
+        if (!modulos.length) {
+            grid.innerHTML = `
+                <div class="empty-state" style="grid-column:1/-1">
+                    <div class="empty-icon">🔒</div>
+                    <h3>Sin módulos asignados</h3>
+                    <p>Tu cuenta está activa pero aún no tienes módulos habilitados.<br>Contacta a un administrador.</p>
+                </div>`;
+            return;
+        }
+
+        // Orden fijo: trama → monitor → perfiles
+        const orden = ['trama', 'monitor', 'perfiles'];
+        const visibles = orden.filter(id => modulos.includes(id));
+
+        // Si solo tiene 1 módulo, redirigir directo
+        if (visibles.length === 1) {
+            window.location.replace(CATALOGO[visibles[0]].url);
+            return;
+        }
+
+        visibles.forEach((id, i) => {
+            const m = CATALOGO[id];
+            const tagsHTML = m.tags.map(t => `<span class="mod-tag">${t}</span>`).join('');
+            const card = document.createElement('a');
+            card.href      = m.url;
+            card.className = `mod-card ${m.clase}`;
+            card.style.animationDelay = `${0.1 + i * 0.1}s`;
+            card.innerHTML = `
+                <div class="mod-icon-wrap">${m.icon}</div>
+                <div class="mod-content">
+                    <div class="mod-name">${m.nombre}</div>
+                    <div class="mod-desc">${m.desc}</div>
+                    <div class="mod-tags">${tagsHTML}</div>
+                </div>
+                <div class="mod-arrow">→</div>`;
+            grid.appendChild(card);
+        });
+    }
+
+    renderModulos();
+
+    // ── CERRAR SESIÓN ─────────────────────────────────────────────
+    function cerrarSesion() {
+        if (confirm('¿Deseas cerrar la sesión?')) {
+            ['rol_actual', 'usuario_actual', 'username', 'token', 'modulos']
+                .forEach(k => localStorage.removeItem(k));
+            window.location.href = '/login.html';
+        }
+    }
+</script>
+</body>
+</html>
