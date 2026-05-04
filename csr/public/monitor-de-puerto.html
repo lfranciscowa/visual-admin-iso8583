@@ -7,17 +7,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --lila:       #8b5cf6;
-            --lila-light: #a78bfa;
-            --lila-pale:  #ede9fe;
-            --lila-faint: #f5f3ff;
-            --cyan:       #06b6d4;
-            --white:      #ffffff;
-            --text-dark:  #1e1b4b;
-            --text-mid:   #4c4472;
-            --text-gray:  #7c7aaa;
-            --border:     #ddd6fe;
-            --error:      #dc2626;
+             --green:      #059669;
+             --green-glow: rgba(5,150,105,0.12);
+             --red:        #ef4444;
+             --red-glow:   rgba(239,68,68,0.12);
+            --yellow:     #d97706;
+            --panel:      #ffffff;
+            --bright:     #1e1b4b;
         }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -40,12 +36,13 @@
 
         header {
             position: sticky; top: 0; z-index: 100;
-            background: rgba(6,9,15,0.95);
-            border-bottom: 1px solid var(--border);
-            backdrop-filter: blur(12px);
+            background: rgba(255,255,255,0.88);
+            border-bottom: 1px solid #ddd6fe;
+            backdrop-filter: blur(16px);
             padding: 0 28px;
             display: flex; align-items: center; justify-content: space-between;
             height: 60px;
+            box-shadow: 0 1px 12px rgba(124,58,237,.06);
         }
         .hdr-left { display: flex; align-items: center; gap: 14px; }
         .hdr-badge {
