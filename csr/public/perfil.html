@@ -148,7 +148,7 @@
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
                 <div class="input-group"><label>Rol del Sistema</label>
-                    <select id="mRol"><option value="Administrador">Administrador</option><option value="Operador" selected>Operador</option><option value="Auditor">Auditor</option><option value="Soporte">Soporte</option></select>
+                    <select id="mRol" onchange="renderModulosGrid('mModulos', [])"></select>
                 </div>
                 <div class="input-group"><label>Correo Electrónico</label><input type="email" id="mEmail" placeholder="usuario@empresa.com" required></div>
             </div>
@@ -213,13 +213,21 @@ function generarClave(){const c='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz2
 function regenerarClave(){tempPassword=generarClave();document.getElementById('tempPassDisplay').textContent=tempPassword}
 
 function renderModulosGrid(containerId,sel=[]){
-    const c=document.getElementById(containerId);c.innerHTML='';
-    MODULOS.forEach(m=>{
-        const s=sel.includes(m.id);
-        const d=document.createElement('div');
-        d.className=`mod-toggle ${s?'selected':''}`;d.dataset.id=m.id;
-        d.innerHTML=`<div class="mod-icon">${m.icon}</div><div class="mod-info"><div class="mod-name">${m.nombre}</div><div class="mod-desc">${m.desc}</div></div><div class="mod-check">${s?'✓':''}</div>`;
-        d.onclick=()=>{d.classList.toggle('selected');d.querySelector('.mod-check').textContent=d.classList.contains('selected')?'✓':''};
+    const c   = document.getElementById(containerId);
+    const rol = document.getElementById('mRol')?.value || '';
+    c.innerHTML = '';
+      const modulosFiltrados = MODULOS.filter(m => {
+        if (m.id === 'perfiles') return rol === 'Administrador';
+        return true;
+    });
+
+    modulosFiltrados.forEach(m => {   // ← forEach sobre filtrados, no sobre MODULOS
+        const s = sel.includes(m.id);
+        const d = document.createElement('div');
+        d.className = `mod-toggle ${s ? 'selected' : ''}`;
+        d.dataset.id = m.id;
+        d.innerHTML = `<div class="mod-icon">${m.icon}</div><div class="mod-info"><div class="mod-name">${m.nombre}</div><div class="mod-desc">${m.desc}</div></div><div class="mod-check">${s ? '✓' : ''}</div>`;
+        d.onclick = () => { d.classList.toggle('selected'); d.querySelector('.mod-check').textContent = d.classList.contains('selected') ? '✓' : ''; };
         c.appendChild(d);
     });
 }
