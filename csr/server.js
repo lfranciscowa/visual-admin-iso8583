@@ -265,27 +265,23 @@ app.post('/api/usuarios/:username/reenviar-clave', async (req, res) => {
 // "MONITOR DE NODOS — PING AS/400"
 // ============================================================
 
-const TRAFI800_URL = process.env.TRAFI800_URL || 'http://172.23.12.2:10022/web/services/Crud_Trafi800';
+const TRAFI800_RELAY = (process.env.AS400_RELAY_URL || 'http://localhost:4000').replace('/relay', '') + '/relay-llaves';
 
-// ── SELECT — obtener todas o buscar por FIRTER ────────────────
 app.post('/api/llaves/select', async (req, res) => {
     const { FIRTER = '', OFFSET = 0 } = req.body;
     try {
-        const response = await fetch(`${TRAFI800_URL}/select`, {
+        const response = await fetch(TRAFI800_RELAY, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ FIRTER, OFFSET })
+            body:    JSON.stringify({ endpoint: 'select', body: { FIRTER, OFFSET } })
         });
-        const raw  = await response.text();
+        const raw = await response.text();
         let parsed;
         try { parsed = JSON.parse(raw); } catch { parsed = { raw }; }
-
-        // Normalizar respuesta — el AS/400 puede devolver array o string
         let llaves = [];
-        if (Array.isArray(parsed))          llaves = parsed;
+        if (Array.isArray(parsed))           llaves = parsed;
         else if (Array.isArray(parsed.data)) llaves = parsed.data;
-        else if (typeof parsed === 'object') llaves = [parsed];
-
+        else if (typeof parsed === 'object' && !parsed.raw) llaves = [parsed];
         res.json({ ok: true, llaves, total: llaves.length });
     } catch (err) {
         console.error('❌ TRAFI800 select:', err.message);
@@ -293,22 +289,63 @@ app.post('/api/llaves/select', async (req, res) => {
     }
 });
 
-// ── INSERT — nueva llave ──────────────────────────────────────
 app.post('/api/llaves/insert', async (req, res) => {
     const { FIRTER, FIRMBE, FIRMBC, FIRMDC, FIRFI1, FIRFI3 } = req.body;
     if (!FIRTER || !FIRMBE || !FIRMBC)
         return res.status(400).json({ ok: false, msg: 'FIRTER, FIRMBE y FIRMBC son requeridos' });
     try {
-        const response = await fetch(`${TRAFI800_URL}/insert`, {
+        const response = await fetch(TRAFI800_RELAY, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ FIRTER, FIRMBE, FIRMBC, FIRMDC, FIRFI1, FIRFI3 })
+            body:    JSON.stringify({ endpoint: 'insert', body: { FIRTER, FIRMBE, FIRMBC, FIRMDC, FIRFI1, FIRFI3 } })
         });
         const raw = await response.text();
         console.log(`✅ TRAFI800 insert: ${FIRTER}`);
         res.json({ ok: response.ok, msg: raw });
     } catch (err) {
         console.error('❌ TRAFI800 insert:', err.message);
+        res.status(500).json({ ok: false, msg: err.message });
+    }
+});
+
+app.post('/api/llaves/update', async (req, res) => {
+    const { FIRTER, FIRMBE, FIRMBC, FIRMDC, FIRFI1, FIRFI3 } = req.body;
+    if (!FIRTER) return res.status(400).json({ ok: false, msg: 'FIRTER es requerido' });
+    try {
+        const payload = { FIRTER };
+        if (FIRMBE !== undefined) payload.FIRMBE = FIRMBE;
+        if (FIRMBC !== undefined) payload.FIRMBC = FIRMBC;
+        if (FIRMDC !== undefined) payload.FIRMDC = FIRMDC;
+        if (FIRFI1 !== undefined) payload.FIRFI1 = FIRFI1;
+        if (FIRFI3 !== undefined) payload.FIRFI3 = FIRFI3;
+        const response = await fetch(TRAFI800_RELAY, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ endpoint: 'update', body: payload })
+        });
+        const raw = await response.text();
+        console.log(`✅ TRAFI800 update: ${FIRTER}`);
+        res.json({ ok: response.ok, msg: raw });
+    } catch (err) {
+        console.error('❌ TRAFI800 update:', err.message);
+        res.status(500).json({ ok: false, msg: err.message });
+    }
+});
+
+app.post('/api/llaves/delete', async (req, res) => {
+    const { FIRTER } = req.body;
+    if (!FIRTER) return res.status(400).json({ ok: false, msg: 'FIRTER es requerido' });
+    try {
+        const response = await fetch(TRAFI800_RELAY, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ endpoint: 'delete', body: { FIRTER } })
+        });
+        const raw = await response.text();
+        console.log(`🗑️ TRAFI800 delete: ${FIRTER}`);
+        res.json({ ok: response.ok, msg: raw });
+    } catch (err) {
+        console.error('❌ TRAFI800 delete:', err.message);
         res.status(500).json({ ok: false, msg: err.message });
     }
 });
