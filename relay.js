@@ -12,8 +12,11 @@ app.use((req, res, next) => {
     next();
 });
 
+// ============================================================
+// RELAY ISO 8583 — CRUD_PR01
+// ============================================================
 app.post('/relay', async (req, res) => {
-    console.log('📡 Petición recibida:', req.body);
+    console.log('📡 ISO 8583 petición:', req.body);
     try {
         const response = await fetch(
             'http://172.23.12.2:10022/web/services/CRUD_PR01/prueba1',
@@ -24,10 +27,34 @@ app.post('/relay', async (req, res) => {
             }
         );
         const data = await response.text();
-        console.log('✅ Respuesta AS/400:', data.substring(0, 100));
+        console.log('✅ ISO 8583 respuesta:', data.substring(0, 100));
         res.send(data);
     } catch (e) {
-        console.error('❌ Error:', e.message);
+        console.error('❌ Error ISO 8583:', e.message);
+        res.status(500).json({ ok: false, msg: e.message });
+    }
+});
+
+// ============================================================
+// RELAY LLAVES CRIPTOGRÁFICAS — Crud_Trafi800
+// ============================================================
+app.post('/relay-llaves', async (req, res) => {
+    const { endpoint, body } = req.body;
+    console.log(`🔑 TRAFI800 petición: /${endpoint}`, body);
+    try {
+        const response = await fetch(
+            `http://172.23.12.2:10022/web/services/Crud_Trafi800/${endpoint}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            }
+        );
+        const data = await response.text();
+        console.log('✅ TRAFI800 respuesta:', data.substring(0, 100));
+        res.send(data);
+    } catch (e) {
+        console.error('❌ Error TRAFI800:', e.message);
         res.status(500).json({ ok: false, msg: e.message });
     }
 });
