@@ -280,9 +280,10 @@ app.post('/api/llaves/select', async (req, res) => {
         let parsed;
         try { parsed = JSON.parse(raw); } catch { parsed = { raw }; }
         let llaves = [];
-        if (Array.isArray(parsed))           llaves = parsed;
-        else if (Array.isArray(parsed.data)) llaves = parsed.data;
-        else if (typeof parsed === 'object' && !parsed.raw) llaves = [parsed];
+if (Array.isArray(parsed))             llaves = parsed;
+else if (Array.isArray(parsed.DATA))   llaves = parsed.DATA;
+else if (Array.isArray(parsed.data))   llaves = parsed.data;
+else if (typeof parsed === 'object' && !parsed.raw) llaves = [parsed];
         res.json({ ok: true, llaves, total: llaves.length });
     } catch (err) {
         console.error('❌ TRAFI800 select:', err.message);
