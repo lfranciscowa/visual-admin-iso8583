@@ -438,7 +438,7 @@ setTimeout(inicializarAdmin, 7000);
 // ============================================================
 const https = require('https');
 setInterval(() => {
-    https.get('https://visual-admin-prueba.onrender.com', r => {
+    https.get('https://tesh-desarrollo.com', r => {
         console.log(`Keep alive: ${r.statusCode}`);
     }).on('error', e => console.log('Keep alive error:', e.message));
 }, 4 * 60 * 1000);
