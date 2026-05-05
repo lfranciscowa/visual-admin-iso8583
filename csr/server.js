@@ -8,7 +8,7 @@ const db = require('./database');
 const os = require('os');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 require('dotenv').config();
-const relay = require('../relay');
+
 
 const app = express();
 app.use(cors());
@@ -16,8 +16,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
-app.use(relay);
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));;
 });
 
 // ============================================================
