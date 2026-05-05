@@ -26,6 +26,7 @@ const MODULOS_SISTEMA = [
     { id: 'trama',    nombre: 'Terminal ISO 8583',   url: '/dashboard.html',          icon: '⚡' },
     { id: 'monitor',  nombre: 'Monitor de Puertos',  url: '/monitor-de-puerto.html',  icon: '📡' },
     { id: 'perfiles', nombre: 'Gestión de Perfiles', url: '/perfil.html',             icon: '👥' },
+    { id: 'llaves',  nombre: 'Llaves Criptográficas', url: '/llaves.html',            icon: '🔐' },
 ];
 
 app.get('/api/modulos', (req, res) => {
@@ -259,6 +260,61 @@ app.post('/api/usuarios/:username/reenviar-clave', async (req, res) => {
 });
 
 // ============================================================
+// LLAVES CRIPTOGRÁFICAS — TRAFI800
+// Agrega este bloque en server.js ANTES del bloque
+// "MONITOR DE NODOS — PING AS/400"
+// ============================================================
+
+const TRAFI800_URL = process.env.TRAFI800_URL || 'http://172.23.12.2:10022/web/services/Crud_Trafi800';
+
+// ── SELECT — obtener todas o buscar por FIRTER ────────────────
+app.post('/api/llaves/select', async (req, res) => {
+    const { FIRTER = '', OFFSET = 0 } = req.body;
+    try {
+        const response = await fetch(`${TRAFI800_URL}/select`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ FIRTER, OFFSET })
+        });
+        const raw  = await response.text();
+        let parsed;
+        try { parsed = JSON.parse(raw); } catch { parsed = { raw }; }
+
+        // Normalizar respuesta — el AS/400 puede devolver array o string
+        let llaves = [];
+        if (Array.isArray(parsed))          llaves = parsed;
+        else if (Array.isArray(parsed.data)) llaves = parsed.data;
+        else if (typeof parsed === 'object') llaves = [parsed];
+
+        res.json({ ok: true, llaves, total: llaves.length });
+    } catch (err) {
+        console.error('❌ TRAFI800 select:', err.message);
+        res.status(500).json({ ok: false, msg: err.message });
+    }
+});
+
+// ── INSERT — nueva llave ──────────────────────────────────────
+app.post('/api/llaves/insert', async (req, res) => {
+    const { FIRTER, FIRMBE, FIRMBC, FIRMDC, FIRFI1, FIRFI3 } = req.body;
+    if (!FIRTER || !FIRMBE || !FIRMBC)
+        return res.status(400).json({ ok: false, msg: 'FIRTER, FIRMBE y FIRMBC son requeridos' });
+    try {
+        const response = await fetch(`${TRAFI800_URL}/insert`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ FIRTER, FIRMBE, FIRMBC, FIRMDC, FIRFI1, FIRFI3 })
+        });
+        const raw = await response.text();
+        console.log(`✅ TRAFI800 insert: ${FIRTER}`);
+        res.json({ ok: response.ok, msg: raw });
+    } catch (err) {
+        console.error('❌ TRAFI800 insert:', err.message);
+        res.status(500).json({ ok: false, msg: err.message });
+    }
+});
+
+
+// ============================================================
 // MONITOR DE NODOS — PING AS/400
 // ============================================================
 app.post('/api/monitor/ping', async (req, res) => {
@@ -423,7 +479,7 @@ const inicializarAdmin = async () => {
                     'Administrador', 'admin',
                     process.env.MAIL_USER || 'admin@sistema.com',
                     'ADMIN', '[]',
-                    JSON.stringify(['trama', 'monitor', 'perfiles']),
+                    JSON.stringify(['trama', 'monitor', 'perfiles', 'llaves']),
                     'admin123', 0, 'ACTIVO'
                 ]
             );

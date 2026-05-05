@@ -213,6 +213,11 @@
         .mod-card.trama::before    { background: linear-gradient(90deg, var(--blue), #60a5fa); }
         .mod-card.monitor::before  { background: linear-gradient(90deg, var(--orange), #fb923c); }
         .mod-card.perfiles::before { background: linear-gradient(90deg, var(--lila), var(--lila-light)); }
+        .mod-card.llaves::before  { background: linear-gradient(90deg, #059669, #0d9488); }
+        .mod-card.llaves::after   { background: #059669; }
+        .mod-card.llaves .mod-icon-wrap { background: #ecfdf5; }
+        .mod-card.llaves .mod-tag { background: #ecfdf5; color: #059669; }
+        .mod-card.llaves .mod-arrow { background: #ecfdf5; color: #059669; }
 
         /* Brillo decorativo en esquina */
         .mod-card::after {
@@ -363,34 +368,40 @@
 </footer>
 
 <script>
-    // ── CATÁLOGO DE MÓDULOS ────────────────────────────────────────
-    const CATALOGO = {
-        trama: {
-            clase:  'trama',
-            icon:   '⚡',
-            nombre: 'Terminal ISO 8583',
-            desc:   'Consulta, análisis y comparación de tramas transaccionales en tiempo real.',
-            tags:   ['ISO 8583', 'INP / OUT', 'Bitmap'],
-            url:    '/dashboard.html',
-        },
-        monitor: {
-            clase:  'monitor',
-            icon:   '📡',
-            nombre: 'Monitor de Puertos TCP',
-            desc:   'Monitoreo en tiempo real del estado de puertos del AS/400 transaccional.',
-            tags:   ['TCP', 'AS/400', 'SSE Live'],
-            url:    '/monitor-de-puerto.html',
-        },
-        perfiles: {
-            clase:  'perfiles',
-            icon:   '👥',
-            nombre: 'Gestión de Perfiles',
-            desc:   'Administración de usuarios, roles, nodos y permisos de acceso al sistema.',
-            tags:   ['Usuarios', 'Roles', 'Permisos'],
-            url:    '/perfil.html',
-        },
-    };
-
+   const CATALOGO = {
+    trama: {
+        clase:  'trama',
+        icon:   '⚡',
+        nombre: 'Terminal ISO 8583',
+        desc:   'Consulta, análisis y comparación de tramas transaccionales en tiempo real.',
+        tags:   ['ISO 8583', 'INP / OUT', 'Bitmap'],
+        url:    '/dashboard.html',
+    },
+    monitor: {
+        clase:  'monitor',
+        icon:   '📡',
+        nombre: 'Monitor de Puertos TCP',
+        desc:   'Monitoreo en tiempo real del estado de puertos del AS/400 transaccional.',
+        tags:   ['TCP', 'AS/400', 'SSE Live'],
+        url:    '/monitor-de-puerto.html',
+    },
+    perfiles: {
+        clase:  'perfiles',
+        icon:   '👥',
+        nombre: 'Gestión de Perfiles',
+        desc:   'Administración de usuarios, roles, nodos y permisos de acceso al sistema.',
+        tags:   ['Usuarios', 'Roles', 'Permisos'],
+        url:    '/perfil.html',
+    },
+    llaves: {
+        clase:  'llaves',
+        icon:   '🔐',
+        nombre: 'Llaves Criptográficas',
+        desc:   'Gestión de llaves de encriptación DUKPT y 3DES del AS/400.',
+        tags:   ['TRAFI800', 'DUKPT', '3DES'],
+        url:    '/llaves.html',
+    },
+};
     // ── LEER SESIÓN ───────────────────────────────────────────────
     const username = localStorage.getItem('username') || 'Usuario';
     const rol      = localStorage.getItem('rol_actual') || '';
@@ -426,7 +437,7 @@
         }
 
         // Orden fijo: trama → monitor → perfiles
-        const orden = ['trama', 'monitor', 'perfiles'];
+        const orden = ['trama', 'monitor', 'perfiles', 'llaves'];
         const visibles = orden.filter(id => modulos.includes(id));
 
         // Si solo tiene 1 módulo, redirigir directo
