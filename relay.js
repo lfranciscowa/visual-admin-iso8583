@@ -39,24 +39,20 @@ app.post('/relay', async (req, res) => {
 // RELAY LLAVES CRIPTOGRÁFICAS — Crud_Trafi800
 // ============================================================
 app.post('/relay-llaves', async (req, res) => {
-    const { endpoint, body } = req.body;
-    console.log(`🔑 TRAFI800 petición: /${endpoint}`, body);
+    console.log(`🔑 TRAFI800 petición: /insert`, req.body);
     try {
         const response = await fetch(
-            `http://172.23.12.2:10022/web/services/Crud_Trafi800/${endpoint}`,
+            `http://172.23.12.2:10022/web/services/Crud_Trafi800/insert`, // Forzamos /insert
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+                body: JSON.stringify(req.body) // Enviamos el body directo
             }
         );
         const data = await response.text();
-        console.log('✅ TRAFI800 respuesta:', data.substring(0, 100));
         res.send(data);
     } catch (e) {
-        console.error('❌ Error TRAFI800:', e.message);
         res.status(500).json({ ok: false, msg: e.message });
     }
 });
-
 app.listen(4000, () => console.log('🔁 Relay activo en :4000'));
