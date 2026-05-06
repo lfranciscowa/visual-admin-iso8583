@@ -46,7 +46,7 @@ function getResend() {
 async function enviarClaveEmail(email, username, tempPass) {
     const client = getResend();
     const { data, error } = await client.emails.send({
-        from: 'Visual Admin <onboarding@resend.dev>',
+        from: 'Visual Admin <noreply@tesh-desarrollo.com>',
         to: email,
         subject: 'Acceso al Sistema - Clave Temporal',
         html: `
