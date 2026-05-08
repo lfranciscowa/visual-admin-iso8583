@@ -267,7 +267,8 @@ app.post('/api/usuarios/:username/reenviar-clave', async (req, res) => {
 // "MONITOR DE NODOS — PING AS/400"
 // ============================================================
 
-const TRAFI800_RELAY = (process.env.AS400_RELAY_URL || 'http://localhost:4000').replace('/relay', '') + '/relay-llaves';
+const RELAY_BASE = (process.env.AS400_RELAY_URL || 'http://localhost:4000/relay').replace(/\/relay\/?$/, '');
+const TRAFI800_RELAY = RELAY_BASE + '/relay-llaves';
 
 app.post('/api/llaves/select', async (req, res) => {
     const { FIRTER = '', OFFSET = 0 } = req.body;
