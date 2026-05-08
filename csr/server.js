@@ -28,6 +28,7 @@ const MODULOS_SISTEMA = [
     { id: 'monitor',  nombre: 'Monitor de Puertos',  url: '/monitor-de-puerto.html',  icon: '📡' },
     { id: 'perfiles', nombre: 'Gestión de Perfiles', url: '/perfil.html',             icon: '👥' },
     { id: 'llaves',  nombre: 'Llaves Criptográficas', url: '/llaves.html',            icon: '🔐' },
+    { id: 'pos',     nombre: 'Simulador POS',        url: '/pos-simulator.html',      icon: '🏧' },
 ];
 
 app.get('/api/modulos', (req, res) => {
@@ -495,6 +496,12 @@ app.get('/api/monitor/stream', (req, res) => {
 app.get('/api/monitor/estado', (req, res) => res.json(Object.values(portState)));
 
 // ============================================================
+// SIMULADOR POS — TCP directo al switch (puerto 34025)
+// ============================================================
+const posSim = require('./routes/pos-sim');
+app.use('/api/pos', posSim);
+
+// ============================================================
 // INICIO DEL SERVIDOR
 // ============================================================
 const SERVER_PORT = process.env.PORT || 3001;
@@ -518,7 +525,7 @@ const inicializarAdmin = async () => {
                     'Administrador', 'admin',
                     process.env.MAIL_USER || 'admin@sistema.com',
                     'ADMIN', '[]',
-                    JSON.stringify(['trama', 'monitor', 'perfiles', 'llaves']),
+                    JSON.stringify(['trama', 'monitor', 'perfiles', 'llaves', 'pos']),
                     'admin123', 0, 'ACTIVO'
                 ]
             );

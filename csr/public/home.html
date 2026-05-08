@@ -210,14 +210,20 @@
             height: 3px;
             border-radius: 20px 20px 0 0;
         }
-        .mod-card.trama::before    { background: linear-gradient(90deg, var(--blue), #60a5fa); }
-        .mod-card.monitor::before  { background: linear-gradient(90deg, var(--orange), #fb923c); }
-        .mod-card.perfiles::before { background: linear-gradient(90deg, var(--lila), var(--lila-light)); }
-        .mod-card.llaves::before  { background: linear-gradient(90deg, #059669, #0d9488); }
-        .mod-card.llaves::after   { background: #059669; }
-        .mod-card.llaves .mod-icon-wrap { background: #ecfdf5; }
-        .mod-card.llaves .mod-tag { background: #ecfdf5; color: #059669; }
-        .mod-card.llaves .mod-arrow { background: #ecfdf5; color: #059669; }
+    .mod-card.trama::before    { background: linear-gradient(90deg, var(--blue), #60a5fa); }
+    .mod-card.monitor::before  { background: linear-gradient(90deg, var(--orange), #fb923c); }
+    .mod-card.perfiles::before { background: linear-gradient(90deg, var(--lila), var(--lila-light)); }
+    .mod-card.llaves::before   { background: linear-gradient(90deg, #059669, #0d9488); }
+    .mod-card.llaves::after    { background: #059669; }
+    .mod-card.llaves .mod-icon-wrap { background: #ecfdf5; }
+    .mod-card.llaves .mod-tag       { background: #ecfdf5; color: #059669; }
+    .mod-card.llaves .mod-arrow     { background: #ecfdf5; color: #059669; }
+
+    .mod-card.pos::before      { background: linear-gradient(90deg, #0891b2, #06b6d4); }
+    .mod-card.pos::after       { background: #0891b2; }
+    .mod-card.pos .mod-icon-wrap { background: #ecfeff; }
+    .mod-card.pos .mod-tag       { background: #ecfeff; color: #0891b2; }
+    .mod-card.pos .mod-arrow     { background: #ecfeff; color: #0891b2; }
 
         /* Brillo decorativo en esquina */
         .mod-card::after {
@@ -401,6 +407,16 @@
         tags:   ['TRAFI800', 'DUKPT', '3DES'],
         url:    '/llaves.html',
     },
+
+pos: {
+        clase:  'pos',
+        icon:   '🏧',
+        nombre: 'Simulador POS',
+        desc:   'Envío de transacciones ISO 8583 simulando un terminal POS real vía TCP.',
+        tags:   ['POS', 'TCP 34025', 'Burst Test'],
+        url:    '/pos-simulator.html',
+    },
+
 };
     // ── LEER SESIÓN ───────────────────────────────────────────────
     const username = localStorage.getItem('username') || 'Usuario';
@@ -437,7 +453,7 @@
         }
 
         // Orden fijo: trama → monitor → perfiles
-        const orden = ['trama', 'monitor', 'perfiles', 'llaves'];
+        const orden = ['trama', 'monitor', 'perfiles', 'llaves', 'pos'];
         const visibles = orden.filter(id => modulos.includes(id));
 
         // Si solo tiene 1 módulo, redirigir directo
