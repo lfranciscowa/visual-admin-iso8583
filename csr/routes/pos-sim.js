@@ -61,7 +61,6 @@ function assembleMessage(payload) {
   const stan = (payload.fields && payload.fields[11]) || nextStan();
 
   const fields = { ...(payload.fields || {}) };
-  fields[7]  = fields[7]  || ts.de7;
   fields[11] = stan;
   fields[12] = fields[12] || ts.de12;
   fields[13] = fields[13] || ts.de13;
@@ -102,25 +101,24 @@ router.get('/template', (req, res) => {
 // Body: { mti, fields: {2:'...', 4:'...', ...}, host?, port? }
 // ----------------------------------------------------------------------------
 router.post('/send', async (req, res) => {
+  let message, stanUsed, fieldsUsed;
+  const host = req.body.host || SWITCH_HOST;
+  const port = parseInt(req.body.port, 10) || SWITCH_PORT;
+
   try {
-    const { message, stanUsed, fieldsUsed } = assembleMessage(req.body);
-    const host = req.body.host || SWITCH_HOST;
-    const port = parseInt(req.body.port, 10) || SWITCH_PORT;
+    ({ message, stanUsed, fieldsUsed } = assembleMessage(req.body));
+  } catch (err) {
+    // Error armando la trama (campo inválido, etc.) — no hay hex que mostrar
+    console.error('❌ POS encode:', err.message);
+    return res.status(400).json({ ok: false, error: 'Encoding: ' + err.message });
+  }
 
-    console.log(`📤 POS send → ${host}:${port} · STAN=${stanUsed} · ${message.length}b`);
- console.log('═══════════════ DEBUG DUMP ═══════════════');
-    console.log('Fields enviados al switch:');
-    Object.keys(fieldsUsed)
-      .sort((a, b) => +a - +b)
-      .forEach(de => {
-        const val = fieldsUsed[de];
-        console.log(`  DE ${de.padStart(3, '0')}: "${val}" (len=${String(val).length})`);
-      });
-    console.log(`\nHex completo enviado (${message.length} bytes):`);
-    const debugHex = message.toString('hex').toUpperCase();
-    console.log(debugHex.match(/.{1,32}/g).join('\n'));
-    console.log('═══════════════════════════════════════════');
+  const requestHex = message.toString('hex').toUpperCase();
+  const requestLen = message.length;
 
+  console.log(`📤 POS send → ${host}:${port} · STAN=${stanUsed} · ${requestLen}b`);
+
+  try {
     const { response, elapsedMs } = await sendMessage({
       host, port, message, timeoutMs: TIMEOUT_MS,
     });
@@ -131,15 +129,25 @@ router.post('/send', async (req, res) => {
       ok:         true,
       stan:       stanUsed,
       fieldsUsed,
-      requestHex: message.toString('hex').toUpperCase(),
-      requestLen: message.length,
+      requestHex,
+      requestLen,
       response:   parseResponse(response),
       elapsedMs,
       target:     `${host}:${port}`,
     });
   } catch (err) {
     console.error('❌ POS send:', err.message);
-    res.status(500).json({ ok: false, error: err.message });
+    // Devolvemos status 200 con ok:false para que el frontend pueda
+    // mostrar el hex aunque haya timeout/error de red
+    res.json({
+      ok:         false,
+      error:      err.message,
+      stan:       stanUsed,
+      fieldsUsed,
+      requestHex,
+      requestLen,
+      target:     `${host}:${port}`,
+    });
   }
 });
 

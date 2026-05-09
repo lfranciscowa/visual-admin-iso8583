@@ -52,7 +52,7 @@ const FIELD_DEF = {
   23: { type: 'n',      length: 4,   name: 'Card seq number' },
   24: { type: 'n',      length: 4,   name: 'Function code / NII' },
   25: { type: 'n',      length: 4,   name: 'POS condition code' },
-  32: { type: 'LLVAR',  maxLen: 4,  name: 'Acquirer ID' },
+  32: { type: 'n',      length: 4,   name: 'Acquirer ID' },
   35: { type: 'LLVAR',  maxLen: 37,  name: 'Track 2', allowSep: true },
   37: { type: 'an',     length: 12,  name: 'Retrieval ref nbr' },
   38: { type: 'an',     length: 6,   name: 'Auth ID' },

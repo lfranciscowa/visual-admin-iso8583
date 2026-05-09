@@ -530,9 +530,9 @@
                         <label><span class="de">DE 24</span> Function code</label>
                         <input type="text" id="f24" value="0003" maxlength="4">
                         <label><span class="de">DE 25</span> POS condition</label>
-                        <input type="text" id="f25" value="0000" maxlength="4">
+                        <input type="text" id="f25" value="0004" maxlength="4">
                         <label><span class="de">DE 32</span> Acquirer ID</label>
-                        <input type="text" id="f32" value="0000" maxlength="11">
+                        <input type="text" id="f32" value="0000" maxlength="4">
                         <label><span class="de">DE 41</span> Terminal ID</label>
                         <input type="text" id="f41" value="01022254" maxlength="8">
                         <label><span class="de">DE 42</span> Merchant ID</label>
@@ -814,13 +814,7 @@
             const data = await r.json();
 
             if (!data.ok) {
-                setStatus('❌', data.error || 'Error', 'ERROR', 'err');
-                document.getElementById('tab-request').innerHTML =
-                    `<div class="empty-result"><div class="empty-icon">❌</div><p style="color:var(--red)">${data.error || 'Error desconocido'}</p></div>`;
-                return;
-            }
-
-            setStatus('✅', 'Transacción enviada con respuesta', 'OK', 'ok');
+           setStatus('✅', 'Transacción enviada con respuesta', 'OK', 'ok');
             setMetrics(data);
 
             // Tab request
