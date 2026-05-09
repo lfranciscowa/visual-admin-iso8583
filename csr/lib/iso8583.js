@@ -232,7 +232,6 @@ function parseResponse(buf) {
   out.bitmapBin  = [...primary].map(b => b.toString(2).padStart(8, '0')).join(' ');
   out.dataHex    = buf.slice(17).toString('hex').toUpperCase();
 
-  // Detectar DEs presentes a partir del bitmap (sin parsear contenido todavía)
   const presentDEs = [];
   for (let i = 0; i < 64; i++) {
     const byteIdx = i >> 3;
@@ -241,7 +240,106 @@ function parseResponse(buf) {
   }
   out.presentDEs = presentDEs;
 
+  // ── Extraer DE 39 (Response Code) si está presente ────────────
+  // Este parseo asume el mismo formato del request (BCD/ASCII según FIELD_DEF)
+  // Recorremos los DEs en orden y vamos leyendo bytes según FIELD_DEF
+  if (presentDEs.includes(39)) {
+    try {
+      let offset = 17;  // Después del bitmap
+      const fields = {};
+
+      for (const de of presentDEs) {
+        const def = FIELD_DEF[de];
+        if (!def) {
+          // No conocemos este DE, abortamos parseo
+          break;
+        }
+
+        if (def.type === 'n') {
+          const bytes = Math.ceil(def.length / 2);
+          const slice = buf.slice(offset, offset + bytes);
+          fields[de] = bcdUnpack(slice, def.length);
+          offset += bytes;
+        } else if (def.type === 'an') {
+          const slice = buf.slice(offset, offset + def.length);
+          fields[de] = slice.toString('ascii');
+          offset += def.length;
+        } else if (def.type === 'LLVAR') {
+          const lenStr = bcdUnpack(buf.slice(offset, offset + 1), 2);
+          const dataLen = parseInt(lenStr, 10);
+          offset += 1;
+          if (de === 2 || de === 32 || de === 35) {
+            const bytes = Math.ceil(dataLen / 2);
+            const slice = buf.slice(offset, offset + bytes);
+            let unpacked = bcdUnpack(slice, bytes * 2);
+            if (def.allowSep) unpacked = unpacked.replace(/D/g, '=');
+            fields[de] = unpacked.substr(0, dataLen);
+            offset += bytes;
+          } else {
+            fields[de] = buf.slice(offset, offset + dataLen).toString('ascii');
+            offset += dataLen;
+          }
+        } else if (def.type === 'LLLVAR') {
+          const lenStr = bcdUnpack(buf.slice(offset, offset + 2), 4);
+          const dataLen = parseInt(lenStr, 10);
+          offset += 2;
+          if (def.binaryData) {
+            fields[de] = buf.slice(offset, offset + dataLen).toString('hex').toUpperCase();
+          } else {
+            fields[de] = buf.slice(offset, offset + dataLen).toString('ascii');
+          }
+          offset += dataLen;
+        }
+      }
+
+      out.fields = fields;
+
+      // Atajos para los DEs más importantes
+      if (fields[39]) {
+        out.responseCode = fields[39];
+        out.responseMsg  = describeResponseCode(fields[39]);
+      }
+      if (fields[38]) out.authCode = fields[38];
+      if (fields[37]) out.retrievalRef = fields[37];
+    } catch (err) {
+      out.parseError = err.message;
+    }
+  }
+
   return out;
+}
+
+// Diccionario de códigos de respuesta ISO 8583 más comunes
+function describeResponseCode(code) {
+  const map = {
+    '00': '✅ Aprobada',
+    '01': 'Referirse al emisor',
+    '03': 'Comercio inválido',
+    '04': 'Capturar tarjeta',
+    '05': 'Denegada',
+    '12': 'Transacción inválida',
+    '13': 'Monto inválido',
+    '14': 'Tarjeta inválida',
+    '30': 'Error de formato',
+    '41': 'Tarjeta extraviada',
+    '43': 'Tarjeta robada',
+    '51': 'Fondos insuficientes',
+    '54': 'Tarjeta vencida',
+    '55': 'PIN incorrecto',
+    '57': 'Transacción no permitida',
+    '58': 'Terminal no autorizada',
+    '61': 'Excede límite de retiro',
+    '62': 'Tarjeta restringida',
+    '65': 'Excede frecuencia de retiro',
+    '75': 'PIN bloqueado',
+    '76': 'Cuenta no encontrada',
+    '78': 'Cuenta inválida',
+    '91': '⚠️ Switch fuera de servicio',
+    '92': 'Ruta no encontrada',
+    '94': 'Transacción duplicada',
+    '96': 'Mal funcionamiento del sistema',
+  };
+  return map[code] || `Código ${code}`;
 }
 
 module.exports = {

@@ -60,9 +60,17 @@ function sendViaTcp({ host, port, message, timeoutMs = 10000 }) {
     let resolved    = false;
     const t0 = Date.now();
 
+    console.log(`🔌 [TCP] Abriendo conexión a ${host}:${port}`);
+    console.log(`🔌 [TCP] Mensaje a enviar: ${message.length}b`);
+
     const timer = setTimeout(() => {
       if (resolved) return;
       resolved = true;
+      console.log(`⏱️  [TCP] TIMEOUT alcanzado (${timeoutMs}ms)`);
+      console.log(`⏱️  [TCP] Bytes acumulados al timeout: ${received.length}b`);
+      if (received.length > 0) {
+        console.log(`⏱️  [TCP] Hex acumulado: ${received.toString('hex').toUpperCase()}`);
+      }
       socket.destroy();
       reject(new Error(`Timeout después de ${timeoutMs}ms (host=${host}:${port})`));
     }, timeoutMs);
@@ -73,8 +81,10 @@ function sendViaTcp({ host, port, message, timeoutMs = 10000 }) {
     };
 
     socket.connect(port, host, () => {
+      console.log(`🔌 [TCP] Socket CONECTADO a ${host}:${port}`);
       try {
         socket.write(message);
+        console.log(`📤 [TCP] Bytes ENVIADOS: ${message.length}b`);
       } catch (err) {
         if (resolved) return;
         resolved = true;
@@ -84,13 +94,18 @@ function sendViaTcp({ host, port, message, timeoutMs = 10000 }) {
     });
 
     socket.on('data', (chunk) => {
+      console.log(`📥 [TCP] CHUNK recibido (${chunk.length}b): ${chunk.toString('hex').toUpperCase()}`);
       received = Buffer.concat([received, chunk]);
+      console.log(`📥 [TCP] Total acumulado: ${received.length}b`);
+
       if (expectedLen < 0 && received.length >= 2) {
         expectedLen = received.readUInt16BE(0);
+        console.log(`📐 [TCP] LOTR leído (BE): ${expectedLen} bytes esperados (total con LOTR=${expectedLen + 2}b)`);
       }
       if (expectedLen >= 0 && received.length >= 2 + expectedLen) {
         if (resolved) return;
         resolved = true;
+        console.log(`✅ [TCP] Respuesta COMPLETA recibida en ${Date.now() - t0}ms`);
         cleanup();
         resolve({
           response:  received.slice(0, 2 + expectedLen),
@@ -100,13 +115,19 @@ function sendViaTcp({ host, port, message, timeoutMs = 10000 }) {
     });
 
     socket.on('error', (err) => {
+      console.log(`❌ [TCP] ERROR del socket: ${err.message}`);
       if (resolved) return;
       resolved = true;
       cleanup();
       reject(new Error(`Socket error (${host}:${port}): ${err.message}`));
     });
 
-    socket.on('close', () => {
+    socket.on('close', (hadError) => {
+      console.log(`🔒 [TCP] Socket CERRADO (hadError=${hadError})`);
+      console.log(`🔒 [TCP] Bytes totales recibidos: ${received.length}b`);
+      if (received.length > 0) {
+        console.log(`🔒 [TCP] Hex final: ${received.toString('hex').toUpperCase()}`);
+      }
       if (resolved) return;
       resolved = true;
       clearTimeout(timer);
@@ -125,7 +146,6 @@ function sendViaTcp({ host, port, message, timeoutMs = 10000 }) {
     });
   });
 }
-
 // ----------------------------------------------------------------------------
 // MODO 2 — HTTP Bridge
 // Manda el mensaje al endpoint /pos-tcp del relay como hex.
