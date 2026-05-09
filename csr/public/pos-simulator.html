@@ -756,36 +756,13 @@
 
     function setMetrics(data) {
         const row = document.getElementById('metricsRow');
-    if (!data) { row.style.display = 'none'; return; }
-    row.style.display = 'flex';
-    document.getElementById('mStan').textContent   = data.stan || '—';
-    document.getElementById('mReqLen').textContent = (data.requestLen || 0) + ' B';
-    document.getElementById('mTime').textContent   = (data.elapsedMs || 0) + ' ms';
-    document.getElementById('mMti').textContent    = data.response?.mti || '—';
-
-    const rc     = data.response?.responseCode || '—';
-    const rcDesc = data.response?.responseMsg  || '—';
-    const elRc   = document.getElementById('mRc');
-    const elDesc = document.getElementById('mRcDesc');
-    elRc.textContent   = rc;
-    elDesc.textContent = rcDesc;
-
-    // Color según código
-    elRc.className = 'metric-val';
-    if (rc === '00') {
-        elRc.classList.add('green');
-        elDesc.style.color = 'var(--green)';
-    } else if (rc === '91' || rc === '92' || rc === '96') {
-        elRc.style.color   = 'var(--amber)';
-        elDesc.style.color = 'var(--amber)';
-    } else if (rc !== '—') {
-        elRc.style.color   = 'var(--red)';
-        elDesc.style.color = 'var(--red)';
-    } else {
-        elRc.style.color   = '';
-        elDesc.style.color = '';
+        if (!data) { row.style.display = 'none'; return; }
+        row.style.display = 'flex';
+        document.getElementById('mStan').textContent   = data.stan || '—';
+        document.getElementById('mReqLen').textContent = (data.requestLen || 0) + ' B';
+        document.getElementById('mTime').textContent   = (data.elapsedMs || 0) + ' ms';
+        document.getElementById('mMti').textContent    = data.response?.mti || '—';
     }
-}
 
     function clearTabs() {
         ['request','response','parsed'].forEach(id => {
