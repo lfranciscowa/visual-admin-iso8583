@@ -108,6 +108,18 @@ router.post('/send', async (req, res) => {
     const port = parseInt(req.body.port, 10) || SWITCH_PORT;
 
     console.log(`📤 POS send → ${host}:${port} · STAN=${stanUsed} · ${message.length}b`);
+ console.log('═══════════════ DEBUG DUMP ═══════════════');
+    console.log('Fields enviados al switch:');
+    Object.keys(fieldsUsed)
+      .sort((a, b) => +a - +b)
+      .forEach(de => {
+        const val = fieldsUsed[de];
+        console.log(`  DE ${de.padStart(3, '0')}: "${val}" (len=${String(val).length})`);
+      });
+    console.log(`\nHex completo enviado (${message.length} bytes):`);
+    const debugHex = message.toString('hex').toUpperCase();
+    console.log(debugHex.match(/.{1,32}/g).join('\n'));
+    console.log('═══════════════════════════════════════════');
 
     const { response, elapsedMs } = await sendMessage({
       host, port, message, timeoutMs: TIMEOUT_MS,
