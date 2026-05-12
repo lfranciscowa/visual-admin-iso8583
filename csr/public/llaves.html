@@ -286,6 +286,7 @@
             border: 1.5px solid var(--border); border-radius: 9px;
             font-family: var(--mono); font-size: 13px; color: var(--text-dark);
             background: #fafafa; outline: none; transition: .2s;
+            text-transform: uppercase;
         }
         .field-group input:focus, .field-group select:focus {
             border-color: var(--emerald); background: var(--white);
@@ -295,6 +296,49 @@
             background: #f1f5f9; color: var(--text-gray); cursor: not-allowed;
         }
         .field-hint { font-size: 10px; color: var(--text-gray); margin-top: 4px; }
+
+        /* ── VALIDACIÓN ───────────────────────────────────────────────────── */
+        .field-group input.field-error,
+        .field-group select.field-error {
+            border-color: var(--red) !important;
+            background: var(--red-pale) !important;
+        }
+        .field-group input.field-error:focus,
+        .field-group select.field-error:focus {
+            box-shadow: 0 0 0 3px rgba(220,38,38,.15) !important;
+        }
+        .field-error-msg {
+            display: block;
+            color: #991b1b;
+            font-size: 10.5px;
+            font-weight: 600;
+            margin-top: 4px;
+            padding: 4px 8px;
+            background: var(--red-pale);
+            border-left: 2px solid var(--red);
+            border-radius: 3px;
+            animation: shakeIn .25s ease;
+        }
+        @keyframes shakeIn {
+            0%   { opacity: 0; transform: translateX(-4px); }
+            50%  { opacity: 1; transform: translateX(2px); }
+            100% { transform: translateX(0); }
+        }
+        .field-group input.field-ok {
+            border-color: var(--emerald);
+            background: #ecfdf5;
+        }
+        .field-counter {
+            font-size: 10px;
+            color: var(--text-gray);
+            margin-top: 4px;
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--mono);
+        }
+        .field-counter .count-ok    { color: var(--emerald); font-weight: 700; }
+        .field-counter .count-warn  { color: var(--amber);   font-weight: 700; }
+        .field-counter .count-err   { color: var(--red);     font-weight: 700; }
 
         .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
@@ -461,8 +505,11 @@
 
         <div class="field-group">
             <label class="field-label">ID Llave (FIRTER) *</label>
-            <input type="text" id="fFIRTER" placeholder="Ej: TERM001" maxlength="8">
-            <span class="field-hint">Identificador único · máx. 8 caracteres</span>
+            <input type="text" id="fFIRTER" placeholder="Ej: TERM0001" maxlength="8" autocomplete="off">
+            <div class="field-counter">
+                <span class="field-hint">Identificador único · solo HEX (0-9, A-F) · mínimo 8 caracteres</span>
+                <span id="cFIRTER">0 / 8</span>
+            </div>
         </div>
 
         <div class="field-row">
@@ -475,26 +522,36 @@
                 </select>
             </div>
             <div class="field-group">
-                <label class="field-label">Dígito de Chequeo (FIRMDC)</label>
-                <input type="text" id="fFIRMDC" placeholder="6 caracteres" maxlength="6">
+                <label class="field-label">Dígito de Chequeo (FIRMDC) *</label>
+                <input type="text" id="fFIRMDC" placeholder="6 caracteres HEX" maxlength="6" autocomplete="off">
+                <div class="field-counter">
+                    <span class="field-hint">Solo HEX</span>
+                    <span id="cFIRMDC">0 / 6</span>
+                </div>
             </div>
         </div>
 
         <div class="field-group">
             <label class="field-label">Llave Cifrada (FIRMBC) *</label>
-            <input type="text" id="fFIRMBC" placeholder="3DES / 32 o 64 bits">
-            <span class="field-hint">Valor de encriptación · 3DES, 32 o 64 bits</span>
+            <input type="text" id="fFIRMBC" placeholder="3DES / 32 o 64 caracteres HEX" maxlength="64" autocomplete="off">
+            <div class="field-counter">
+                <span class="field-hint">3DES · 32 chars (single) o 64 chars (double) · solo HEX</span>
+                <span id="cFIRMBC">0 chars</span>
+            </div>
         </div>
 
         <div class="field-group">
             <label class="field-label">KSN — DUKPT (FIRFI1)</label>
-            <input type="text" id="fFIRFI1" placeholder="Key Serial Number (solo si es DUKPT)">
-            <span class="field-hint">Dejar vacío si no es llave DUKPT</span>
+            <input type="text" id="fFIRFI1" placeholder="Key Serial Number (solo si es DUKPT)" maxlength="40" autocomplete="off">
+            <div class="field-counter">
+                <span class="field-hint">Dejar vacío si no es llave DUKPT · solo HEX</span>
+                <span id="cFIRFI1">0 chars</span>
+            </div>
         </div>
 
         <div class="field-group">
             <label class="field-label">Propietario (FIRFI3)</label>
-            <input type="text" id="fFIRFI3" placeholder="Nombre del propietario de la llave">
+            <input type="text" id="fFIRFI3" placeholder="Nombre del propietario de la llave" style="text-transform:none">
         </div>
 
         <div class="modal-footer">
@@ -518,12 +575,192 @@
 
     // ── INIT ───────────────────────────────────────────────────────
     cargarLlaves();
+    setupValidacionesEnVivo();
 
     // ── TOAST ──────────────────────────────────────────────────────
     function toast(msg, dur = 2500) {
         const t = document.getElementById('toast');
         t.textContent = msg; t.classList.add('show');
         setTimeout(() => t.classList.remove('show'), dur);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  VALIDACIONES EN VIVO (mientras tipea)
+    // ════════════════════════════════════════════════════════════════
+
+    /**
+     * Filtra entrada para aceptar solo HEX en MAYÚSCULAS.
+     * @param {Event} event
+     * @param {number} maxLen máximo de chars
+     */
+    function filtrarHex(event, maxLen) {
+        const input = event.target;
+        let v = input.value.toUpperCase().replace(/[^0-9A-F]/g, '');
+        if (maxLen && v.length > maxLen) v = v.substring(0, maxLen);
+        input.value = v;
+    }
+
+    /**
+     * Actualiza el contador visual y colorea según validez.
+     */
+    function actualizarContador(inputId, counterId, minLen, exactLens) {
+        const input = document.getElementById(inputId);
+        const counter = document.getElementById(counterId);
+        if (!input || !counter) return;
+
+        const len = input.value.length;
+        let cls = 'count-err';
+        let txt = '';
+
+        if (exactLens && exactLens.length > 0) {
+            // Para FIRMBC: 32 o 64 exactos
+            txt = `${len} chars`;
+            if (exactLens.includes(len)) cls = 'count-ok';
+            else if (len > 0)            cls = 'count-warn';
+            else                          cls = 'count-err';
+        } else if (minLen) {
+            // Para FIRTER, FIRMDC: mínimo X
+            txt = `${len} / ${minLen}`;
+            if (len >= minLen)       cls = 'count-ok';
+            else if (len > 0)        cls = 'count-warn';
+            else                     cls = 'count-err';
+        } else {
+            // KSN, opcional
+            txt = `${len} chars`;
+            cls = len > 0 ? 'count-ok' : '';
+        }
+
+        counter.className = cls;
+        counter.textContent = txt;
+
+        // Quitar marca de error si vuelve a estar OK
+        if (cls === 'count-ok') {
+            input.classList.remove('field-error');
+            limpiarErrorCampo(inputId);
+        }
+    }
+
+    function setupValidacionesEnVivo() {
+        const idLlave  = document.getElementById('fFIRTER');
+        const digito   = document.getElementById('fFIRMDC');
+        const llaveCif = document.getElementById('fFIRMBC');
+        const ksn      = document.getElementById('fFIRFI1');
+
+        if (idLlave) {
+            idLlave.addEventListener('input', e => {
+                filtrarHex(e, 8);
+                actualizarContador('fFIRTER', 'cFIRTER', 8);
+            });
+        }
+        if (digito) {
+            digito.addEventListener('input', e => {
+                filtrarHex(e, 6);
+                actualizarContador('fFIRMDC', 'cFIRMDC', 6);
+            });
+        }
+        if (llaveCif) {
+            llaveCif.addEventListener('input', e => {
+                filtrarHex(e, 64);
+                actualizarContador('fFIRMBC', 'cFIRMBC', null, [32, 64]);
+            });
+        }
+        if (ksn) {
+            ksn.addEventListener('input', e => {
+                filtrarHex(e, 40);
+                actualizarContador('fFIRFI1', 'cFIRFI1', null);
+            });
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  VALIDACIÓN AL GUARDAR (mensajes bajo cada campo)
+    // ════════════════════════════════════════════════════════════════
+
+    function limpiarErroresFormulario() {
+        document.querySelectorAll('.field-error-msg').forEach(el => el.remove());
+        document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
+    }
+
+    function limpiarErrorCampo(inputId) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        input.classList.remove('field-error');
+        const next = input.parentNode.querySelector('.field-error-msg');
+        if (next) next.remove();
+    }
+
+    function marcarError(inputId, mensaje) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        input.classList.add('field-error');
+        // Quitar mensaje previo del mismo campo
+        const prev = input.parentNode.querySelector('.field-error-msg');
+        if (prev) prev.remove();
+        // Insertar mensaje justo después del input
+        const msg = document.createElement('span');
+        msg.className = 'field-error-msg';
+        msg.textContent = '⚠️ ' + mensaje;
+        // Insertar después del contador si existe, sino después del input
+        const counter = input.parentNode.querySelector('.field-counter');
+        if (counter) {
+            counter.insertAdjacentElement('afterend', msg);
+        } else {
+            input.insertAdjacentElement('afterend', msg);
+        }
+    }
+
+    function validarFormulario() {
+        limpiarErroresFormulario();
+        const errores = [];
+
+        const idLlave  = document.getElementById('fFIRTER').value.trim();
+        const tipo     = document.getElementById('fFIRMBE').value;
+        const digito   = document.getElementById('fFIRMDC').value.trim();
+        const llaveCif = document.getElementById('fFIRMBC').value.trim();
+
+        // ID LLAVE (FIRTER)
+        if (!idLlave) {
+            marcarError('fFIRTER', 'El ID es obligatorio');
+            errores.push('fFIRTER');
+        } else if (idLlave.length < 8) {
+            marcarError('fFIRTER', `Debe tener al menos 8 caracteres (tiene ${idLlave.length})`);
+            errores.push('fFIRTER');
+        } else if (!/^[0-9A-F]+$/.test(idLlave)) {
+            marcarError('fFIRTER', 'Solo se permiten caracteres HEX (0-9, A-F)');
+            errores.push('fFIRTER');
+        }
+
+        // TIPO LLAVE (FIRMBE)
+        if (!tipo) {
+            marcarError('fFIRMBE', 'Debe seleccionar un tipo');
+            errores.push('fFIRMBE');
+        }
+
+        // DÍGITO CHEQUEO (FIRMDC)
+        if (!digito) {
+            marcarError('fFIRMDC', 'El dígito de chequeo es obligatorio');
+            errores.push('fFIRMDC');
+        } else if (digito.length < 6) {
+            marcarError('fFIRMDC', `Debe tener al menos 6 caracteres (tiene ${digito.length})`);
+            errores.push('fFIRMDC');
+        } else if (!/^[0-9A-F]+$/.test(digito)) {
+            marcarError('fFIRMDC', 'Solo se permiten caracteres HEX (0-9, A-F)');
+            errores.push('fFIRMDC');
+        }
+
+        // LLAVE CIFRADA (FIRMBC)
+        if (!llaveCif) {
+            marcarError('fFIRMBC', 'La llave cifrada es obligatoria');
+            errores.push('fFIRMBC');
+        } else if (llaveCif.length !== 32 && llaveCif.length !== 64) {
+            marcarError('fFIRMBC', `Debe tener exactamente 32 o 64 caracteres (tiene ${llaveCif.length})`);
+            errores.push('fFIRMBC');
+        } else if (!/^[0-9A-F]+$/.test(llaveCif)) {
+            marcarError('fFIRMBC', 'Solo se permiten caracteres HEX (0-9, A-F)');
+            errores.push('fFIRMBC');
+        }
+
+        return errores;
     }
 
     // ── CARGAR LLAVES ──────────────────────────────────────────────
@@ -662,15 +899,20 @@
         modoEdicion = true;
         limpiarModal();
         document.getElementById('modalTitulo').textContent = '✏️ Editar Llave';
-        document.getElementById('fFIRTER').value    = (llave.FIRTER || '').trim();
-        document.getElementById('fFIRTER').disabled = true; // ID no se puede cambiar
+        document.getElementById('fFIRTER').value    = (llave.FIRTER || '').trim().toUpperCase();
+        document.getElementById('fFIRTER').disabled = true;
         document.getElementById('fFIRMBE').value    = (llave.FIRMBE || '').trim();
-        document.getElementById('fFIRMBC').value    = (llave.FIRMBC || '').trim();
-        document.getElementById('fFIRMDC').value    = (llave.FIRMDC || '').trim();
-        document.getElementById('fFIRFI1').value    = (llave.FIRFI1 || '').trim();
+        document.getElementById('fFIRMBC').value    = (llave.FIRMBC || '').trim().toUpperCase();
+        document.getElementById('fFIRMDC').value    = (llave.FIRMDC || '').trim().toUpperCase();
+        document.getElementById('fFIRFI1').value    = (llave.FIRFI1 || '').trim().toUpperCase();
         document.getElementById('fFIRFI3').value    = (llave.FIRFI3 || '').trim();
         document.getElementById('btnGuardar').textContent = '💾 Actualizar Llave';
         document.getElementById('modalLlave').classList.add('open');
+        // Refrescar contadores
+        actualizarContador('fFIRTER', 'cFIRTER', 8);
+        actualizarContador('fFIRMDC', 'cFIRMDC', 6);
+        actualizarContador('fFIRMBC', 'cFIRMBC', null, [32, 64]);
+        actualizarContador('fFIRFI1', 'cFIRFI1', null);
     }
 
     function cerrarModal() {
@@ -683,30 +925,40 @@
             document.getElementById(id).value = '';
         });
         document.getElementById('fFIRMBE').value = '';
+        limpiarErroresFormulario();
+        // Resetear contadores
+        actualizarContador('fFIRTER', 'cFIRTER', 8);
+        actualizarContador('fFIRMDC', 'cFIRMDC', 6);
+        actualizarContador('fFIRMBC', 'cFIRMBC', null, [32, 64]);
+        actualizarContador('fFIRFI1', 'cFIRFI1', null);
     }
 
     // ── GUARDAR (INSERT / UPDATE) ───────────────────────────────────
     async function guardarLlave() {
-        const FIRTER = document.getElementById('fFIRTER').value.trim();
-        const FIRMBE = document.getElementById('fFIRMBE').value.trim();
-        const FIRMBC = document.getElementById('fFIRMBC').value.trim();
-        const FIRMDC = document.getElementById('fFIRMDC').value.trim();
-        const FIRFI1 = document.getElementById('fFIRFI1').value.trim();
-        const FIRFI3 = document.getElementById('fFIRFI3').value.trim();
-
-        if (!FIRTER || !FIRMBE || !FIRMBC) {
-            Swal.fire('Campos requeridos', 'ID, Tipo y Llave cifrada son obligatorios.', 'warning');
+        // ════════ VALIDACIÓN ANTES DE ENVIAR ════════
+        const errores = validarFormulario();
+        if (errores.length > 0) {
+            // Focus al primer campo con error
+            const primerError = document.getElementById(errores[0]);
+            if (primerError) primerError.focus();
+            toast('⚠️ Revisá los campos marcados en rojo', 3000);
             return;
         }
+        // ════════════════════════════════════════════
+
+        const FIRTER = document.getElementById('fFIRTER').value.trim().toUpperCase();
+        const FIRMBE = document.getElementById('fFIRMBE').value.trim();
+        const FIRMBC = document.getElementById('fFIRMBC').value.trim().toUpperCase();
+        const FIRMDC = document.getElementById('fFIRMDC').value.trim().toUpperCase();
+        const FIRFI1 = document.getElementById('fFIRFI1').value.trim().toUpperCase();
+        const FIRFI3 = document.getElementById('fFIRFI3').value.trim();
 
         const btn = document.getElementById('btnGuardar');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner"></span> Guardando...';
 
         const endpoint = modoEdicion ? '/update' : '/insert';
-        const payload  = modoEdicion
-            ? { FIRTER, FIRMBE, FIRMBC, FIRMDC, FIRFI1, FIRFI3 }
-            : { FIRTER, FIRMBE, FIRMBC, FIRMDC, FIRFI1, FIRFI3 };
+        const payload  = { FIRTER, FIRMBE, FIRMBC, FIRMDC, FIRFI1, FIRFI3 };
 
         try {
             const res  = await fetch(API_BASE + endpoint, {

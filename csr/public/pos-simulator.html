@@ -1,963 +1,809 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visual Admin — Simulador POS</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <style>
-        :root {
-            --cyan:         #0891b2;
-            --cyan-dark:    #0e7490;
-            --cyan-light:   #06b6d4;
-            --cyan-pale:    #ecfeff;
-            --cyan-border:  #a5f3fc;
-            --teal:         #0d9488;
-            --teal-pale:    #f0fdfa;
+<meta charset="UTF-8">
+<title>Simulador POS - Visual Admin</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary:#0891b2;--primary-light:#06b6d4;--primary-dark:#0e7490;--primary-soft:#cffafe;
+    --accent:#155e75;--bg-page:#f0fdfa;--bg-card:#ffffff;--text-dark:#0f172a;--text-gray:#64748b;
+    --border-soft:#e2e8f0;--green:#10b981;--red:#ef4444;--amber:#f59e0b;--blue:#3b82f6;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Sora',sans-serif;background:linear-gradient(135deg,#ecfeff 0%,#e0f2fe 100%);min-height:100vh;color:var(--text-dark);font-size:13px}
+  .topbar{background:#fff;border-bottom:1px solid var(--border-soft);padding:12px 24px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 2px rgba(0,0,0,.04);position:sticky;top:0;z-index:100}
+  .topbar-left{display:flex;align-items:center;gap:14px}
+  .topbar-logo{width:36px;height:36px;background:linear-gradient(135deg,var(--primary) 0%,var(--accent) 100%);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;letter-spacing:1px}
+  .topbar-title{font-size:14px;font-weight:700}
+  .topbar-crumbs{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-gray);margin-left:8px}
+  .topbar-right{display:flex;align-items:center;gap:10px}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:14px;font-size:11px;font-weight:600;font-family:'IBM Plex Mono',monospace}
+  .pill-conn{background:var(--primary-soft);color:var(--primary-dark);border:1px solid #67e8f9}
+  .pill-conn .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(16,185,129,.6);animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.6)}50%{box-shadow:0 0 0 4px rgba(16,185,129,0)}}
+  .btn{padding:7px 13px;border:none;border-radius:7px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+  .btn-back{background:#f1f5f9;color:var(--text-dark);border:1px solid var(--border-soft)}
+  .btn-back:hover{background:#e2e8f0}
+  .btn-logout{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+  .btn-logout:hover{background:#fecaca}
+  .container{max-width:1500px;margin:0 auto;padding:24px}
+  .page-header{margin-bottom:18px;display:flex;align-items:center;gap:14px}
+  .page-icon{width:46px;height:46px;background:linear-gradient(135deg,var(--primary) 0%,var(--accent) 100%);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:24px}
+  .page-title{font-size:22px;font-weight:800;letter-spacing:-.5px}
+  .page-subtitle{font-size:12px;color:var(--text-gray);margin-top:1px}
+  .info-banner{background:linear-gradient(90deg,#cffafe 0%,#ecfeff 100%);border:1px solid #67e8f9;border-radius:10px;padding:10px 14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;font-size:12px}
+  .info-banner-icon{width:26px;height:26px;background:var(--primary);color:#fff;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px}
+  .info-banner code{background:rgba(255,255,255,.7);padding:2px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--primary-dark);font-weight:600}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media (max-width:1100px){.grid-2{grid-template-columns:1fr}}
+  .card{background:var(--bg-card);border-radius:12px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.05);border:1px solid var(--border-soft)}
+  .card-h{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .card-h-icon{width:24px;height:24px;background:var(--primary-soft);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px}
 
-            --green:        #16a34a;
-            --green-pale:   #dcfce7;
-            --amber:        #d97706;
-            --amber-pale:   #fef3c7;
-            --red:          #dc2626;
-            --red-pale:     #fef2f2;
+  .group{border:1px solid var(--border-soft);border-radius:9px;padding:11px 13px;margin-bottom:12px;background:#fafbfc}
+  .group-title{font-size:10px;font-weight:700;color:var(--primary-dark);text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px;display:flex;align-items:center;gap:5px}
+  .field{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;margin-bottom:7px}
+  .field:last-child{margin-bottom:0}
+  .field label{font-size:11px;font-weight:500;white-space:nowrap}
+  .field label .de{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--primary-dark);font-size:10px;background:var(--primary-soft);padding:1px 5px;border-radius:3px;margin-right:5px}
+  .field input,.field select,.field textarea{padding:6px 9px;border:1px solid var(--border-soft);border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;background:#fff;width:100%;transition:border .15s}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 2px rgba(8,145,178,.1)}
+  .field textarea{font-size:10px;resize:vertical;min-height:40px}
 
-            --text-dark:    #0f172a;
-            --text-mid:     #334155;
-            --text-gray:    #64748b;
-            --border:       #e2e8f0;
-            --bg:           #f0fdff;
-            --white:        #ffffff;
+  .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .btn-send{background:linear-gradient(135deg,var(--primary) 0%,var(--accent) 100%);color:#fff;padding:9px 16px;font-size:12px;border-radius:8px;flex:1;justify-content:center}
+  .btn-send:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 3px 8px rgba(8,145,178,.25)}
+  .btn-send:disabled{opacity:.6;cursor:wait}
+  .btn-burst{background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:9px 14px;font-size:12px;border-radius:8px}
+  .btn-burst:hover:not(:disabled){background:#fde68a}
+  .btn-burst:disabled{opacity:.6;cursor:wait}
+  .btn-cancel{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:7px 13px;font-size:11px;border-radius:7px}
+  .btn-cancel:hover{background:#fecaca}
+  .btn-export{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;padding:7px 13px;font-size:11px;border-radius:7px}
+  .btn-export:hover{background:#a7f3d0}
 
-            --sans:         'Sora', sans-serif;
-            --mono:         'IBM Plex Mono', monospace;
-        }
+  .status-bar{background:#f1f5f9;padding:10px 13px;border-radius:8px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:12px;border:1px solid var(--border-soft)}
+  .status-bar.ok{background:#dcfce7;border-color:#86efac;color:#166534}
+  .status-bar.err{background:#fee2e2;border-color:#fecaca;color:#991b1b}
+  .status-bar.loading{background:#dbeafe;border-color:#93c5fd;color:#1e40af}
+  .status-bar.idle{background:#f1f5f9;color:var(--text-gray)}
+  .status-icon{font-size:18px}
+  .status-msg{flex:1;font-weight:600}
+  .status-tag{padding:2px 7px;border-radius:9px;font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+  .status-tag.ok{background:#16a34a;color:#fff}
+  .status-tag.err{background:#dc2626;color:#fff}
 
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  .metrics{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap}
+  .metric{flex:1;min-width:100px;background:#f8fafc;border:1px solid var(--border-soft);border-radius:7px;padding:7px 10px;display:flex;flex-direction:column}
+  .metric-lbl{font-size:9px;color:var(--text-gray);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  .metric-val{font-size:14px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+  .metric-val.green{color:var(--green)}
+  .metric-val.red{color:var(--red)}
+  .metric-val.amber{color:var(--amber)}
+  .metric-val.blue{color:var(--blue)}
 
-        body {
-            font-family: var(--sans);
-            background: var(--bg);
-            color: var(--text-dark);
-            min-height: 100vh;
-        }
+  .tabs{display:flex;gap:5px;border-bottom:2px solid var(--border-soft);margin-bottom:11px;overflow-x:auto}
+  .tab{padding:8px 13px;border:none;background:none;font-family:inherit;font-size:11px;font-weight:600;color:var(--text-gray);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+  .tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+  .tab:hover:not(.active){color:var(--text-dark)}
+  .tab-content{display:none;min-height:160px}
+  .tab-content.active{display:block}
 
-        body::before {
-            content: '';
-            position: fixed; inset: 0; z-index: 0;
-            background:
-                radial-gradient(ellipse 60% 40% at 10% 5%, #cffafe 0%, transparent 55%),
-                radial-gradient(ellipse 50% 35% at 90% 95%, #ccfbf1 0%, transparent 55%);
-            pointer-events: none;
-        }
+  .hex-block{background:#0f172a;color:#67e8f9;padding:13px;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;line-height:1.7;overflow-x:auto;white-space:pre-wrap;word-break:break-all}
+  .hex-block .lotr{color:#fbbf24}
+  .hex-block .tpdu{color:#fb923c}
+  .hex-block .mti{color:#a78bfa}
+  .hex-block .bitmap{color:#34d399}
+  .hex-block .data{color:#67e8f9}
+  .hex-block .label-tag{color:#9ca3af;font-size:9px;text-transform:uppercase;letter-spacing:.5px}
 
-        /* ── TOPBAR ─────────────────────────────────────────────── */
-        .topbar {
-            position: sticky; top: 0; z-index: 100;
-            background: rgba(255,255,255,0.92);
-            backdrop-filter: blur(16px);
-            border-bottom: 1px solid var(--border);
-            padding: 0 32px;
-            height: 62px;
-            display: flex; align-items: center; justify-content: space-between;
-            box-shadow: 0 1px 12px rgba(8,145,178,.06);
-        }
-        .topbar-left { display: flex; align-items: center; gap: 16px; }
-        .topbar-brand {
-            display: flex; align-items: center; gap: 10px;
-            font-size: 15px; font-weight: 800; color: var(--text-dark);
-        }
-        .brand-icon {
-            width: 34px; height: 34px; border-radius: 9px;
-            background: linear-gradient(135deg, var(--cyan), var(--cyan-light));
-            display: flex; align-items: center; justify-content: center;
-            font-size: 16px; box-shadow: 0 4px 12px rgba(8,145,178,.25);
-        }
-        .topbar-sep   { color: #cbd5e1; font-size: 18px; }
-        .topbar-title { font-size: 14px; font-weight: 700; color: var(--text-mid); }
+  .json-block{background:#fafbfc;border:1px solid var(--border-soft);padding:13px;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:pre-wrap;word-break:break-all;line-height:1.55;overflow-x:auto}
 
-        .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .empty-result{text-align:center;padding:35px 18px;color:var(--text-gray);font-size:12px}
+  .empty-icon{font-size:36px;opacity:.4;margin-bottom:10px}
 
-        .conn-pill {
-            display: inline-flex; align-items: center; gap: 8px;
-            background: var(--cyan-pale);
-            border: 1px solid var(--cyan-border);
-            border-radius: 100px; padding: 6px 14px;
-            font-family: var(--mono); font-size: 11px; font-weight: 700;
-            color: var(--cyan-dark);
-        }
-        .conn-pill .dot {
-            width: 8px; height: 8px; border-radius: 50%;
-            background: var(--green);
-            box-shadow: 0 0 0 2px var(--green-pale);
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  /* ───── BURST DASHBOARD ───── */
+  .burst-dash{display:flex;flex-direction:column;gap:11px}
+  .burst-progress-card{background:linear-gradient(90deg,#fffbeb 0%,#fef3c7 100%);border:1px solid #fde68a;border-radius:9px;padding:12px}
+  .burst-progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;font-size:11px;font-weight:700;color:#92400e}
+  .burst-progress-bar{height:9px;background:rgba(255,255,255,.6);border-radius:5px;overflow:hidden;border:1px solid #fde68a}
+  .burst-progress-fill{height:100%;background:linear-gradient(90deg,#f59e0b 0%,#10b981 100%);transition:width .3s;width:0%}
+  .burst-progress-info{display:flex;justify-content:space-between;font-size:10px;color:#92400e;margin-top:5px;font-family:'IBM Plex Mono',monospace}
 
-        .btn-home {
-            display: flex; align-items: center; gap: 6px;
-            padding: 7px 14px; border-radius: 8px;
-            border: 1px solid var(--border); background: var(--white);
-            color: var(--text-mid); font-size: 12px; font-weight: 600;
-            cursor: pointer; font-family: var(--sans); transition: .2s;
-            text-decoration: none;
-        }
-        .btn-home:hover { border-color: var(--cyan); color: var(--cyan); }
+  .burst-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:6px}
+  .burst-stat{background:#fff;border:1px solid var(--border-soft);border-radius:7px;padding:7px;text-align:center}
+  .burst-stat-val{font-size:17px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1.2}
+  .burst-stat-val.ok{color:var(--green)}
+  .burst-stat-val.err{color:var(--red)}
+  .burst-stat-val.warn{color:var(--amber)}
+  .burst-stat-lbl{font-size:9px;color:var(--text-gray);text-transform:uppercase;font-weight:600;margin-top:2px}
 
-        .btn-logout {
-            display: flex; align-items: center; gap: 6px;
-            padding: 7px 14px; border-radius: 8px;
-            border: 1px solid #fecdd3; background: #fff1f2;
-            color: var(--red); font-size: 12px; font-weight: 700;
-            cursor: pointer; font-family: var(--sans); transition: .2s;
-        }
-        .btn-logout:hover { background: var(--red); color: white; border-color: var(--red); }
+  .burst-actions{display:flex;gap:6px;justify-content:flex-end}
 
-        /* ── PÁGINA ─────────────────────────────────────────────── */
-        .page { position: relative; z-index: 1; padding: 24px 32px; max-width: 1500px; margin: 0 auto; }
+  .burst-table-wrap{max-height:380px;overflow-y:auto;border:1px solid var(--border-soft);border-radius:7px;background:#fff}
+  .burst-table{width:100%;border-collapse:collapse;font-size:11px;font-family:'IBM Plex Mono',monospace}
+  .burst-table thead{position:sticky;top:0;background:#f8fafc;z-index:5}
+  .burst-table th{padding:7px 8px;text-align:left;font-size:9.5px;font-weight:700;color:var(--text-gray);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border-soft);background:#f8fafc}
+  .burst-table td{padding:5px 8px;border-bottom:1px solid #f1f5f9}
+  .burst-table tr:hover td{background:#fafbfc}
+  .burst-row-pending td{color:#9ca3af}
+  .burst-row-sending td{color:#1e40af;background:#eff6ff !important}
+  .burst-row-waiting td{color:#92400e;background:#fffbeb !important}
+  .burst-row-ok td{color:var(--text-dark)}
+  .burst-row-err td{color:#991b1b;background:#fef2f2 !important}
+  .burst-tag{padding:1px 6px;border-radius:9px;font-size:9px;font-weight:700;display:inline-block}
+  .burst-tag.pending{background:#f1f5f9;color:#94a3b8}
+  .burst-tag.sending{background:#dbeafe;color:#1e40af}
+  .burst-tag.waiting{background:#fef3c7;color:#92400e}
+  .burst-tag.ok{background:#dcfce7;color:#166534}
+  .burst-tag.err{background:#fee2e2;color:#991b1b}
+  .burst-rc-00{background:#dcfce7;color:#166534;padding:1px 5px;border-radius:8px;font-size:9.5px;font-weight:700}
+  .burst-rc-91,.burst-rc-92,.burst-rc-96{background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:8px;font-size:9.5px;font-weight:700}
+  .burst-rc-other{background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:8px;font-size:9.5px;font-weight:700}
 
-        .section-header {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 20px; flex-wrap: wrap; gap: 16px;
-        }
-        .section-title { font-size: 22px; font-weight: 800; color: var(--text-dark); letter-spacing: -.5px; }
-        .section-sub   { font-size: 13px; color: var(--text-gray); margin-top: 3px; }
+  .burst-rc-dist{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+  .burst-rc-row{display:flex;align-items:center;gap:8px;font-size:11px}
+  .burst-rc-label{min-width:65px;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:10.5px}
+  .burst-rc-bar{flex:1;height:14px;background:#f1f5f9;border-radius:7px;overflow:hidden;position:relative}
+  .burst-rc-fill{height:100%;border-radius:7px;display:flex;align-items:center;padding:0 6px;color:#fff;font-size:9px;font-weight:700;transition:width .3s}
+  .burst-rc-count{font-size:10px;color:var(--text-gray);min-width:30px;text-align:right;font-family:'IBM Plex Mono',monospace}
 
-        /* ── LAYOUT 2 columnas ──────────────────────────────────── */
-        .layout {
-            display: grid;
-            grid-template-columns: minmax(380px, 1fr) minmax(420px, 1.3fr);
-            gap: 18px;
-        }
-        @media (max-width: 1024px) {
-            .layout { grid-template-columns: 1fr; }
-        }
-
-        /* ── PANEL ──────────────────────────────────────────────── */
-        .panel {
-            background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            box-shadow: 0 2px 12px rgba(8,145,178,.05);
-            overflow: hidden;
-        }
-        .panel-header {
-            padding: 14px 20px;
-            border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; gap: 10px;
-            background: linear-gradient(180deg, #fafefe, var(--white));
-        }
-        .panel-icon {
-            width: 28px; height: 28px; border-radius: 8px;
-            background: var(--cyan-pale); color: var(--cyan-dark);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px;
-        }
-        .panel-title { font-size: 13px; font-weight: 700; color: var(--text-dark); flex: 1; }
-        .panel-body  { padding: 16px 20px; }
-
-        /* ── FIELDSETS ──────────────────────────────────────────── */
-        fieldset {
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 14px 16px 6px;
-            margin-bottom: 14px;
-            background: #fafdff;
-        }
-        legend {
-            font-size: 10px; font-weight: 700; text-transform: uppercase;
-            color: var(--cyan-dark); padding: 0 8px; letter-spacing: .06em;
-        }
-
-        .field-grid {
-            display: grid;
-            grid-template-columns: 130px 1fr;
-            gap: 10px 12px;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .field-grid label {
-            font-size: 11px; font-weight: 600; color: var(--text-gray);
-        }
-        .field-grid label .de {
-            font-family: var(--mono); color: var(--cyan-dark);
-            font-size: 10px; font-weight: 700;
-        }
-
-        input[type="text"], input[type="number"], select, textarea {
-            width: 100%;
-            padding: 8px 11px;
-            border: 1.5px solid var(--border);
-            border-radius: 7px;
-            font-family: var(--mono); font-size: 12px;
-            color: var(--text-dark);
-            background: var(--white); outline: none;
-            transition: .2s;
-        }
-        input:focus, select:focus, textarea:focus {
-            border-color: var(--cyan);
-            box-shadow: 0 0 0 3px var(--cyan-pale);
-        }
-        textarea {
-            font-size: 10px; line-height: 1.5;
-            min-height: 60px; resize: vertical;
-            word-break: break-all;
-        }
-
-        /* ── BOTONES ────────────────────────────────────────────── */
-        .actions-row {
-            display: flex; gap: 8px; align-items: center;
-            margin-top: 14px; padding: 14px 16px;
-            border-radius: 10px; background: var(--cyan-pale);
-            border: 1px solid var(--cyan-border);
-            flex-wrap: wrap;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, var(--cyan), var(--teal));
-            color: white; border: none;
-            padding: 10px 20px; border-radius: 9px;
-            font-family: var(--sans); font-size: 13px; font-weight: 700;
-            cursor: pointer; transition: .2s;
-            box-shadow: 0 4px 14px rgba(8,145,178,.25);
-            display: flex; align-items: center; gap: 6px;
-        }
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-1px); box-shadow: 0 6px 18px rgba(8,145,178,.3);
-        }
-        .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
-
-        .btn-secondary {
-            background: var(--white); color: var(--cyan-dark);
-            border: 1px solid var(--cyan-border);
-            padding: 9px 16px; border-radius: 9px;
-            font-family: var(--sans); font-size: 12px; font-weight: 600;
-            cursor: pointer; transition: .2s;
-        }
-        .btn-secondary:hover { background: var(--cyan-pale); }
-
-        .burst-input {
-            width: 80px;
-            padding: 8px 10px;
-            border: 1.5px solid var(--cyan-border);
-            border-radius: 7px;
-            font-family: var(--mono); font-size: 12px; font-weight: 700;
-            color: var(--cyan-dark); background: white;
-            text-align: center;
-        }
-
-        .checkbox-wrap {
-            display: flex; align-items: center; gap: 6px;
-            font-size: 12px; color: var(--text-mid); font-weight: 600;
-            cursor: pointer;
-        }
-        .checkbox-wrap input { width: auto; margin: 0; }
-
-        /* ── RESULTADO ──────────────────────────────────────────── */
-        .status-row {
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; gap: 12px;
-            min-height: 56px;
-        }
-        .status-icon { font-size: 22px; }
-        .status-text { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-mid); }
-        .status-badge {
-            font-size: 11px; font-weight: 700;
-            padding: 4px 12px; border-radius: 100px;
-            font-family: var(--mono);
-        }
-        .status-badge.ok      { background: var(--green-pale); color: var(--green); }
-        .status-badge.err     { background: var(--red-pale);   color: var(--red); }
-        .status-badge.loading { background: var(--amber-pale); color: var(--amber); }
-
-        .metrics-row {
-            padding: 12px 18px;
-            display: flex; gap: 18px; flex-wrap: wrap;
-            background: #fafdff;
-            border-bottom: 1px solid var(--border);
-        }
-        .metric { display: flex; flex-direction: column; gap: 2px; }
-        .metric-lbl {
-            font-size: 9px; font-weight: 700; text-transform: uppercase;
-            color: var(--text-gray); letter-spacing: .06em;
-        }
-        .metric-val {
-            font-family: var(--mono); font-size: 14px; font-weight: 700;
-            color: var(--cyan-dark);
-        }
-        .metric-val.green { color: var(--green); }
-        .metric-val.red   { color: var(--red); }
-
-        .result-tabs {
-            display: flex; gap: 4px;
-            padding: 10px 18px 0;
-            border-bottom: 1px solid var(--border);
-        }
-        .tab {
-            padding: 8px 14px; border-radius: 7px 7px 0 0;
-            font-size: 11px; font-weight: 700;
-            cursor: pointer; transition: .2s;
-            color: var(--text-gray); background: transparent;
-            border: 1px solid transparent; border-bottom: none;
-            font-family: var(--sans);
-        }
-        .tab.active {
-            color: var(--cyan-dark); background: var(--cyan-pale);
-            border-color: var(--cyan-border);
-        }
-
-        .tab-content { padding: 14px 18px; min-height: 280px; max-height: 480px; overflow-y: auto; }
-        .tab-content.hidden { display: none; }
-
-        pre.hex-block {
-            background: #0f172a; color: #94d4e0;
-            padding: 12px 14px; border-radius: 8px;
-            font-family: var(--mono); font-size: 10.5px;
-            line-height: 1.6; overflow-x: auto;
-            white-space: pre-wrap; word-break: break-all;
-            margin: 0;
-        }
-        pre.hex-block .h-len    { color: #fbbf24; }
-        pre.hex-block .h-tpdu   { color: #f472b6; }
-        pre.hex-block .h-mti    { color: #c084fc; }
-        pre.hex-block .h-bitmap { color: #60a5fa; }
-        pre.hex-block .h-data   { color: #94d4e0; }
-
-        .empty-result {
-            text-align: center; padding: 60px 20px;
-            color: var(--text-gray);
-        }
-        .empty-result .empty-icon { font-size: 42px; margin-bottom: 12px; opacity: .4; }
-        .empty-result p { font-size: 13px; }
-
-        .json-block {
-            background: #f8fafc; border: 1px solid var(--border);
-            border-radius: 8px; padding: 12px;
-            font-family: var(--mono); font-size: 11px;
-            color: var(--text-dark);
-            white-space: pre-wrap; word-break: break-all;
-            margin: 0;
-        }
-
-        /* ── BURST RESULTS ──────────────────────────────────────── */
-        .burst-summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-            gap: 10px;
-            padding: 14px 18px;
-            background: linear-gradient(180deg, var(--cyan-pale), var(--white));
-            border-bottom: 1px solid var(--border);
-        }
-        .burst-stat {
-            background: var(--white);
-            border: 1px solid var(--cyan-border);
-            border-radius: 8px; padding: 10px 12px;
-            text-align: center;
-        }
-        .burst-stat-num {
-            font-family: var(--mono); font-size: 20px; font-weight: 700;
-            color: var(--cyan-dark);
-        }
-        .burst-stat-num.green { color: var(--green); }
-        .burst-stat-num.red   { color: var(--red); }
-        .burst-stat-lbl {
-            font-size: 9px; font-weight: 700; text-transform: uppercase;
-            color: var(--text-gray); margin-top: 2px;
-        }
-
-        /* ── INFO BANNER ────────────────────────────────────────── */
-        .info-banner {
-            background: var(--cyan-pale);
-            border: 1px solid var(--cyan-border);
-            border-radius: 10px;
-            padding: 10px 14px;
-            margin-bottom: 16px;
-            display: flex; align-items: center; gap: 10px;
-            font-size: 12px; color: var(--cyan-dark);
-        }
-        .info-banner code {
-            font-family: var(--mono); font-size: 11px;
-            background: var(--white); padding: 2px 6px;
-            border-radius: 4px; border: 1px solid var(--cyan-border);
-        }
-
-        /* ── TOAST ──────────────────────────────────────────────── */
-        .toast {
-            position: fixed; bottom: 24px; right: 24px;
-            background: #0f172a; color: white;
-            padding: 11px 18px; border-radius: 10px;
-            font-size: 12px; font-weight: 600;
-            opacity: 0; transform: translateY(10px);
-            transition: .3s; pointer-events: none; z-index: 9999;
-        }
-        .toast.show { opacity: 1; transform: translateY(0); }
-
-        /* ── SPINNER ────────────────────────────────────────────── */
-        .spinner {
-            width: 14px; height: 14px;
-            border: 2px solid rgba(255,255,255,.3);
-            border-top-color: white; border-radius: 50%;
-            animation: spin .7s linear infinite; display: inline-block;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* ── SCROLLBAR ──────────────────────────────────────────── */
-        .tab-content::-webkit-scrollbar { width: 6px; }
-        .tab-content::-webkit-scrollbar-thumb { background: var(--cyan-border); border-radius: 3px; }
-    </style>
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .mini-spinner{display:inline-block;width:9px;height:9px;border:1.5px solid rgba(146,64,14,.3);border-top-color:#92400e;border-radius:50%;animation:spin .6s linear infinite}
+</style>
 </head>
 <body>
 
-<!-- ============================================================
-     GUARD DE ACCESO — NO MOVER NI BORRAR ESTE BLOQUE
-     ============================================================ -->
-<script>
-(function guardPos() {
-    const MODULE_ID   = 'pos';
-    const ROLES_ADMIN = ['ADMIN', 'Administrador'];
-    const username = localStorage.getItem('username');
-    const rol      = localStorage.getItem('rol_actual');
-    const modulos  = JSON.parse(localStorage.getItem('modulos') || '[]');
-    if (!username) { window.location.replace('/login.html'); return; }
-    if (ROLES_ADMIN.includes(rol)) return;
-    if (!modulos.includes(MODULE_ID)) window.location.replace('/sin-acceso.html');
-})();
-</script>
-
-<div class="toast" id="toast"></div>
-
-<!-- ── TOPBAR ──────────────────────────────────────────────────── -->
-<nav class="topbar">
-    <div class="topbar-left">
-        <div class="topbar-brand">
-            <div class="brand-icon">🏧</div>
-            Visual Admin
-        </div>
-        <span class="topbar-sep">›</span>
-        <span class="topbar-title">Simulador POS</span>
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">ATM</div>
+    <div><div class="topbar-title">Visual Admin</div></div>
+    <div class="topbar-crumbs"><span>›</span><span>Simulador POS</span></div>
+  </div>
+  <div class="topbar-right">
+    <div class="pill pill-conn">
+      <span class="dot"></span>
+      <span id="connTxt">172.23.12.2 : 34026 </span>
     </div>
-    <div class="topbar-right">
-        <div class="conn-pill">
-            <span class="dot"></span>
-            <span id="connTarget">172.23.12.2 : 34026 </span>
-        </div>
-        <a href="/home.html" class="btn-home">← Portal</a>
-        <button class="btn-logout" onclick="cerrarSesion()">🚪 Salir</button>
+    <button class="btn btn-back" onclick="window.location.href='home.html'">← Portal</button>
+    <button class="btn btn-logout" onclick="cerrarSesion()">🚪 Salir</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="page-header">
+    <div class="page-icon">🏧</div>
+    <div>
+      <div class="page-title">Simulador POS · ISO 8583</div>
+      <div class="page-subtitle">Envío de transacciones simulando un terminal POS real vía TCP al switch</div>
     </div>
-</nav>
+  </div>
 
-<!-- ── PÁGINA ──────────────────────────────────────────────────── -->
-<div class="page">
+  <div class="info-banner">
+    <div class="info-banner-icon">i</div>
+    <div>
+      <strong>TPDU:</strong> <code>60 00 50 01 00</code> (fijo) · <strong>Canal:</strong> Pos puerto <code>34026</code> · <strong>STAN, DE 11, 12, 13:</strong> auto-generados
+    </div>
+  </div>
 
-    <div class="section-header">
-        <div>
-            <div class="section-title">🏧 Simulador POS · ISO 8583</div>
-            <div class="section-sub">Envío de transacciones simulando un terminal POS real vía TCP al switch</div>
+  <div class="grid-2">
+
+    <!-- COLUMNA IZQUIERDA: BUILDER -->
+    <div class="card">
+      <div class="card-h">
+        <div class="card-h-icon">📝</div>
+        Construcción del mensaje
+      </div>
+
+      <div class="group">
+        <div class="field">
+          <label>MTI Tipo mensaje</label>
+          <select id="fmti">
+            <option value="0200">0200 — Financial request</option>
+            <option value="0210">0210 — Financial response</option>
+            <option value="0220">0220 — Advice</option>
+            <option value="0400">0400 — Reversal request</option>
+            <option value="0800">0800 — Network mgmt</option>
+          </select>
         </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">💳 Tarjeta</div>
+        <div class="field"><label><span class="de">DE 2</span> PAN</label><input type="text" id="f2" value="5171830300761071" maxlength="19"></div>
+        <div class="field"><label><span class="de">DE 14</span> Expiry (YYMM)</label><input type="text" id="f14" value="2401" maxlength="4"></div>
+        <div class="field"><label><span class="de">DE 35</span> Track 2</label><input type="text" id="f35" value="5171830300761071D24012011930567400000"></div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">💰 Transacción</div>
+        <div class="field">
+          <label><span class="de">DE 3</span> Tipo cuenta</label>
+          <select id="f3">
+            <option value="000000">000000 — Cuenta principal</option>
+            <option value="001000">001000 — Ahorro</option>
+            <option value="002000">002000 — Corriente</option>
+            <option value="003000" selected>003000 — Crédito</option>
+          </select>
+        </div>
+        <div class="field"><label><span class="de">DE 4</span> Monto (12 díg.)</label><input type="text" id="f4" value="000000010785" maxlength="12"></div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">🏪 Terminal</div>
+        <div class="field"><label><span class="de">DE 22</span> Entry mode</label><input type="text" id="f22" value="0051" maxlength="4"></div>
+        <div class="field"><label><span class="de">DE 23</span> Card seq</label><input type="text" id="f23" value="0001" maxlength="4"></div>
+        <div class="field"><label><span class="de">DE 24</span> Function code</label><input type="text" id="f24" value="0003" maxlength="4"></div>
+        <div class="field"><label><span class="de">DE 25</span> POS condition</label><input type="text" id="f25" value="0004" maxlength="4"></div>
+        <div class="field"><label><span class="de">DE 32</span> Acquirer ID</label><input type="text" id="f32" value="0000" maxlength="4"></div>
+        <div class="field"><label><span class="de">DE 41</span> Terminal ID</label><input type="text" id="f41" value="01022254" maxlength="8"></div>
+        <div class="field"><label><span class="de">DE 42</span> Merchant ID</label><input type="text" id="f42" value="000000720004108" maxlength="15"></div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">📦 Datos adicionales (LLLVAR)</div>
+        <div class="field"><label><span class="de">DE 47</span> App name</label><input type="text" id="f47" value="com.tranred.milpagos.dev.rc1.4.90"></div>
+        <div class="field"><label><span class="de">DE 48</span> Add. data</label><input type="text" id="f48" value="" placeholder="    0010785444 (con 4 espacios al inicio)"></div>
+        <div class="field"><label><span class="de">DE 55</span> EMV (hex)</label><textarea id="f55">9F260841FF03DDF402DAE79F2701809F10120110A00003240000000000000000000000FF9F3704A39A2A129F360202AF950504C00000009A032605059C01009F02060000000107855F2A020928820239009F1A0208629F34031E03009F3303E0F8C89F03060000000000008407A00000000410109F350122</textarea></div>
+        <div class="field"><label><span class="de">DE 56</span> Currency</label><input type="text" id="f56" value="Bs."></div>
+        <div class="field"><label><span class="de">DE 57</span> Tax info</label><input type="text" id="f57" value="0006109566"></div>
+        <div class="field"><label><span class="de">DE 62</span> Reserved</label><input type="text" id="f62" value="000004"></div>
+        <div class="field"><label><span class="de">DE 63</span> Reserved</label><input type="text" id="f63" value="37000001"></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-send" id="btnSend" onclick="sendOne()">
+          <span id="btnSendIcon">📤</span><span id="btnSendText">Enviar 1</span>
+        </button>
+        <button class="btn btn-burst" id="btnBurst" onclick="sendBurst()">
+          <span id="btnBurstIcon">⚡</span><span id="btnBurstText">Burst</span>
+        </button>
+      </div>
     </div>
 
-    <div class="info-banner">
-        <span style="font-size:18px">ℹ️</span>
-        <span>
-            <strong>TPDU:</strong> <code>60 00 50 01 00</code> (fijo) ·
-            <strong>Canal:</strong> Wifi puerto <code>34026
-            
-            </code> ·
-            <strong>STAN, DE 7, 12, 13:</strong> auto-generados por el simulador
-        </span>
+    <!-- COLUMNA DERECHA: RESULTADO -->
+    <div class="card">
+      <div class="card-h">
+        <div class="card-h-icon">📊</div>
+        Resultado
+      </div>
+
+      <div class="status-bar idle" id="statusBar">
+        <span class="status-icon" id="statusIcon">⏳</span>
+        <span class="status-msg" id="statusMsg">Esperando ejecución...</span>
+        <span class="status-tag" id="statusTag" style="display:none"></span>
+      </div>
+
+      <div class="metrics" id="metricsRow" style="display:none">
+        <div class="metric"><span class="metric-lbl">STAN</span><span class="metric-val" id="mStan">—</span></div>
+        <div class="metric"><span class="metric-lbl">Request</span><span class="metric-val" id="mReqLen">—</span></div>
+        <div class="metric"><span class="metric-lbl">Tiempo</span><span class="metric-val" id="mTime">—</span></div>
+        <div class="metric"><span class="metric-lbl">Resp MTI</span><span class="metric-val" id="mMti">—</span></div>
+        <div class="metric"><span class="metric-lbl">DE 39 Code</span><span class="metric-val" id="mRc">—</span></div>
+        <div class="metric" style="flex:1.3;min-width:160px"><span class="metric-lbl">Resultado</span><span class="metric-val" id="mRcDesc" style="font-size:12px">—</span></div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" id="tabBtn-request" onclick="switchTab('request')">📤 Request</button>
+        <button class="tab" id="tabBtn-response" onclick="switchTab('response')">📥 Response</button>
+        <button class="tab" id="tabBtn-parsed" onclick="switchTab('parsed')">🔍 Parsed</button>
+        <button class="tab" id="tabBtn-burst" onclick="switchTab('burst')">⚡ Burst</button>
+      </div>
+
+      <div class="tab-content active" id="tab-request">
+        <div class="empty-result"><div class="empty-icon">⏳</div><p>Acá vas a ver el buffer hex que enviaste al switch.</p></div>
+      </div>
+      <div class="tab-content" id="tab-response">
+        <div class="empty-result"><div class="empty-icon">⏳</div><p>Acá vas a ver el buffer hex de respuesta.</p></div>
+      </div>
+      <div class="tab-content" id="tab-parsed">
+        <div class="empty-result"><div class="empty-icon">⏳</div><p>Acá vas a ver el JSON parseado de la respuesta.</p></div>
+      </div>
+      <div class="tab-content" id="tab-burst">
+        <div class="empty-result"><div class="empty-icon">⚡</div><p>Apretá <strong>Burst</strong> para enviar N transacciones y ver el dashboard en vivo.</p></div>
+      </div>
     </div>
 
-    <div class="layout">
-
-        <!-- ============ COLUMNA IZQUIERDA: FORMULARIO ============ -->
-        <div class="panel">
-            <div class="panel-header">
-                <div class="panel-icon">📝</div>
-                <span class="panel-title">Construcción del mensaje</span>
-            </div>
-            <div class="panel-body">
-
-                <!-- MTI -->
-                <div class="field-grid" style="margin-bottom:14px">
-                    <label><span class="de">MTI</span> Tipo mensaje</label>
-                    <select id="mti">
-                        <option value="0200" selected>0200 — Financial request</option>
-                        <option value="0220">0220 — Financial advice</option>
-                        <option value="0400">0400 — Reversal request</option>
-                        <option value="0420">0420 — Reversal advice</option>
-                        <option value="0800">0800 — Network management</option>
-                    </select>
-                </div>
-
-                <!-- TARJETA -->
-                <fieldset>
-                    <legend>💳 Tarjeta</legend>
-                    <div class="field-grid">
-                        <label><span class="de">DE 2</span> PAN</label>
-                        <input type="text" id="f2" value="5171830300761071" maxlength="19">
-                        <label><span class="de">DE 14</span> Expiry (YYMM)</label>
-                        <input type="text" id="f14" value="2401" maxlength="4">
-                        <label><span class="de">DE 35</span> Track 2</label>
-                        <input type="text" id="f35" value="5171830300761071D24012011930567400000">
-                    </div>
-                </fieldset>
-
-                <!-- TRANSACCIÓN -->
-                <fieldset>
-                    <legend>💰 Transacción</legend>
-                    <div class="field-grid">
-                        <label><span class="de">DE 3</span> Tipo cuenta</label>
-                        <select id="f3">
-                            <option value="000000">000000 — Cuenta principal</option>
-                            <option value="001000">001000 — Ahorro</option>
-                            <option value="002000">002000 — Corriente</option>
-                            <option value="003000" selected>003000 — Crédito</option>
-                        </select>
-                        <label><span class="de">DE 4</span> Monto (12 díg.)</label>
-                        <input type="text" id="f4" value="000000010785" maxlength="12">
-                    </div>
-                </fieldset>
-
-                <!-- TERMINAL -->
-                <fieldset>
-                    <legend>🏪 Terminal</legend>
-                    <div class="field-grid">
-                        <label><span class="de">DE 22</span> Entry mode</label>
-                        <input type="text" id="f22" value="0051" maxlength="4">
-                        <label><span class="de">DE 23</span> Card seq</label>
-                        <input type="text" id="f23" value="0001" maxlength="4">
-                        <label><span class="de">DE 24</span> Function code</label>
-                        <input type="text" id="f24" value="0003" maxlength="4">
-                        <label><span class="de">DE 25</span> POS condition</label>
-                        <input type="text" id="f25" value="0004" maxlength="4">
-                        <label><span class="de">DE 32</span> Acquirer ID</label>
-                        <input type="text" id="f32" value="0000" maxlength="4">
-                        <label><span class="de">DE 41</span> Terminal ID</label>
-                        <input type="text" id="f41" value="01022254" maxlength="8">
-                        <label><span class="de">DE 42</span> Merchant ID</label>
-                        <input type="text" id="f42" value="000000720004108" maxlength="15">
-                    </div>
-                </fieldset>
-
-                <!-- LLLVAR -->
-                <fieldset>
-                    <legend>📦 Datos adicionales (LLLVAR)</legend>
-                    <div class="field-grid">
-                        <label><span class="de">DE 47</span> App name</label>
-                        <input type="text" id="f47" value="com.tranred.milpagos.dev.rc1.4.90">
-                        <label><span class="de">DE 48</span> Add. data</label>
-                        <input type="text" id="f48" value="    0010785444">
-                        <label><span class="de">DE 55</span> EMV (hex)</label>
-                        <textarea id="f55">9F260841FF03DDF402DAE79F2701809F10120110A00003240000000000000000000000FF9F3704A39A2A129F360202AF950504C00000009A032605059C01009F02060000000107855F2A020928820239009F1A0208629F34031E03009F3303E0F8C89F03060000000000008407A00000000410109F350122</textarea>
-                        <label><span class="de">DE 56</span> Currency name</label>
-                        <input type="text" id="f56" value="Bs.">
-                        <label><span class="de">DE 57</span> Tax info</label>
-                        <input type="text" id="f57" value="0006109566">
-                        <label><span class="de">DE 62</span> Reserved</label>
-                        <input type="text" id="f62" value="000004">
-                        <label><span class="de">DE 63</span> Reserved</label>
-                        <input type="text" id="f63" value="37000001">
-                    </div>
-                </fieldset>
-
-                <!-- ACCIONES -->
-                <div class="actions-row">
-                    <button class="btn-primary" onclick="sendOne()" id="btnSend">
-                        <span id="btnSendIcon">📤</span>
-                        <span id="btnSendText">Enviar 1</span>
-                    </button>
-                    <button class="btn-primary" onclick="sendBurst()" id="btnBurst" style="background:linear-gradient(135deg,var(--amber),#f59e0b)">
-                        <span id="btnBurstIcon">⚡</span>
-                        <span id="btnBurstText">Burst</span>
-                    </button>
-                    <input type="number" id="burstCount" class="burst-input" value="100" min="1" max="10000" title="Cantidad para burst">
-                    <label class="checkbox-wrap" title="Enviar todas las transacciones en paralelo">
-                        <input type="checkbox" id="parallel"> paralelo
-                    </label>
-                    <button class="btn-secondary" onclick="resetForm()" style="margin-left:auto">↻ Reset</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============ COLUMNA DERECHA: RESULTADO ============ -->
-        <div class="panel">
-            <div class="panel-header">
-                <div class="panel-icon">📊</div>
-                <span class="panel-title">Resultado</span>
-            </div>
-
-            <!-- Status -->
-            <div class="status-row">
-                <span class="status-icon" id="statusIcon">⏳</span>
-                <div class="status-text" id="statusText">Esperando ejecución...</div>
-                <span class="status-badge" id="statusBadge" style="display:none"></span>
-            </div>
-
-            <!-- Métricas -->
-            <div class="metrics-row" id="metricsRow" style="display:none">
-                <div class="metric">
-                    <span class="metric-lbl">Response MTI</span>
-                     <span class="metric-val" id="mMti">—</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-lbl">Resp Code (DE 39)</span>
-                    <span class="metric-val" id="mRc">—</span>
-                </div>
-               <div class="metric" style="flex:1;min-width:180px">
-              <span class="metric-lbl">Resultado</span>
-             <span class="metric-val" id="mRcDesc" style="font-size:12px;font-weight:600">—</span>
-           </div>
-                
-
-            <!-- Burst summary (oculto por defecto) -->
-            <div class="burst-summary" id="burstSummary" style="display:none">
-                <div class="burst-stat">
-                    <div class="burst-stat-num" id="bsTotal">—</div>
-                    <div class="burst-stat-lbl">Total</div>
-                </div>
-                <div class="burst-stat">
-                    <div class="burst-stat-num green" id="bsOk">—</div>
-                    <div class="burst-stat-lbl">OK</div>
-                </div>
-                <div class="burst-stat">
-                    <div class="burst-stat-num red" id="bsFail">—</div>
-                    <div class="burst-stat-lbl">Fail</div>
-                </div>
-                <div class="burst-stat">
-                    <div class="burst-stat-num" id="bsTime">—</div>
-                    <div class="burst-stat-lbl">Tiempo</div>
-                </div>
-                <div class="burst-stat">
-                    <div class="burst-stat-num" id="bsTps">—</div>
-                    <div class="burst-stat-lbl">TPS</div>
-                </div>
-            </div>
-
-            <!-- Tabs -->
-            <div class="result-tabs">
-                <div class="tab active" data-tab="request"  onclick="switchTab('request')">📤 Request</div>
-                <div class="tab"        data-tab="response" onclick="switchTab('response')">📥 Response</div>
-                <div class="tab"        data-tab="parsed"   onclick="switchTab('parsed')">🔍 Parsed</div>
-                <div class="tab"        data-tab="burst"    onclick="switchTab('burst')" id="tabBurst" style="display:none">⚡ Burst</div>
-            </div>
-
-            <!-- Tab contents -->
-            <div class="tab-content" id="tab-request">
-                <div class="empty-result">
-                    <div class="empty-icon">⏳</div>
-                    <p>Acá vas a ver el buffer hex que enviaste al switch.</p>
-                </div>
-            </div>
-
-            <div class="tab-content hidden" id="tab-response">
-                <div class="empty-result">
-                    <div class="empty-icon">📡</div>
-                    <p>Acá va a aparecer la respuesta del switch en hex.</p>
-                </div>
-            </div>
-
-            <div class="tab-content hidden" id="tab-parsed">
-                <div class="empty-result">
-                    <div class="empty-icon">🔍</div>
-                    <p>Decodificación estructurada de la respuesta.</p>
-                </div>
-            </div>
-
-            <div class="tab-content hidden" id="tab-burst">
-                <div class="empty-result">
-                    <div class="empty-icon">⚡</div>
-                    <p>Resultados detallados del burst test.</p>
-                </div>
-            </div>
-        </div>
-    </div>
+  </div>
 </div>
 
 <script>
-    // ── CAMPOS DEL FORM ────────────────────────────────────────────
-    const FIELD_IDS = ['2','3','4','14','22','23','24','25','32','35',
-                       '41','42','47','48','55','56','57','62','63'];
+(function(){
+  // Guard
+  const r = (localStorage.getItem('rol_actual')||'').toUpperCase();
+  if (!r) { window.location.href = '/login.html'; return; }
+  let modulos = {};
+  try { modulos = JSON.parse(localStorage.getItem('modulos') || '{}'); } catch(_) {}
+  if (modulos.pos === false) { window.location.href = '/sin-acceso.html'; return; }
 
-    // ── HELPERS ────────────────────────────────────────────────────
-    function toast(msg, dur = 2500) {
-        const t = document.getElementById('toast');
-        t.textContent = msg; t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), dur);
-    }
+  const $ = id => document.getElementById(id);
 
-    function gatherFields() {
-        const fields = {};
-        FIELD_IDS.forEach(de => {
-            const el = document.getElementById('f' + de);
-            if (!el) return;
-            const v = el.value.trim();
-            if (v) fields[de] = v;
-        });
-        return fields;
-    }
+  function getFields() {
+    const f = {};
+    [2,3,4,14,22,23,24,25,32,35,41,42,47,48,55,56,57,62,63].forEach(de => {
+      const el = $('f'+de); if (!el) return;
+      const v = el.value;
+      if (v !== '' && v !== null && v !== undefined) f[de] = v;
+    });
+    return f;
+  }
 
-    function buildPayload() {
-        return {
-            mti:    document.getElementById('mti').value,
-            fields: gatherFields(),
-        };
-    }
+  function buildPayload() { return { mti: $('fmti').value, fields: getFields() }; }
 
-    function formatHex(h) {
-        if (!h) return '';
-        // Agrupa de a 2 chars y newline cada 32 bytes (64 chars)
-        return h.match(/.{1,64}/g)
-            .map(line => line.match(/.{1,2}/g).join(' '))
-            .join('\n');
-    }
+  function setStatus(icon, msg, tag, kind) {
+    const bar = $('statusBar');
+    bar.className = 'status-bar ' + (kind || 'idle');
+    $('statusIcon').textContent = icon;
+    $('statusMsg').textContent  = msg;
+    const tagEl = $('statusTag');
+    if (tag) { tagEl.style.display = ''; tagEl.textContent = tag; tagEl.className = 'status-tag ' + (kind === 'ok' ? 'ok' : 'err'); }
+    else tagEl.style.display = 'none';
+  }
 
-    function colorizeHex(h) {
-        // h debe ser hex sin espacios.
-        // Estructura esperada: LOTR(2) TPDU(5) MTI(2) BITMAP(8 ó 16) DATA(...)
-        if (!h || h.length < 38) return formatHex(h);
-        const lotr   = h.substr(0, 4);     // 2 bytes
-        const tpdu   = h.substr(4, 10);    // 5 bytes
-        const mti    = h.substr(14, 4);    // 2 bytes
-        const bm1    = h.substr(18, 16);   // 8 bytes
-        const bit1   = parseInt(bm1.substr(0,2), 16);
-        const hasBm2 = (bit1 & 0x80) !== 0;
-        const bm2    = hasBm2 ? h.substr(34, 16) : '';
-        const dataStart = 18 + 16 + (hasBm2 ? 16 : 0);
-        const data   = h.substr(dataStart);
+  function setMetrics(data) {
+    const row = $('metricsRow');
+    if (!data) { row.style.display = 'none'; return; }
+    row.style.display = 'flex';
+    $('mStan').textContent   = data.stan || '—';
+    $('mReqLen').textContent = (data.requestLen || 0) + ' B';
+    $('mTime').textContent   = (data.elapsedMs || 0) + ' ms';
+    $('mMti').textContent    = data.response?.mti || '—';
+    const rc     = data.response?.responseCode || '—';
+    const rcDesc = data.response?.responseMsg  || '—';
+    const elRc   = $('mRc'), elDesc = $('mRcDesc');
+    elRc.textContent = rc; elDesc.textContent = rcDesc;
+    elRc.className = 'metric-val';
+    if (rc === '00') { elRc.classList.add('green'); elDesc.style.color = 'var(--green)'; }
+    else if (rc === '91' || rc === '92' || rc === '96') { elRc.classList.add('amber'); elDesc.style.color = 'var(--amber)'; }
+    else if (rc !== '—') { elRc.classList.add('red'); elDesc.style.color = 'var(--red)'; }
+    else elDesc.style.color = '';
+  }
 
-        const fmt = s => s.match(/.{1,2}/g)?.join(' ') || '';
-        let out = '';
-        out += `<span class="h-len">${fmt(lotr)}</span> `;
-        out += `<span class="h-tpdu">${fmt(tpdu)}</span> `;
-        out += `<span class="h-mti">${fmt(mti)}</span>\n`;
-        out += `<span class="h-bitmap">${fmt(bm1)}${hasBm2 ? ' ' + fmt(bm2) : ''}</span>\n`;
-        if (data) {
-            const dataFmt = fmt(data);
-            // Dividir en líneas de 64 caracteres (32 bytes)
-            const lines = dataFmt.match(/.{1,95}(?:\s|$)/g) || [dataFmt];
-            out += `<span class="h-data">${lines.join('\n')}</span>`;
-        }
-        return out;
-    }
+  function setBtnLoading(btnId, iconId, textId, loading, defaultIcon, defaultText) {
+    const btn = $(btnId); if (!btn) return;
+    btn.disabled = !!loading;
+    if (loading) { $(iconId).innerHTML = '<span class="spinner"></span>'; $(textId).textContent = 'En curso...'; }
+    else { $(iconId).textContent = defaultIcon; $(textId).textContent = defaultText; }
+  }
 
-    function setStatus(icon, text, badge, badgeClass) {
-        document.getElementById('statusIcon').textContent = icon;
-        document.getElementById('statusText').textContent = text;
-        const b = document.getElementById('statusBadge');
-        if (badge) {
-            b.textContent = badge;
-            b.className = 'status-badge ' + (badgeClass || '');
-            b.style.display = 'inline-flex';
+  window.switchTab = function(tab) {
+    ['request','response','parsed','burst'].forEach(t => {
+      $('tab-'+t).classList.toggle('active', t === tab);
+      const btn = $('tabBtn-'+t); if (btn) btn.classList.toggle('active', t === tab);
+    });
+  };
+
+  function clearTabs() {
+    $('tab-request').innerHTML  = '<div class="empty-result"><div class="empty-icon">⏳</div><p>Procesando...</p></div>';
+    $('tab-response').innerHTML = '<div class="empty-result"><div class="empty-icon">⏳</div><p>Procesando...</p></div>';
+    $('tab-parsed').innerHTML   = '<div class="empty-result"><div class="empty-icon">⏳</div><p>Procesando...</p></div>';
+  }
+
+  function colorizeHex(hex) {
+    if (!hex || hex.length < 18) return hex || '(sin datos)';
+    const lotr=hex.slice(0,4),tpdu=hex.slice(4,14),mti=hex.slice(14,18),bitmap=hex.slice(18,34),data=hex.slice(34);
+    const fmt = s => (s.match(/.{1,2}/g) || []).join(' ');
+    return `<span class="label-tag">LOTR </span><span class="lotr">${fmt(lotr)}</span>` +
+           `\n<span class="label-tag">TPDU </span><span class="tpdu">${fmt(tpdu)}</span>` +
+           `\n<span class="label-tag">MTI  </span><span class="mti">${fmt(mti)}</span>` +
+           `\n<span class="label-tag">BMAP </span><span class="bitmap">${fmt(bitmap)}</span>` +
+           `\n<span class="label-tag">DATA </span><span class="data">${fmt(data)}</span>`;
+  }
+
+  // ── ENVIAR 1 ───────────────────────────────────────────────────
+  window.sendOne = async function() {
+    setStatus('⏳', 'Enviando...', 'EN CURSO', 'loading');
+    clearTabs(); setMetrics(null);
+    setBtnLoading('btnSend','btnSendIcon','btnSendText',true);
+
+    try {
+      const r = await fetch('/api/pos/send', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(buildPayload()),
+      });
+      const data = await r.json();
+
+      if (!data.ok) {
+        setStatus('❌', data.error || 'Error', 'ERROR', 'err');
+        setMetrics(data);
+        if (data.requestHex) {
+          $('tab-request').innerHTML = `<pre class="hex-block">${colorizeHex(data.requestHex)}</pre>`;
         } else {
-            b.style.display = 'none';
+          $('tab-request').innerHTML = `<div class="empty-result"><div class="empty-icon">❌</div><p style="color:var(--red)">${data.error||'Error'}</p></div>`;
         }
+        const errMsg = `<div class="empty-result"><div class="empty-icon">⏱️</div><p style="color:var(--red)">${data.error||'Sin respuesta'}</p><p style="color:var(--text-gray);font-size:11px;margin-top:8px">El request sí se mandó. Mirá el tab Request.</p></div>`;
+        $('tab-response').innerHTML = errMsg;
+        $('tab-parsed').innerHTML   = errMsg;
+        switchTab('request');
+        return;
+      }
+
+      setStatus('✅', 'Transacción enviada con respuesta', 'OK', 'ok');
+      setMetrics(data);
+      $('tab-request').innerHTML  = `<pre class="hex-block">${colorizeHex(data.requestHex)}</pre>`;
+      $('tab-response').innerHTML = `<pre class="hex-block">${colorizeHex(data.response.rawHex)}</pre>`;
+      $('tab-parsed').innerHTML   = `<pre class="json-block">${JSON.stringify(data.response, null, 2)}</pre>`;
+      switchTab('request');
+    } catch (e) {
+      setStatus('❌', 'Error de conexión: ' + e.message, 'NET ERROR', 'err');
+    } finally {
+      setBtnLoading('btnSend','btnSendIcon','btnSendText',false,'📤','Enviar 1');
+    }
+  };
+
+  // ── BURST DASHBOARD CON SSE ────────────────────────────────────
+  let burstState = null;  // { reader, results, t0, count, target, cancelled, burstId }
+
+  function renderBurstSkeleton(count, target, parallel) {
+    burstState = {
+      count, target, parallel,
+      results: new Array(count).fill(null).map((_, i) => ({
+        i, status: 'pending', stan: '—', elapsedMs: null, responseCode: null, responseMsg: null, error: null
+      })),
+      t0: Date.now(),
+      cancelled: false,
+      burstId: null,
+      pollTimer: null,
+    };
+
+    const html = `
+      <div class="burst-dash">
+        <div class="burst-progress-card">
+          <div class="burst-progress-header">
+            <span>⚡ Burst en vivo — ${count} transacciones · ${parallel?'PARALELO':'SECUENCIAL'} · ${target}</span>
+            <span id="burstElapsed">0:00</span>
+          </div>
+          <div class="burst-progress-bar"><div class="burst-progress-fill" id="burstProgFill"></div></div>
+          <div class="burst-progress-info">
+            <span id="burstProgInfo">0 / ${count} (0%)</span>
+            <span id="burstTps">— TPS</span>
+          </div>
+        </div>
+
+        <div class="burst-stats-grid">
+          <div class="burst-stat"><div class="burst-stat-val" id="bsTotal">0</div><div class="burst-stat-lbl">Enviadas</div></div>
+          <div class="burst-stat"><div class="burst-stat-val ok" id="bsOk">0</div><div class="burst-stat-lbl">OK</div></div>
+          <div class="burst-stat"><div class="burst-stat-val err" id="bsErr">0</div><div class="burst-stat-lbl">Errores</div></div>
+          <div class="burst-stat"><div class="burst-stat-val" id="bsAvg">—</div><div class="burst-stat-lbl">T prom (s)</div></div>
+          <div class="burst-stat"><div class="burst-stat-val" id="bsMin">—</div><div class="burst-stat-lbl">T mín (s)</div></div>
+          <div class="burst-stat"><div class="burst-stat-val" id="bsMax">—</div><div class="burst-stat-lbl">T máx (s)</div></div>
+        </div>
+
+        <div id="rcDist" style="display:none">
+          <div style="font-size:11px;font-weight:700;color:var(--text-dark);margin-bottom:4px">📈 Distribución por código DE 39</div>
+          <div class="burst-rc-dist" id="rcDistList"></div>
+        </div>
+
+        <div class="burst-actions">
+          <button class="btn btn-cancel" id="btnBurstCancel" onclick="cancelBurst()">🛑 Cancelar</button>
+          <button class="btn btn-export" id="btnBurstExport" onclick="exportBurstCsv()" disabled>📥 Exportar CSV</button>
+        </div>
+
+        <div class="burst-table-wrap">
+          <table class="burst-table">
+            <thead><tr>
+              <th style="width:50px">#</th>
+              <th style="width:80px">STAN</th>
+              <th style="width:80px">Estado</th>
+              <th style="width:60px">Code</th>
+              <th style="width:70px">Tiempo</th>
+              <th>Resultado</th>
+            </tr></thead>
+            <tbody id="burstTbody"></tbody>
+          </table>
+        </div>
+      </div>`;
+
+    $('tab-burst').innerHTML = html;
+    renderTableRows();
+    switchTab('burst');
+
+    // Timer del elapsed
+    burstState.pollTimer = setInterval(() => {
+      if (!burstState) return;
+      const sec = Math.floor((Date.now() - burstState.t0) / 1000);
+      const m = Math.floor(sec/60), s = sec%60;
+      const el = $('burstElapsed');
+      if (el) el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+    }, 500);
+  }
+
+  function renderTableRows() {
+    if (!burstState) return;
+    const tbody = $('burstTbody');
+    if (!tbody) return;
+    const html = burstState.results.map(r => {
+      const num = String(r.i + 1).padStart(3, '0');
+      const rowCls = 'burst-row-' + r.status;
+      let tagHtml, codeHtml = '—', timeHtml = '—', resHtml = '—';
+
+      switch (r.status) {
+        case 'pending':
+          tagHtml = '<span class="burst-tag pending">PEND</span>'; break;
+        case 'sending':
+          tagHtml = '<span class="burst-tag sending"><span class="mini-spinner"></span> ENV</span>'; break;
+        case 'waiting':
+          tagHtml = '<span class="burst-tag waiting"><span class="mini-spinner"></span> WAIT</span>'; break;
+        case 'ok':
+          tagHtml = '<span class="burst-tag ok">OK</span>';
+          if (r.responseCode) {
+            const rcCls = r.responseCode === '00' ? 'burst-rc-00' :
+                          (['91','92','96'].includes(r.responseCode) ? 'burst-rc-' + r.responseCode : 'burst-rc-other');
+            codeHtml = `<span class="${rcCls}">${r.responseCode}</span>`;
+          }
+          timeHtml = r.elapsedMs ? (r.elapsedMs/1000).toFixed(1) + 's' : '—';
+          resHtml = r.responseMsg || (r.responseCode ? 'Code ' + r.responseCode : '—');
+          break;
+        case 'err':
+          tagHtml = '<span class="burst-tag err">ERR</span>';
+          timeHtml = r.elapsedMs ? (r.elapsedMs/1000).toFixed(1) + 's' : '—';
+          resHtml = r.error || 'Error';
+          break;
+      }
+      return `<tr class="${rowCls}">
+        <td><strong>${num}</strong></td>
+        <td>${r.stan || '—'}</td>
+        <td>${tagHtml}</td>
+        <td>${codeHtml}</td>
+        <td>${timeHtml}</td>
+        <td style="font-size:10.5px">${resHtml}</td>
+      </tr>`;
+    }).join('');
+    tbody.innerHTML = html;
+  }
+
+  function updateStats() {
+    if (!burstState) return;
+    const done = burstState.results.filter(r => r.status === 'ok' || r.status === 'err');
+    const oks  = burstState.results.filter(r => r.status === 'ok');
+    const errs = burstState.results.filter(r => r.status === 'err');
+    const total = burstState.count;
+    const pct = total > 0 ? (done.length / total * 100) : 0;
+
+    const elapsed = (Date.now() - burstState.t0) / 1000;
+    const tps = elapsed > 0 ? (done.length / elapsed).toFixed(2) : '0.00';
+
+    $('burstProgFill').style.width = pct.toFixed(1) + '%';
+    $('burstProgInfo').textContent = `${done.length} / ${total} (${pct.toFixed(0)}%)`;
+    $('burstTps').textContent = `${tps} TPS`;
+
+    $('bsTotal').textContent = done.length;
+    $('bsOk').textContent    = oks.length;
+    $('bsErr').textContent   = errs.length;
+
+    const times = done.filter(r => r.elapsedMs).map(r => r.elapsedMs);
+    if (times.length > 0) {
+      const avg = times.reduce((a,b)=>a+b,0) / times.length;
+      const min = Math.min(...times);
+      const max = Math.max(...times);
+      $('bsAvg').textContent = (avg/1000).toFixed(1);
+      $('bsMin').textContent = (min/1000).toFixed(1);
+      $('bsMax').textContent = (max/1000).toFixed(1);
     }
 
-    function setMetrics(data) {
-        const row = document.getElementById('metricsRow');
-        if (!data) { row.style.display = 'none'; return; }
-        row.style.display = 'flex';
-        document.getElementById('mStan').textContent   = data.stan || '—';
-        document.getElementById('mReqLen').textContent = (data.requestLen || 0) + ' B';
-        document.getElementById('mTime').textContent   = (data.elapsedMs || 0) + ' ms';
-        document.getElementById('mMti').textContent    = data.response?.mti || '—';
+    // Distribución por código
+    const distMap = {};
+    done.forEach(r => {
+      const key = r.ok ? (r.responseCode || 'sin-code') : 'timeout';
+      distMap[key] = (distMap[key] || 0) + 1;
+    });
+    const keys = Object.keys(distMap).sort();
+    if (keys.length > 0) {
+      $('rcDist').style.display = '';
+      const maxCount = Math.max(...Object.values(distMap));
+      $('rcDistList').innerHTML = keys.map(k => {
+        const count = distMap[k];
+        const pct = maxCount > 0 ? (count / maxCount * 100) : 0;
+        const isOk = k === '00';
+        const isWarn = ['91','92','96'].includes(k);
+        const isErr = k === 'timeout' || (!isOk && !isWarn);
+        const color = isOk ? 'var(--green)' : (isWarn ? 'var(--amber)' : 'var(--red)');
+        const label = k === 'timeout' ? '⏱️ Timeout' : (k === 'sin-code' ? '? sin code' : k);
+        return `<div class="burst-rc-row">
+          <span class="burst-rc-label">${label}</span>
+          <div class="burst-rc-bar"><div class="burst-rc-fill" style="background:${color};width:${pct}%">${count > 0 ? count : ''}</div></div>
+          <span class="burst-rc-count">${count}</span>
+        </div>`;
+      }).join('');
     }
+  }
 
-    function clearTabs() {
-        ['request','response','parsed'].forEach(id => {
-            document.getElementById('tab-' + id).innerHTML =
-                `<div class="empty-result"><div class="empty-icon">⏳</div><p>Esperando...</p></div>`;
+  function finishBurst(stateMsg, statusKind) {
+    if (burstState && burstState.pollTimer) {
+      clearInterval(burstState.pollTimer);
+      burstState.pollTimer = null;
+    }
+    setStatus(statusKind === 'ok' ? '✅' : '🛑', stateMsg, 'BURST', statusKind);
+    setBtnLoading('btnBurst','btnBurstIcon','btnBurstText',false,'⚡','Burst');
+    setBtnLoading('btnSend','btnSendIcon','btnSendText',false,'📤','Enviar 1');
+    const btn = $('btnBurstCancel');     if (btn) btn.style.display = 'none';
+    const btnE = $('btnBurstExport');    if (btnE) btnE.disabled = false;
+  }
+
+  window.cancelBurst = async function() {
+    if (!burstState || burstState.cancelled) return;
+    if (!confirm('¿Cancelar el burst en curso? Las transacciones ya enviadas se mantienen.')) return;
+    burstState.cancelled = true;
+    if (burstState.burstId) {
+      try {
+        await fetch('/api/pos/burst-cancel', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ burstId: burstState.burstId })
         });
-        document.getElementById('burstSummary').style.display = 'none';
-        document.getElementById('tabBurst').style.display = 'none';
+      } catch (_) {}
+    }
+    if (burstState.reader) {
+      try { burstState.reader.cancel(); } catch (_) {}
+    }
+    finishBurst('Burst cancelado por el usuario', 'err');
+  };
+
+  window.exportBurstCsv = function() {
+    if (!burstState) return;
+    const rows = [['#','STAN','Status','Resp Code','Tiempo (ms)','Resultado','Error']];
+    burstState.results.forEach(r => {
+      rows.push([
+        r.i + 1,
+        r.stan || '',
+        r.status,
+        r.responseCode || '',
+        r.elapsedMs || '',
+        r.responseMsg || '',
+        r.error || ''
+      ]);
+    });
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `burst-${burstState.count}tx-${new Date().toISOString().slice(0,19).replace(/[:.]/g,'-')}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  window.sendBurst = async function() {
+    const n = prompt('¿Cuántas transacciones enviar?\n(El switch tarda ~31s por transacción)', '5');
+    if (!n) return;
+    const count = parseInt(n, 10);
+    if (isNaN(count) || count < 1 || count > 10000) { alert('Cantidad inválida (1 a 10000)'); return; }
+
+    // Preguntar modo paralelo
+    const parallel = confirm(
+      '¿Enviar en modo PARALELO?\n\n' +
+      '• ACEPTAR = PARALELO: todas a la vez (~31s total, máxima velocidad)\n' +
+      '• CANCELAR = SECUENCIAL: una a la vez (' + Math.ceil(count * 31 / 60) + ' minutos)\n\n' +
+      '⚠️ Paralelo puede saturar el switch con muchas conexiones simultáneas'
+    );
+
+    // Confirmación adicional si es muy grande
+    if (!parallel && count >= 50) {
+      if (!confirm(`Vas a enviar ${count} transacciones secuenciales. Esto puede tardar ${Math.ceil(count * 31 / 60)} minutos. ¿Continuar?`)) return;
+    }
+    if (parallel && count >= 20) {
+      if (!confirm(`Vas a abrir ${count} conexiones TCP simultáneas al switch. ¿Continuar?`)) return;
     }
 
-    function switchTab(id) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === id));
-        document.querySelectorAll('.tab-content').forEach(c => {
-            c.classList.toggle('hidden', c.id !== 'tab-' + id);
+    setStatus('⚡', `Burst ${parallel ? 'paralelo' : 'secuencial'} en curso (${count} TX)...`, 'BURST', 'loading');
+    setMetrics(null); clearTabs();
+    setBtnLoading('btnBurst','btnBurstIcon','btnBurstText',true);
+    setBtnLoading('btnSend','btnSendIcon','btnSendText',true);
+
+    renderBurstSkeleton(count, '172.23.12.2:34026', parallel);
+
+    try {
+      const response = await fetch('/api/pos/burst-stream', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ ...buildPayload(), count, parallel }),
+      });
+
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+
+      const reader = response.body.getReader();
+      burstState.reader = reader;
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        if (burstState.cancelled) break;
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // Procesar eventos completos (separados por \n\n)
+        let idx;
+        while ((idx = buffer.indexOf('\n\n')) !== -1) {
+          const block = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          const lines = block.split('\n').filter(l => l.startsWith('data: '));
+          for (const line of lines) {
+            const json = line.slice(6);
+            let event; try { event = JSON.parse(json); } catch (_) { continue; }
+            handleBurstEvent(event);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Burst stream error:', e);
+      if (burstState && !burstState.cancelled) {
+        finishBurst('Error de stream: ' + e.message, 'err');
+      }
+    }
+  };
+
+  function handleBurstEvent(ev) {
+    if (!burstState) return;
+    if (ev.type === 'start') {
+      burstState.burstId = ev.burstId;
+      return;
+    }
+    if (ev.type === 'tx-start') {
+      if (burstState.results[ev.i]) {
+        burstState.results[ev.i].status = 'sending';
+        renderTableRows();
+      }
+      return;
+    }
+    if (ev.type === 'tx-progress') {
+      if (burstState.results[ev.i]) {
+        burstState.results[ev.i].status = 'waiting';
+        burstState.results[ev.i].stan   = ev.stan;
+        renderTableRows();
+      }
+      return;
+    }
+    if (ev.type === 'tx-end') {
+      if (burstState.results[ev.i]) {
+        Object.assign(burstState.results[ev.i], {
+          status:       ev.ok ? 'ok' : 'err',
+          stan:         ev.stan,
+          elapsedMs:    ev.elapsedMs,
+          responseCode: ev.responseCode,
+          responseMsg:  ev.responseMsg,
+          error:        ev.error,
         });
+        renderTableRows();
+        updateStats();
+      }
+      return;
     }
-
-    function setBtnLoading(btnId, iconId, textId, loading, defaultIcon, defaultText) {
-        const btn  = document.getElementById(btnId);
-        const icon = document.getElementById(iconId);
-        const text = document.getElementById(textId);
-        btn.disabled = loading;
-        if (loading) {
-            icon.innerHTML = '<span class="spinner"></span>';
-            text.textContent = 'Enviando...';
-        } else {
-            icon.textContent = defaultIcon;
-            text.textContent = defaultText;
-        }
+    if (ev.type === 'done') {
+      updateStats();
+      const msg = `Burst completado: ${ev.okCount}/${ev.count} OK en ${(ev.totalMs/1000).toFixed(1)}s · ${ev.tps} TPS`;
+      finishBurst(msg, ev.failedCount === 0 ? 'ok' : 'err');
+      return;
     }
-
-    // ── ENVIAR 1 TRANSACCIÓN ───────────────────────────────────────
-    async function sendOne() {
-        setStatus('⏳', 'Enviando...', 'EN CURSO', 'loading');
-        clearTabs();
-        setMetrics(null);
-        setBtnLoading('btnSend', 'btnSendIcon', 'btnSendText', true);
-
-        try {
-            const r = await fetch('/api/pos/send', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(buildPayload()),
-            });
-            const data = await r.json();
-
-            if (!data.ok) {
-                setStatus('❌', data.error || 'Error', 'ERROR', 'err');
-                setMetrics(data);
-
-                // Mostrar el hex del request si está disponible (timeout, error de red, etc.)
-                if (data.requestHex) {
-                    document.getElementById('tab-request').innerHTML =
-                        `<pre class="hex-block">${colorizeHex(data.requestHex)}</pre>`;
-                } else {
-                    document.getElementById('tab-request').innerHTML =
-                        `<div class="empty-result"><div class="empty-icon">❌</div><p style="color:var(--red)">${data.error || 'Error desconocido'}</p></div>`;
-                }
-
-                // Mostrar mensaje claro en tabs Response y Parsed
-                const errMsg = `<div class="empty-result"><div class="empty-icon">⏱️</div><p style="color:var(--red)">${data.error || 'Sin respuesta del switch'}</p><p style="color:var(--text-gray);font-size:11px;margin-top:8px">Pero el request sí se mandó. Mirá el tab Request para ver los bytes enviados.</p></div>`;
-                document.getElementById('tab-response').innerHTML = errMsg;
-                document.getElementById('tab-parsed').innerHTML   = errMsg;
-
-                switchTab('request');
-                return;
-            }
-
-            setStatus('✅', 'Transacción enviada con respuesta', 'OK', 'ok');
-            setMetrics(data);
-
-            // Tab request
-            document.getElementById('tab-request').innerHTML =
-                `<pre class="hex-block">${colorizeHex(data.requestHex)}</pre>`;
-
-            // Tab response
-            document.getElementById('tab-response').innerHTML =
-                `<pre class="hex-block">${colorizeHex(data.response.rawHex)}</pre>`;
-
-            // Tab parsed
-            document.getElementById('tab-parsed').innerHTML =
-                `<pre class="json-block">${JSON.stringify(data.response, null, 2)}</pre>`;
-
-            switchTab('request');
-
-        } catch (e) {
-            setStatus('❌', 'Error de conexión: ' + e.message, 'NET ERROR', 'err');
-        } finally {
-            setBtnLoading('btnSend', 'btnSendIcon', 'btnSendText', false, '📤', 'Enviar 1');
-        }
+    if (ev.type === 'cancelled') {
+      updateStats();
+      finishBurst(`Burst cancelado (${ev.completed}/${ev.totalCount} completadas)`, 'err');
+      return;
     }
-
-    // ── BURST ──────────────────────────────────────────────────────
-    async function sendBurst() {
-        const count    = parseInt(document.getElementById('burstCount').value, 10);
-        const parallel = document.getElementById('parallel').checked;
-
-        if (!count || count < 1) {
-            toast('⚠️ Cantidad inválida'); return;
-        }
-
-        // Confirmar si es masivo
-        if (count >= 1000) {
-            const r = await Swal.fire({
-                title: `¿Enviar ${count} transacciones?`,
-                html: `Se van a enviar <strong>${count}</strong> tx ${parallel ? 'en paralelo' : 'secuenciales'} al switch.<br>Esto puede tomar varios segundos y generar carga real.`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#0891b2',
-                confirmButtonText: 'Sí, lanzar burst',
-                cancelButtonText: 'Cancelar',
-            });
-            if (!r.isConfirmed) return;
-        }
-
-        setStatus('⚡', `Enviando burst de ${count} (${parallel ? 'paralelo' : 'secuencial'})...`, 'BURST', 'loading');
-        clearTabs();
-        setMetrics(null);
-        setBtnLoading('btnBurst', 'btnBurstIcon', 'btnBurstText', true);
-
-        try {
-            const payload = buildPayload();
-            payload.count    = count;
-            payload.parallel = parallel;
-
-            const r = await fetch('/api/pos/burst', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload),
-            });
-            const data = await r.json();
-
-            if (!data.ok) {
-                setStatus('❌', data.error || 'Error', 'ERROR', 'err');
-                return;
-            }
-
-            const okPct = data.count > 0 ? Math.round((data.okCount / data.count) * 100) : 0;
-            const cls   = okPct === 100 ? 'ok' : (okPct >= 50 ? 'loading' : 'err');
-            setStatus(
-                okPct === 100 ? '✅' : (okPct >= 50 ? '⚠️' : '❌'),
-                `Burst completado: ${data.okCount}/${data.count} OK · ${data.tps} TPS`,
-                `${okPct}% OK`,
-                cls
-            );
-
-            // Burst summary
-            const bs = document.getElementById('burstSummary');
-            bs.style.display = 'grid';
-            document.getElementById('bsTotal').textContent = data.count;
-            document.getElementById('bsOk').textContent    = data.okCount;
-            document.getElementById('bsFail').textContent  = data.failedCount;
-            document.getElementById('bsTime').textContent  = data.totalMs + ' ms';
-            document.getElementById('bsTps').textContent   = data.tps;
-
-            // Mostrar tab burst
-            document.getElementById('tabBurst').style.display = 'block';
-            document.getElementById('tab-burst').innerHTML =
-                `<pre class="json-block">${JSON.stringify({
-                    samples: data.samples,
-                    failures: data.failures,
-                }, null, 2)}</pre>`;
-
-            switchTab('burst');
-
-        } catch (e) {
-            setStatus('❌', 'Error de conexión: ' + e.message, 'NET ERROR', 'err');
-        } finally {
-            setBtnLoading('btnBurst', 'btnBurstIcon', 'btnBurstText', false, '⚡', 'Burst');
-        }
+    if (ev.type === 'error') {
+      finishBurst('Error: ' + ev.error, 'err');
+      return;
     }
+  }
 
-    // ── RESET FORM ─────────────────────────────────────────────────
-    async function resetForm() {
-        const r = await Swal.fire({
-            title: '¿Restaurar valores por defecto?',
-            text: 'Vas a perder los cambios manuales del formulario.',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#0891b2',
-            confirmButtonText: 'Sí, restaurar',
-            cancelButtonText: 'Cancelar',
-        });
-        if (!r.isConfirmed) return;
-        location.reload();
+  window.cerrarSesion = function() {
+    if (confirm('¿Deseas cerrar la sesión?')) {
+      ['rol_actual','usuario_actual','username','token','modulos'].forEach(k => localStorage.removeItem(k));
+      window.location.href = '/login.html';
     }
+  };
 
-    // ── CERRAR SESIÓN ──────────────────────────────────────────────
-    function cerrarSesion() {
-        if (confirm('¿Deseas cerrar la sesión?')) {
-            ['rol_actual','usuario_actual','username','token','modulos']
-                .forEach(k => localStorage.removeItem(k));
-            window.location.href = '/login.html';
-        }
-    }
+  // Forzar valor de DE 48 con espacios al inicio
+  document.getElementById('f48').value = '    0010785444';
+
+})();
 </script>
+
 </body>
 </html>
+
