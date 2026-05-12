@@ -507,7 +507,7 @@
             <label class="field-label">ID Llave (FIRTER) *</label>
             <input type="text" id="fFIRTER" placeholder="Ej: TERM0001" maxlength="8" autocomplete="off">
             <div class="field-counter">
-                <span class="field-hint">Identificador único · solo HEX (0-9, A-F) · mínimo 8 caracteres</span>
+                <span class="field-hint">Identificador único · alfanumérico (A-Z, 0-9) · mínimo 8 caracteres</span>
                 <span id="cFIRTER">0 / 8</span>
             </div>
         </div>
@@ -523,9 +523,9 @@
             </div>
             <div class="field-group">
                 <label class="field-label">Dígito de Chequeo (FIRMDC) *</label>
-                <input type="text" id="fFIRMDC" placeholder="6 caracteres HEX" maxlength="6" autocomplete="off">
+                <input type="text" id="fFIRMDC" placeholder="6 caracteres" maxlength="6" autocomplete="off">
                 <div class="field-counter">
-                    <span class="field-hint">Solo HEX</span>
+                    <span class="field-hint">Alfanumérico (A-Z, 0-9)</span>
                     <span id="cFIRMDC">0 / 6</span>
                 </div>
             </div>
@@ -533,9 +533,9 @@
 
         <div class="field-group">
             <label class="field-label">Llave Cifrada (FIRMBC) *</label>
-            <input type="text" id="fFIRMBC" placeholder="3DES / 32 o 64 caracteres HEX" maxlength="64" autocomplete="off">
+            <input type="text" id="fFIRMBC" placeholder="3DES / 32 o 64 caracteres" maxlength="64" autocomplete="off">
             <div class="field-counter">
-                <span class="field-hint">3DES · 32 chars (single) o 64 chars (double) · solo HEX</span>
+                <span class="field-hint">3DES · 32 chars (single) o 64 chars (double) · alfanumérico</span>
                 <span id="cFIRMBC">0 chars</span>
             </div>
         </div>
@@ -544,7 +544,7 @@
             <label class="field-label">KSN — DUKPT (FIRFI1)</label>
             <input type="text" id="fFIRFI1" placeholder="Key Serial Number (solo si es DUKPT)" maxlength="40" autocomplete="off">
             <div class="field-counter">
-                <span class="field-hint">Dejar vacío si no es llave DUKPT · solo HEX</span>
+                <span class="field-hint">Dejar vacío si no es llave DUKPT · alfanumérico</span>
                 <span id="cFIRFI1">0 chars</span>
             </div>
         </div>
@@ -595,7 +595,7 @@
      */
     function filtrarHex(event, maxLen) {
         const input = event.target;
-        let v = input.value.toUpperCase().replace(/[^0-9A-F]/g, '');
+        let v = input.value.toUpperCase().replace(/[^0-9A-Z]/g, '');
         if (maxLen && v.length > maxLen) v = v.substring(0, maxLen);
         input.value = v;
     }
@@ -725,8 +725,8 @@
         } else if (idLlave.length < 8) {
             marcarError('fFIRTER', `Debe tener al menos 8 caracteres (tiene ${idLlave.length})`);
             errores.push('fFIRTER');
-        } else if (!/^[0-9A-F]+$/.test(idLlave)) {
-            marcarError('fFIRTER', 'Solo se permiten caracteres HEX (0-9, A-F)');
+        } else if (!/^[0-9A-Z]+$/.test(idLlave)) {
+            marcarError('fFIRTER', 'Solo se permiten caracteres alfanuméricos (A-Z, 0-9)');
             errores.push('fFIRTER');
         }
 
