@@ -6,7 +6,7 @@ const crypto  = require('crypto');
 const { Resend } = require('resend');
 const db = require('./database');
 const os = require('os');
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+
 require('dotenv').config();
 
 
@@ -467,12 +467,70 @@ function actualizarEstado(puerto, resultado) {
     s.latencia = resultado.latencia;
 }
 
+// ============================================================
+// MON_REST - Integración con AS/400
+// ============================================================
+const MON_REST_URL = process.env.MON_REST_URL || 
+    'http://172.23.12.2:10022/web/services/MON_REST/estado';
+
+async function consultarMonREST() {
+    try {
+        const resp = await fetch(MON_REST_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'bypass-tunnel-reminder': 'true'
+            },
+            body: JSON.stringify({ sistema: 'TRA402' }),
+            signal: AbortSignal.timeout(5000)
+        });
+        
+        if (!resp.ok) {
+            console.warn(`[MON_REST] HTTP ${resp.status}`);
+            return null;
+        }
+        
+        const json = await resp.json();
+        if (json.code !== '00') {
+            console.warn(`[MON_REST] code=${json.code}`);
+            return null;
+        }
+        return json.data;
+    } catch (err) {
+        console.warn(`[MON_REST] Error: ${err.message}`);
+        return null;
+    }
+}
+
 async function cicloMonitor() {
     const ip = process.env.AS400_IP || '172.23.12.2';
-    await Promise.allSettled(PUERTOS_AS400.map(async ({ puerto }) => {
+    
+    // 1) Ping TCP a los 6 puertos
+    await Promise.allSettled(PUERTOS_AS400.map(async ({ puerto, nombre }) => {
         const resultado = await checkPort(ip, puerto);
         actualizarEstado(puerto, resultado);
     }));
+    
+    // 2) Enriquecer con datos del AS/400 vía MON_REST
+    const datosAS400 = await consultarMonREST();
+    if (datosAS400 && Array.isArray(datosAS400)) {
+        datosAS400.forEach(item => {
+            const numPuerto = parseInt(item.puerto, 10);
+            const s = portState[numPuerto];
+            if (s) {
+                s.trxCount = parseInt(item.trx_count, 10) || 0;
+                s.latProm = parseInt(item.lat_prom, 10) || 0;
+                s.ultTrx = item.ult_trx || null;
+                s.ultHb = item.ult_hb || null;
+                s.estadoAS400 = item.estado;
+                s.programa = item.programa;
+                s.descripcionAS400 = item.descripcion;
+            }
+        });
+        console.log(`[Monitor] ✓ ${datosAS400.length} puertos enriquecidos con datos AS/400`);
+    }
+    
+    // 3) Empujar por SSE
     broadcastSSE({ tipo: 'update', data: Object.values(portState) });
 }
 
@@ -497,7 +555,7 @@ app.get('/api/monitor/stream', (req, res) => {
 app.get('/api/monitor/estado', (req, res) => res.json(Object.values(portState)));
 
 // ============================================================
-// SIMULADOR POS — TCP directo al switch (puerto 34025)
+// SIMULADOR POS — TCP directo al switch (puerto 34026)
 // ============================================================
 const posSim = require('./routes/pos-sim');
 app.use('/api/pos', posSim);
