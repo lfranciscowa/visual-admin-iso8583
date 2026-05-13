@@ -431,19 +431,28 @@ PUERTOS_AS400.forEach(p => {
 
 const sseClients = new Set();
 
-function checkPort(ip, puerto, timeoutMs = 4000) {
-    return new Promise((resolve) => {
-        const t0 = Date.now(), socket = new net.Socket();
-        let done = false;
-        const finish = (up, err) => {
-            if (done) return; done = true; socket.destroy();
-            resolve({ up, latencia: Date.now() - t0, error: err || null });
+async function checkPort(ip, puerto, timeoutMs = 4000) {
+    try {
+        const resp = await fetch(RELAY_BASE + '/check-tcp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ host: ip, port: puerto, timeoutMs }),
+            signal: AbortSignal.timeout(timeoutMs + 3000)
+        });
+        
+        if (!resp.ok) {
+            return { up: false, latencia: timeoutMs, error: `Relay HTTP ${resp.status}` };
+        }
+        
+        const json = await resp.json();
+        return {
+            up: json.up,
+            latencia: json.latencia,
+            error: json.error
         };
-        socket.setTimeout(timeoutMs);
-        socket.connect(puerto, ip, () => finish(true, null));
-        socket.on('error', e => finish(false, e.message));
-        socket.on('timeout', () => finish(false, 'TCP timeout'));
-    });
+    } catch (err) {
+        return { up: false, latencia: timeoutMs, error: err.message };
+    }
 }
 
 function actualizarEstado(puerto, resultado) {
@@ -475,14 +484,14 @@ const MON_REST_URL = process.env.MON_REST_URL ||
 
 async function consultarMonREST() {
     try {
-        const resp = await fetch(MON_REST_URL, {
+        const resp = await fetch(RELAY_BASE + '/relay-monrest', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'bypass-tunnel-reminder': 'true'
-            },
-            body: JSON.stringify({ sistema: 'TRA402' }),
-            signal: AbortSignal.timeout(5000)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                endpoint: 'estado',
+                body: { sistema: 'TRA402' }
+            }),
+            signal: AbortSignal.timeout(10000)
         });
         
         if (!resp.ok) {
@@ -501,6 +510,7 @@ async function consultarMonREST() {
         return null;
     }
 }
+
 
 async function cicloMonitor() {
     const ip = process.env.AS400_IP || '172.23.12.2';
