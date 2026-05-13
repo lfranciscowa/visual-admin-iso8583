@@ -240,6 +240,15 @@
 
         .log-body::-webkit-scrollbar { width: 4px; }
         .log-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.pm-val.flash {
+    animation: flash 1s ease;
+}
+@keyframes flash {
+    0%   { background: var(--green-glow); transform: scale(1.05); }
+    100% { background: transparent; transform: scale(1); }
+}
+
     </style>
 </head>
 <body>
@@ -373,6 +382,58 @@
                lat < 2000 ? { val: lat + ' ms', cls: 'yellow' } :
                             { val: lat + ' ms', cls: 'red' };
     }
+function fmtRelativeTime(tsString) {
+    if (!tsString) return '—';
+    // Formato AS/400: "2026-05-13-11.16.40.245500"
+    // Convertir a Date
+    const cleaned = tsString.replace(
+        /^(\d{4})-(\d{2})-(\d{2})-(\d{2})\.(\d{2})\.(\d{2})\.(\d+)$/,
+        '$1-$2-$3T$4:$5:$6'
+    );
+    const date = new Date(cleaned);
+    if (isNaN(date)) return tsString.substring(11, 19); // fallback: solo hora
+    
+    const diff = Date.now() - date.getTime();
+    const sec = Math.floor(diff / 1000);
+    
+    if (sec < 0)   return date.toTimeString().substring(0, 8);
+    if (sec < 60)  return `hace ${sec}s`;
+    if (sec < 3600) return `hace ${Math.floor(sec/60)}m`;
+    if (sec < 86400) return `hace ${Math.floor(sec/3600)}h`;
+    return date.toTimeString().substring(0, 8);
+}
+
+function fmtTrxCount(n) {
+    if (n === undefined || n === null) return '—';
+    return Number(n).toLocaleString('es-VE'); // 4,540 con separador
+}
+
+function fmtRelativeTime(tsString) {
+    if (!tsString) return '—';
+    // Formato AS/400: "2026-05-13-11.16.40.245500"
+    // Convertir a Date
+    const cleaned = tsString.replace(
+        /^(\d{4})-(\d{2})-(\d{2})-(\d{2})\.(\d{2})\.(\d{2})\.(\d+)$/,
+        '$1-$2-$3T$4:$5:$6'
+    );
+    const date = new Date(cleaned);
+    if (isNaN(date)) return tsString.substring(11, 19); // fallback: solo hora
+    
+    const diff = Date.now() - date.getTime();
+    const sec = Math.floor(diff / 1000);
+    
+    if (sec < 0)   return date.toTimeString().substring(0, 8);
+    if (sec < 60)  return `hace ${sec}s`;
+    if (sec < 3600) return `hace ${Math.floor(sec/60)}m`;
+    if (sec < 86400) return `hace ${Math.floor(sec/3600)}h`;
+    return date.toTimeString().substring(0, 8);
+}
+
+function fmtTrxCount(n) {
+    if (n === undefined || n === null) return '—';
+    return Number(n).toLocaleString('es-VE'); // 4,540 con separador
+}
+
 
     // ── Construir tarjeta ─────────────────────────────────────────
     function buildCard(s) {
@@ -422,13 +483,25 @@
                 </div>
 
                 <div class="pc-metrics">
-                    <div class="pc-metric">
+                     <div class="pc-metric">
                         <div class="pm-lbl">Latencia TCP</div>
                         <div class="pm-val ${lat ? lat.cls : ''}">${lat ? lat.val : '—'}</div>
                     </div>
                     <div class="pc-metric">
                         <div class="pm-lbl">Último UP</div>
                         <div class="pm-val">${ultimoUpStr}</div>
+                    </div>
+                    <div class="pc-metric">
+                        <div class="pm-lbl">TRX Recibidas</div>
+                        <div class="pm-val green">${fmtTrxCount(s.trxCount)}</div>
+                    </div>
+                    <div class="pc-metric">
+                        <div class="pm-lbl">Última TRX</div>
+                        <div class="pm-val">${fmtRelativeTime(s.ultTrx)}</div>
+                    </div>
+                    <div class="pc-metric" style="grid-column: span 2">
+                        <div class="pm-lbl">Último Heartbeat ${s.estadoAS400 ? '· ' + s.estadoAS400 : ''}</div>
+                        <div class="pm-val ${s.estadoAS400 === 'UP' ? 'green' : ''}">${fmtRelativeTime(s.ultHb)}</div>
                     </div>
                 </div>
 
@@ -511,6 +584,20 @@
                     addLog('recovery', s.puerto, s.nombre, `Recuperado · estuvo caído ${dur}`);
                 }
             }
+
+ // Detectar TRX nuevas
+if (prev && s.trxCount > (prev.trxCount || 0)) {
+    setTimeout(() => {
+        const card = document.getElementById(`card-${s.puerto}`);
+        if (card) {
+            const trxEl = card.querySelector('.pm-val.green');
+            if (trxEl) {
+                trxEl.classList.add('flash');
+                setTimeout(() => trxEl.classList.remove('flash'), 1000);
+            }
+        }
+    }, 100);
+}
 
             if (!localHist[s.puerto]) localHist[s.puerto] = [];
             if (!isInit) {
