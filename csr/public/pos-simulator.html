@@ -155,6 +155,44 @@
   .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   .mini-spinner{display:inline-block;width:9px;height:9px;border:1.5px solid rgba(146,64,14,.3);border-top-color:#92400e;border-radius:50%;animation:spin .6s linear infinite}
+
+  /* ───── MODAL BURST ───── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px}
+  .modal-overlay.show{display:flex}
+  .modal-card{background:#fff;border-radius:14px;padding:22px;width:100%;max-width:480px;box-shadow:0 20px 50px rgba(0,0,0,.25);animation:modalIn .2s ease-out;max-height:90vh;overflow-y:auto}
+  @keyframes modalIn{from{opacity:0;transform:translateY(-10px) scale(.96)}to{opacity:1;transform:none}}
+  .modal-title{font-size:16px;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .modal-subtitle{font-size:11.5px;color:var(--text-gray);margin-bottom:16px}
+  .modal-row{margin-bottom:14px}
+  .modal-row label{display:block;font-size:10.5px;font-weight:700;color:var(--text-gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .modal-row input,.modal-row select{width:100%;padding:9px 12px;border:1.5px solid var(--border-soft);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:13px;background:#fafbfc;transition:all .15s}
+  .modal-row input:focus,.modal-row select:focus{outline:none;border-color:var(--primary);background:#fff;box-shadow:0 0 0 3px rgba(8,145,178,.1)}
+  .modal-row .hint{font-size:10.5px;color:var(--text-gray);margin-top:5px;font-family:'IBM Plex Mono',monospace}
+
+  .modal-modes{display:grid;grid-template-columns:1fr;gap:7px}
+  .modal-mode{padding:10px 12px;border:2px solid var(--border-soft);border-radius:9px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:11px;background:#fafbfc}
+  .modal-mode:hover{border-color:#94a3b8;background:#f1f5f9}
+  .modal-mode.selected{border-color:var(--primary);background:var(--primary-soft)}
+  .modal-mode-radio{width:18px;height:18px;border:2px solid #cbd5e1;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fff}
+  .modal-mode.selected .modal-mode-radio{border-color:var(--primary)}
+  .modal-mode.selected .modal-mode-radio::after{content:'';width:9px;height:9px;border-radius:50%;background:var(--primary)}
+  .modal-mode-content{flex:1;min-width:0}
+  .modal-mode-name{font-size:12.5px;font-weight:700;color:var(--text-dark);display:flex;align-items:center;gap:6px}
+  .modal-mode-badge{font-size:9px;padding:1px 6px;border-radius:8px;background:var(--primary);color:#fff;font-weight:700;letter-spacing:.3px}
+  .modal-mode-desc{font-size:10.5px;color:var(--text-gray);margin-top:2px;line-height:1.4}
+
+  .modal-warn{padding:9px 12px;border-radius:8px;font-size:11px;margin-top:10px;display:none;line-height:1.5}
+  .modal-warn.show{display:block}
+  .modal-warn.info{background:#dbeafe;border:1px solid #93c5fd;color:#1e40af}
+  .modal-warn.warn{background:#fef3c7;border:1px solid #fde68a;color:#92400e}
+  .modal-warn.danger{background:#fee2e2;border:1px solid #fecaca;color:#991b1b}
+
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:14px;border-top:1px solid var(--border-soft)}
+  .modal-actions button{padding:9px 16px;border-radius:8px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;border:none;transition:all .15s}
+  .btn-modal-cancel{background:#f1f5f9;color:var(--text-dark);border:1px solid var(--border-soft)}
+  .btn-modal-cancel:hover{background:#e2e8f0}
+  .btn-modal-go{background:linear-gradient(135deg,var(--primary) 0%,var(--accent) 100%);color:#fff}
+  .btn-modal-go:hover{filter:brightness(1.05);transform:translateY(-1px);box-shadow:0 3px 8px rgba(8,145,178,.3)}
 </style>
 </head>
 <body>
@@ -313,6 +351,59 @@
   </div>
 </div>
 
+<!-- ═══════════════════════ MODAL BURST ═══════════════════════ -->
+<div class="modal-overlay" id="burstModal">
+  <div class="modal-card">
+    <div class="modal-title">⚡ Configurar Burst</div>
+    <div class="modal-subtitle">Lanzar múltiples transacciones contra el switch</div>
+
+    <div class="modal-row">
+      <label>Cantidad de transacciones</label>
+      <input type="number" id="modalCount" value="5" min="1" max="10000">
+    </div>
+
+    <div class="modal-row">
+      <label>Modo de envío</label>
+      <div class="modal-modes" id="modalModes">
+        <div class="modal-mode selected" data-mode="sequential">
+          <div class="modal-mode-radio"></div>
+          <div class="modal-mode-content">
+            <div class="modal-mode-name">Secuencial</div>
+            <div class="modal-mode-desc">Una tras otra, espera respuesta. Modo seguro, respeta el ritmo del switch.</div>
+          </div>
+        </div>
+        <div class="modal-mode" data-mode="parallel-delay">
+          <div class="modal-mode-radio"></div>
+          <div class="modal-mode-content">
+            <div class="modal-mode-name">Paralelo con delay <span class="modal-mode-badge">NUEVO</span></div>
+            <div class="modal-mode-desc">Lanza una cada N ms sin esperar respuesta. Ideal para no saturar el switch single-threaded.</div>
+          </div>
+        </div>
+        <div class="modal-mode" data-mode="parallel">
+          <div class="modal-mode-radio"></div>
+          <div class="modal-mode-content">
+            <div class="modal-mode-name">Paralelo total</div>
+            <div class="modal-mode-desc">Todas a la vez. ⚠️ AISSER es single-threaded — con &gt;2 TX suelen tirar timeout.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-row" id="modalDelayRow" style="display:none">
+      <label>Delay entre lanzamientos (ms)</label>
+      <input type="number" id="modalDelay" value="1500" min="50" max="10000" step="50">
+      <div class="hint">Recomendado: 1500ms (≈ tiempo típico de TX). Rango 50–10000ms.</div>
+    </div>
+
+    <div class="modal-warn" id="modalWarn"></div>
+
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="cerrarModalBurst()">Cancelar</button>
+      <button class="btn-modal-go" onclick="confirmarBurst()">⚡ Lanzar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   // Guard
@@ -437,12 +528,112 @@
     }
   };
 
-  // ── BURST DASHBOARD CON SSE ────────────────────────────────────
-  let burstState = null;  // { reader, results, t0, count, target, cancelled, burstId }
+  // ═══════════════════════ MODAL BURST ═══════════════════════
+  let selectedMode = 'sequential';
 
-  function renderBurstSkeleton(count, target, parallel) {
+  function selectMode(mode) {
+    selectedMode = mode;
+    document.querySelectorAll('.modal-mode').forEach(el => {
+      el.classList.toggle('selected', el.dataset.mode === mode);
+    });
+    $('modalDelayRow').style.display = (mode === 'parallel-delay') ? '' : 'none';
+    updateModalWarn();
+  }
+
+  function updateModalWarn() {
+    const count = parseInt($('modalCount').value, 10) || 0;
+    const delay = parseInt($('modalDelay').value, 10) || 1500;
+    const warnEl = $('modalWarn');
+    let kind = 'info', msg = '';
+
+    if (selectedMode === 'parallel') {
+      if (count >= 3) {
+        kind = 'danger';
+        msg = `⚠️ ${count} TX en paralelo total contra AISSER single-threaded. Solo la 1ª tiende a responder; las demás suelen dar timeout. Considerá usar "Paralelo con delay".`;
+      } else if (count === 2) {
+        kind = 'warn';
+        msg = `⚠️ 2 TX simultáneas pueden saturar AISSER. Considerá "Paralelo con delay".`;
+      }
+    } else if (selectedMode === 'sequential' && count >= 50) {
+      const mins = Math.ceil(count * 2 / 60);
+      kind = 'warn';
+      msg = `⏳ ${count} TX secuenciales ≈ ${mins} min de duración.`;
+    } else if (selectedMode === 'parallel-delay') {
+      const lanzamientosSec = ((count - 1) * delay / 1000).toFixed(1);
+      kind = 'info';
+      msg = `ℹ️ Lanzará 1 TX cada ${delay}ms (total lanzamientos ≈ ${lanzamientosSec}s + tiempo de la última respuesta).`;
+      if (delay < 1000) {
+        msg += ' Con delay <1000ms y TX típicas de ~1.3s, podés saturar igual.';
+        kind = 'warn';
+      }
+    }
+
+    if (msg) {
+      warnEl.className = 'modal-warn show ' + kind;
+      warnEl.textContent = msg;
+    } else {
+      warnEl.className = 'modal-warn';
+    }
+  }
+
+  window.sendBurst = function() {
+    // Abrir modal con defaults
+    $('modalCount').value = '5';
+    $('modalDelay').value = '1500';
+    selectMode('sequential');
+    $('burstModal').classList.add('show');
+  };
+
+  window.cerrarModalBurst = function() {
+    $('burstModal').classList.remove('show');
+  };
+
+  window.confirmarBurst = async function() {
+    const count = parseInt($('modalCount').value, 10);
+    if (isNaN(count) || count < 1 || count > 10000) {
+      alert('Cantidad inválida (1 a 10000)');
+      return;
+    }
+    const mode = selectedMode;
+    let delayMs = 0;
+    if (mode === 'parallel-delay') {
+      delayMs = parseInt($('modalDelay').value, 10);
+      if (isNaN(delayMs) || delayMs < 50 || delayMs > 10000) {
+        alert('Delay inválido (50 a 10000 ms)');
+        return;
+      }
+    }
+    cerrarModalBurst();
+    await lanzarBurst(count, mode, delayMs);
+  };
+
+  // Click en cada tarjeta de modo
+  document.querySelectorAll('.modal-mode').forEach(el => {
+    el.addEventListener('click', () => selectMode(el.dataset.mode));
+  });
+  // Recalcular warning al cambiar cantidad o delay
+  $('modalCount').addEventListener('input', updateModalWarn);
+  $('modalDelay').addEventListener('input', updateModalWarn);
+  // Cerrar modal con ESC o click fuera
+  $('burstModal').addEventListener('click', (e) => {
+    if (e.target === $('burstModal')) cerrarModalBurst();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('burstModal').classList.contains('show')) cerrarModalBurst();
+  });
+
+  // ═══════════════════════ BURST DASHBOARD ═══════════════════════
+  let burstState = null;
+
+  function modeLabel(mode, delayMs) {
+    if (mode === 'parallel')       return 'PARALELO TOTAL';
+    if (mode === 'parallel-delay') return `PARALELO+DELAY (${delayMs}ms)`;
+    return 'SECUENCIAL';
+  }
+
+  function renderBurstSkeleton(count, target, mode, delayMs) {
     burstState = {
-      count, target, parallel,
+      count, target, mode, delayMs,
       results: new Array(count).fill(null).map((_, i) => ({
         i, status: 'pending', stan: '—', elapsedMs: null, responseCode: null, responseMsg: null, error: null
       })),
@@ -456,7 +647,7 @@
       <div class="burst-dash">
         <div class="burst-progress-card">
           <div class="burst-progress-header">
-            <span>⚡ Burst en vivo — ${count} transacciones · ${parallel?'PARALELO':'SECUENCIAL'} · ${target}</span>
+            <span>⚡ Burst en vivo — ${count} transacciones · ${modeLabel(mode, delayMs)} · ${target}</span>
             <span id="burstElapsed">0:00</span>
           </div>
           <div class="burst-progress-bar"><div class="burst-progress-fill" id="burstProgFill"></div></div>
@@ -504,7 +695,6 @@
     renderTableRows();
     switchTab('burst');
 
-    // Timer del elapsed
     burstState.pollTimer = setInterval(() => {
       if (!burstState) return;
       const sec = Math.floor((Date.now() - burstState.t0) / 1000);
@@ -587,10 +777,9 @@
       $('bsMax').textContent = (max/1000).toFixed(1);
     }
 
-    // Distribución por código
     const distMap = {};
     done.forEach(r => {
-      const key = r.ok ? (r.responseCode || 'sin-code') : 'timeout';
+      const key = r.status === 'ok' ? (r.responseCode || 'sin-code') : 'timeout';
       distMap[key] = (distMap[key] || 0) + 1;
     });
     const keys = Object.keys(distMap).sort();
@@ -602,7 +791,6 @@
         const pct = maxCount > 0 ? (count / maxCount * 100) : 0;
         const isOk = k === '00';
         const isWarn = ['91','92','96'].includes(k);
-        const isErr = k === 'timeout' || (!isOk && !isWarn);
         const color = isOk ? 'var(--green)' : (isWarn ? 'var(--amber)' : 'var(--red)');
         const label = k === 'timeout' ? '⏱️ Timeout' : (k === 'sin-code' ? '? sin code' : k);
         return `<div class="burst-rc-row">
@@ -663,45 +851,28 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `burst-${burstState.count}tx-${new Date().toISOString().slice(0,19).replace(/[:.]/g,'-')}.csv`;
+    a.download = `burst-${burstState.count}tx-${burstState.mode}-${new Date().toISOString().slice(0,19).replace(/[:.]/g,'-')}.csv`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  window.sendBurst = async function() {
-    const n = prompt('¿Cuántas transacciones enviar?\n(El switch tarda ~31s por transacción)', '5');
-    if (!n) return;
-    const count = parseInt(n, 10);
-    if (isNaN(count) || count < 1 || count > 10000) { alert('Cantidad inválida (1 a 10000)'); return; }
-
-    // Preguntar modo paralelo
-    const parallel = confirm(
-      '¿Enviar en modo PARALELO?\n\n' +
-      '• ACEPTAR = PARALELO: todas a la vez (~31s total, máxima velocidad)\n' +
-      '• CANCELAR = SECUENCIAL: una a la vez (' + Math.ceil(count * 31 / 60) + ' minutos)\n\n' +
-      '⚠️ Paralelo puede saturar el switch con muchas conexiones simultáneas'
-    );
-
-    // Confirmación adicional si es muy grande
-    if (!parallel && count >= 50) {
-      if (!confirm(`Vas a enviar ${count} transacciones secuenciales. Esto puede tardar ${Math.ceil(count * 31 / 60)} minutos. ¿Continuar?`)) return;
-    }
-    if (parallel && count >= 20) {
-      if (!confirm(`Vas a abrir ${count} conexiones TCP simultáneas al switch. ¿Continuar?`)) return;
-    }
-
-    setStatus('⚡', `Burst ${parallel ? 'paralelo' : 'secuencial'} en curso (${count} TX)...`, 'BURST', 'loading');
+  // ── Lanzar burst (llamado por confirmarBurst del modal) ────────
+  async function lanzarBurst(count, mode, delayMs) {
+    setStatus('⚡', `Burst ${modeLabel(mode, delayMs)} en curso (${count} TX)...`, 'BURST', 'loading');
     setMetrics(null); clearTabs();
     setBtnLoading('btnBurst','btnBurstIcon','btnBurstText',true);
     setBtnLoading('btnSend','btnSendIcon','btnSendText',true);
 
-    renderBurstSkeleton(count, '172.23.12.2:34026', parallel);
+    renderBurstSkeleton(count, '172.23.12.2:34026', mode, delayMs);
 
     try {
+      const body = { ...buildPayload(), count, mode };
+      if (mode === 'parallel-delay') body.delayMs = delayMs;
+
       const response = await fetch('/api/pos/burst-stream', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ ...buildPayload(), count, parallel }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -717,7 +888,6 @@
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
 
-        // Procesar eventos completos (separados por \n\n)
         let idx;
         while ((idx = buffer.indexOf('\n\n')) !== -1) {
           const block = buffer.slice(0, idx);
@@ -736,7 +906,7 @@
         finishBurst('Error de stream: ' + e.message, 'err');
       }
     }
-  };
+  }
 
   function handleBurstEvent(ev) {
     if (!burstState) return;

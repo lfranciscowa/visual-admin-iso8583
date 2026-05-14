@@ -549,7 +549,7 @@ function broadcastSSE(payload) {
     sseClients.forEach(res => { try { res.write(msg); } catch { sseClients.delete(res); } });
 }
 
-setTimeout(() => { cicloMonitor(); setInterval(cicloMonitor, 10000); }, 3000);
+//setTimeout(() => { cicloMonitor(); setInterval(cicloMonitor, 10000); }, 3000);
 
 app.get('/api/monitor/stream', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');

@@ -17,6 +17,11 @@
 //      SWITCH_HOST=172.23.12.2
 //      SWITCH_PORT=34026
 //      SWITCH_TIMEOUT_MS=31000
+//
+//  Modos de burst-stream:
+//      sequential      : Una tras otra, espera respuesta
+//      parallel        : Todas a la vez (puede saturar AISSER single-threaded)
+//      parallel-delay  : Lanza cada N ms sin esperar respuesta (NUEVO)
 // ============================================================================
 
 'use strict';
@@ -87,6 +92,33 @@ const activeBursts = new Map(); // burstId → { cancelled: bool }
 
 function newBurstId() {
   return 'burst_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+}
+
+// Helper para pausa async (usado solo en lugares sin SSE)
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// Sleep con heartbeat SSE para mantener viva la conexión del cliente
+// (curl, navegadores y proxies suelen cerrar streams que se quedan inactivos)
+function sleepWithHeartbeat(ms, res) {
+  return new Promise(resolve => {
+    const start = Date.now();
+    const tick = 500;
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - start;
+      if (elapsed >= ms) {
+        clearInterval(timer);
+        resolve();
+        return;
+      }
+      try {
+        // Los comentarios SSE empiezan con ':' y son ignorados por EventSource
+        res.write(`: heartbeat ${elapsed}ms\n\n`);
+      } catch (_) {
+        clearInterval(timer);
+        resolve();
+      }
+    }, tick);
+  });
 }
 
 // ----------------------------------------------------------------------------
@@ -169,7 +201,6 @@ router.post('/burst', async (req, res) => {
 
   async function one(i) {
     try {
-      // DE 12 con +1seg garantizado por iteración
       const ts = now(i);
       const payload = {
         ...req.body,
@@ -203,17 +234,15 @@ router.post('/burst', async (req, res) => {
   const results = [];
   if (parallel) {
     const promises = [];
-  for (let i = 0; i < count; i++) {
-    if (state.cancelled) break;
-    promises.push(one(i));
+    for (let i = 0; i < count; i++) {
+      promises.push(one(i).then(r => results.push(r)));
+    }
+    await Promise.all(promises);
+  } else {
+    for (let i = 0; i < count; i++) {
+      results.push(await one(i));
+    }
   }
-  await Promise.all(promises);   // ← Todas en paralelo
-} else {
-  for (let i = 0; i < count; i++) {
-    if (state.cancelled) break;
-    await one(i);                // ← Una por vez
-  }
-}
 
   const totalMs = Date.now() - t0;
   const okCount = results.filter(r => r.ok).length;
@@ -239,20 +268,35 @@ router.post('/burst', async (req, res) => {
 // ----------------------------------------------------------------------------
 // POST /api/pos/burst-stream  (Server-Sent Events en tiempo real)
 //
-// Body: { mti, fields, count, parallel?: bool }
-// Emite eventos:
-//   data: {type:'start', burstId, count, target}
-//   data: {type:'tx-start', i, stan, requestLen}
-//   data: {type:'tx-end',   i, stan, ok, elapsedMs, responseCode, responseMsg, error}
-//   data: {type:'done',     totalMs, okCount, failedCount, tps}
-//   data: {type:'cancelled', burstId, completed}
+// Body: {
+//   mti, fields,
+//   count,
+//   mode?: 'sequential' | 'parallel' | 'parallel-delay'   (default 'sequential')
+//   delayMs?: number                                       (default 1500, solo aplica a parallel-delay)
+//   parallel?: bool                                        (legacy, equivale a mode:'parallel')
+// }
+//
+// Emite eventos SSE:
+//   {type:'start',     burstId, count, target, mode, delayMs}
+//   {type:'tx-start',  i, status}
+//   {type:'tx-progress', i, stan, requestLen, status}
+//   {type:'tx-end',    i, stan, ok, elapsedMs, responseCode, responseMsg, error}
+//   {type:'done',      burstId, totalMs, okCount, failedCount, tps, count, mode}
+//   {type:'cancelled', burstId, completed, totalCount, totalMs, okCount, failedCount, tps, mode}
+//   {type:'error',     error}
 // ----------------------------------------------------------------------------
 router.post('/burst-stream', async (req, res) => {
-  const count    = Math.min(Math.max(parseInt(req.body.count || '1', 10), 1), 10000);
-  const parallel = !!req.body.parallel;
-  const host     = req.body.host || SWITCH_HOST;
-  const port     = parseInt(req.body.port, 10) || SWITCH_PORT;
-  const burstId  = newBurstId();
+  const count   = Math.min(Math.max(parseInt(req.body.count || '1', 10), 1), 10000);
+  const host    = req.body.host || SWITCH_HOST;
+  const port    = parseInt(req.body.port, 10) || SWITCH_PORT;
+  const burstId = newBurstId();
+
+  // -------- Resolver modo + delay --------
+  // Soporte legacy: parallel:true (sin mode) ⇒ mode:'parallel'
+  let mode = req.body.mode;
+  if (!mode) mode = req.body.parallel ? 'parallel' : 'sequential';
+  if (!['parallel', 'parallel-delay', 'sequential'].includes(mode)) mode = 'sequential';
+  const delayMs = Math.min(Math.max(parseInt(req.body.delayMs || '1500', 10), 50), 10000);
 
   // Configurar SSE
   res.setHeader('Content-Type',       'text/event-stream');
@@ -270,14 +314,27 @@ router.post('/burst-stream', async (req, res) => {
     } catch (_) { /* socket cerrado */ }
   }
 
-  console.log(`⚡ POS burst-stream → ${host}:${port} · count=${count} · parallel=${parallel} · ${burstId}`);
+  const modeLabel = mode === 'parallel-delay' ? `parallel-delay(${delayMs}ms)` : mode;
+  console.log(`⚡ POS burst-stream → ${host}:${port} · count=${count} · mode=${modeLabel} · ${burstId}`);
 
-  send({ type: 'start', burstId, count, target: `${host}:${port}`, parallel });
+  send({ type: 'start', burstId, count, target: `${host}:${port}`, mode, delayMs });
 
-  // Si el cliente cierra la conexión, marcamos como cancelado
-  req.on('close', () => {
+  // ─── Detección de cancelación del cliente (compatible Express 5) ───
+  // OJO: En Express 5, req.on('close') se dispara también al cerrar
+  // la response normalmente, generando falsos "cancelled" en streams.
+  // Por eso usamos 'aborted' (cliente realmente abortó) y vigilamos
+  // res.on('close') solo si la response NO terminó por nosotros.
+  let burstDone = false;   // bandera para distinguir cierre intencional
+
+  req.on('aborted', () => {
     state.cancelled = true;
-    console.log(`🛑 POS burst-stream cancelled by client · ${burstId}`);
+    console.log(`🛑 POS burst-stream ABORTED by client · ${burstId}`);
+  });
+  res.on('close', () => {
+    if (!burstDone && !res.writableEnded) {
+      state.cancelled = true;
+      console.log(`🛑 POS burst-stream response closed early · ${burstId}`);
+    }
   });
 
   const t0 = Date.now();
@@ -341,16 +398,36 @@ router.post('/burst-stream', async (req, res) => {
     }
   }
 
-  // Procesamiento
+  // -------- Procesamiento según modo --------
   try {
-    if (parallel) {
+    if (mode === 'parallel') {
+      // Todas a la vez. Útil para pruebas de saturación.
+      // OJO: AISSER es single-threaded; con count>2 suelen tirar timeout.
       const promises = [];
       for (let i = 0; i < count; i++) {
         if (state.cancelled) break;
         promises.push(one(i));
       }
       await Promise.all(promises);
+
+    } else if (mode === 'parallel-delay') {
+      // Fire-and-forget escalonado: lanza cada delayMs sin esperar respuesta
+      // entre lanzamientos. Permite simular tráfico realista sin saturar
+      // AISSER. delayMs=1500 ≈ tiempo típico de TX, es seguro.
+      // Usa sleepWithHeartbeat para que el SSE no se cierre por inactividad
+      // durante la pausa entre TX (clientes y proxies cortan streams ociosos).
+      const promises = [];
+      for (let i = 0; i < count; i++) {
+        if (state.cancelled) break;
+        promises.push(one(i));                          // NO hay await aquí
+        if (i < count - 1 && !state.cancelled) {
+          await sleepWithHeartbeat(delayMs, res);       // pausa con heartbeat
+        }
+      }
+      await Promise.all(promises);                      // espera que las en vuelo terminen
+
     } else {
+      // sequential: una tras otra, espera respuesta. Modo más seguro.
       for (let i = 0; i < count; i++) {
         if (state.cancelled) break;
         await one(i);
@@ -372,6 +449,7 @@ router.post('/burst-stream', async (req, res) => {
         okCount,
         failedCount: failed,
         tps,
+        mode,
       });
       console.log(`🛑 POS burst-stream done (cancelled) · ${results.length}/${count} · ${burstId}`);
     } else {
@@ -383,6 +461,7 @@ router.post('/burst-stream', async (req, res) => {
         failedCount: failed,
         tps,
         count,
+        mode,
       });
       console.log(`✅ POS burst-stream done · ${okCount}/${count} OK · ${totalMs}ms · ${tps} TPS · ${burstId}`);
     }
@@ -390,6 +469,7 @@ router.post('/burst-stream', async (req, res) => {
     send({ type: 'error', error: err.message });
     console.error('❌ POS burst-stream error:', err.message);
   } finally {
+    burstDone = true;            // marca que terminamos intencionalmente
     activeBursts.delete(burstId);
     res.end();
   }
