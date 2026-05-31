@@ -37,6 +37,9 @@ const SWITCH_HOST = process.env.SWITCH_HOST     || '172.23.12.2';
 const SWITCH_PORT = parseInt(process.env.SWITCH_PORT     || '34026', 10);
 const TIMEOUT_MS  = parseInt(process.env.SWITCH_TIMEOUT_MS || '31000', 10);
 
+// Tope de tx por burst (subido a 50.000 para pruebas de volumen)
+const BURST_MAX = parseInt(process.env.BURST_MAX || '50000', 10);
+
 // Contador en memoria para STAN (compartido entre llamadas del proceso)
 let stanCounter = 1;
 function nextStan() {
@@ -132,6 +135,7 @@ router.get('/template', (req, res) => {
       host: SWITCH_HOST,
       port: SWITCH_PORT,
       timeoutMs: TIMEOUT_MS,
+      burstMax: BURST_MAX,
     },
   });
 });
@@ -190,7 +194,7 @@ router.post('/send', async (req, res) => {
 // POST /api/pos/burst (resumen al final, comportamiento original)
 // ----------------------------------------------------------------------------
 router.post('/burst', async (req, res) => {
-  const count    = Math.min(Math.max(parseInt(req.body.count || '1', 10), 1), 10000);
+  const count    = Math.min(Math.max(parseInt(req.body.count || '1', 10), 1), BURST_MAX);
   const parallel = !!req.body.parallel;
   const host     = req.body.host || SWITCH_HOST;
   const port     = parseInt(req.body.port, 10) || SWITCH_PORT;
@@ -286,7 +290,7 @@ router.post('/burst', async (req, res) => {
 //   {type:'error',     error}
 // ----------------------------------------------------------------------------
 router.post('/burst-stream', async (req, res) => {
-  const count   = Math.min(Math.max(parseInt(req.body.count || '1', 10), 1), 10000);
+  const count   = Math.min(Math.max(parseInt(req.body.count || '1', 10), 1), BURST_MAX);
   const host    = req.body.host || SWITCH_HOST;
   const port    = parseInt(req.body.port, 10) || SWITCH_PORT;
   const burstId = newBurstId();
@@ -493,3 +497,4 @@ router.post('/burst-cancel', (req, res) => {
 });
 
 module.exports = router;
+
