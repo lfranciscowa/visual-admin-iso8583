@@ -76,6 +76,15 @@
   .btn-echo{background:linear-gradient(135deg,#06b6d4 0%,#0e7490 100%);color:#fff;padding:9px 14px;font-size:12px;border-radius:8px;border:none}
   .btn-echo:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 3px 8px rgba(6,182,212,.3);filter:brightness(1.05)}
   .btn-echo:disabled{opacity:.6;cursor:wait}
+  /* Botón Reversar — naranja, aparece tras una tx exitosa */
+  .reversal-bar{display:none;align-items:center;gap:10px;padding:9px 13px;border-radius:9px;background:linear-gradient(90deg,#fff7ed 0%,#ffedd5 100%);border:1px solid #fdba74;margin-bottom:12px;font-size:11.5px;color:#9a3412;animation:mtiIn .25s ease-out}
+  .reversal-bar.show{display:flex}
+  .reversal-bar .rev-info{flex:1;line-height:1.45}
+  .reversal-bar .rev-info strong{color:#7c2d12}
+  .reversal-bar code{background:rgba(255,255,255,.7);padding:1px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#9a3412;font-weight:600}
+  .btn-reversal{background:linear-gradient(135deg,#f97316 0%,#c2410c 100%);color:#fff;padding:8px 14px;font-size:12px;border-radius:8px;border:none;flex-shrink:0;white-space:nowrap}
+  .btn-reversal:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 3px 8px rgba(249,115,22,.3);filter:brightness(1.05)}
+  .btn-reversal:disabled{opacity:.6;cursor:wait}
   .btn-cancel{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:7px 13px;font-size:11px;border-radius:7px}
   .btn-cancel:hover{background:#fecaca}
   .btn-export{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;padding:7px 13px;font-size:11px;border-radius:7px}
@@ -368,6 +377,15 @@
         <div class="metric" style="flex:1.3;min-width:160px"><span class="metric-lbl">Resultado</span><span class="metric-val" id="mRcDesc" style="font-size:12px">—</span></div>
       </div>
 
+      <!-- Barra de reverso: aparece tras una tx financiera exitosa -->
+      <div class="reversal-bar" id="reversalBar">
+        <span style="font-size:16px">↩️</span>
+        <span class="rev-info" id="revInfo">Última: <strong>STAN —</strong>. Podés generar el reverso (<code>0400</code>) de esta transacción.</span>
+        <button class="btn-reversal" id="btnReversal" onclick="sendReversal()">
+          <span id="btnReversalIcon">↩️</span><span id="btnReversalText">Reversar</span>
+        </button>
+      </div>
+
       <div class="tabs">
         <button class="tab active" id="tabBtn-request" onclick="switchTab('request')">📤 Request</button>
         <button class="tab" id="tabBtn-response" onclick="switchTab('response')">📥 Response</button>
@@ -527,6 +545,93 @@
     return { mti, fields: getFields() };
   }
 
+  // ═══════════════ REVERSO (MTI 0400) ═══════════════
+  // Guarda la última transacción financiera enviada para poder reversarla.
+  // El reverso reusa STAN/hora/fecha (DE 11/12/13) y monto (DE 4) ORIGINALES.
+  let lastReversable = null;   // { fields:{...}, stan:'...' }
+
+  // Campos que NO van en el reverso de este switch.
+  // El DE 59 se omite (lo confirmó el usuario). El backend regenera 11/12/13
+  // solo si NO vienen, por eso los mandamos explícitos para forzar los originales.
+  const REVERSAL_OMIT = [59];
+
+  function rememberReversable(fieldsUsed, stan) {
+    // Copia profunda de los campos usados en la original
+    lastReversable = { fields: { ...fieldsUsed }, stan: stan };
+    const bar = $('reversalBar');
+    $('revInfo').innerHTML =
+      `Última: <strong>STAN ${stan}</strong> · monto <code>${fieldsUsed[4] || '—'}</code>. ` +
+      `Generá el reverso <code>0400</code> (reusa STAN/hora/fecha y monto originales).`;
+    bar.classList.add('show');
+  }
+
+  function hideReversalBar() {
+    const bar = $('reversalBar');
+    if (bar) bar.classList.remove('show');
+  }
+
+  // Arma el payload del 0400 a partir de la transacción original guardada
+  function buildReversalPayload(orig) {
+    const f = { ...orig.fields };
+    // Quitar los campos que no van en el reverso
+    REVERSAL_OMIT.forEach(de => { delete f[de]; });
+    // 11, 12, 13 ya vienen en orig.fields con los valores originales → se respetan
+    // 4 (monto) se mantiene igual (reverso total)
+    return { mti: '0400', fields: f };
+  }
+
+  window.sendReversal = async function() {
+    if (!lastReversable) {
+      alert('No hay una transacción para reversar. Enviá una transacción primero.');
+      return;
+    }
+    if (!confirm(`¿Generar el reverso (0400) de la transacción STAN ${lastReversable.stan}?\n\nUsará el mismo STAN, hora, fecha y monto originales.`)) {
+      return;
+    }
+
+    setStatus('↩️', `Enviando reverso (0400) de STAN ${lastReversable.stan}...`, 'REVERSO', 'loading');
+    clearTabs(); setMetrics(null);
+    setBtnLoading('btnReversal','btnReversalIcon','btnReversalText',true);
+
+    try {
+      const payload = buildReversalPayload(lastReversable);
+      const r = await fetch('/api/pos/send', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload),
+      });
+      const data = await r.json();
+
+      if (!data.ok) {
+        setStatus('❌', data.error || 'Error en reverso', 'ERROR', 'err');
+        setMetrics(data);
+        if (data.requestHex) {
+          $('tab-request').innerHTML = `<pre class="hex-block">${colorizeHex(data.requestHex)}</pre>`;
+        }
+        const errMsg = `<div class="empty-result"><div class="empty-icon">⏱️</div><p style="color:var(--red)">${data.error||'Sin respuesta'}</p><p style="color:var(--text-gray);font-size:11px;margin-top:8px">El reverso sí se mandó. Mirá el tab Request.</p></div>`;
+        $('tab-response').innerHTML = errMsg;
+        $('tab-parsed').innerHTML   = errMsg;
+        switchTab('request');
+        return;
+      }
+
+      setStatus('✅', `Reverso OK — STAN ${lastReversable.stan} reversado`, 'OK', 'ok');
+      setMetrics(data);
+      $('tab-request').innerHTML  = `<pre class="hex-block">${colorizeHex(data.requestHex)}</pre>`;
+      $('tab-response').innerHTML = `<pre class="hex-block">${colorizeHex(data.response.rawHex)}</pre>`;
+      $('tab-parsed').innerHTML   = `<pre class="json-block">${JSON.stringify(data.response, null, 2)}</pre>`;
+      switchTab('response');
+
+      // Una vez reversada, ocultar la barra (no se reversa dos veces la misma)
+      hideReversalBar();
+      lastReversable = null;
+    } catch (e) {
+      setStatus('❌', 'Error de conexión: ' + e.message, 'NET ERROR', 'err');
+    } finally {
+      setBtnLoading('btnReversal','btnReversalIcon','btnReversalText',false,'↩️','Reversar');
+    }
+  };
+
+
   function setStatus(icon, msg, tag, kind) {
     const bar = $('statusBar');
     bar.className = 'status-bar ' + (kind || 'idle');
@@ -590,7 +695,7 @@
   // ── ENVIAR 1 ───────────────────────────────────────────────────
   window.sendOne = async function() {
     setStatus('⏳', 'Enviando...', 'EN CURSO', 'loading');
-    clearTabs(); setMetrics(null);
+    clearTabs(); setMetrics(null); hideReversalBar();
     setBtnLoading('btnSend','btnSendIcon','btnSendText',true);
 
     try {
@@ -621,6 +726,14 @@
       $('tab-response').innerHTML = `<pre class="hex-block">${colorizeHex(data.response.rawHex)}</pre>`;
       $('tab-parsed').innerHTML   = `<pre class="json-block">${JSON.stringify(data.response, null, 2)}</pre>`;
       switchTab('request');
+
+      // Guardar como "original" reversable (solo tx financieras, no 0800)
+      const mtiEnviado = buildPayload().mti;
+      if (mtiEnviado !== '0800' && mtiEnviado !== '0400' && data.fieldsUsed) {
+        rememberReversable(data.fieldsUsed, data.stan);
+      } else {
+        hideReversalBar();
+      }
     } catch (e) {
       setStatus('❌', 'Error de conexión: ' + e.message, 'NET ERROR', 'err');
     } finally {
@@ -632,7 +745,7 @@
   // Manda un 0800 de un click, sin importar qué MTI esté elegido.
   window.sendEcho = async function() {
     setStatus('📡', 'Enviando Echo Test (0800)...', 'ECHO', 'loading');
-    clearTabs(); setMetrics(null);
+    clearTabs(); setMetrics(null); hideReversalBar();
     setBtnLoading('btnEcho','btnEchoIcon','btnEchoText',true);
 
     try {
@@ -1075,7 +1188,7 @@
 
   async function lanzarBurst(count, mode, delayMs) {
     setStatus('⚡', `Burst ${modeLabel(mode, delayMs)} en curso (${count} TX)...`, 'BURST', 'loading');
-    setMetrics(null); clearTabs();
+    setMetrics(null); clearTabs(); hideReversalBar();
     setBtnLoading('btnBurst','btnBurstIcon','btnBurstText',true);
     setBtnLoading('btnSend','btnSendIcon','btnSendText',true);
     setBtnLoading('btnEcho','btnEchoIcon','btnEchoText',true);
@@ -1226,6 +1339,5 @@
 
 </body>
 </html>
-
 
 
