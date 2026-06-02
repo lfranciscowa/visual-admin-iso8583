@@ -44,7 +44,8 @@
   .card-h{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
   .card-h-icon{width:24px;height:24px;background:var(--primary-soft);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px}
 
-  .group{border:1px solid var(--border-soft);border-radius:9px;padding:11px 13px;margin-bottom:12px;background:#fafbfc}
+  .group{border:1px solid var(--border-soft);border-radius:9px;padding:11px 13px;margin-bottom:12px;background:#fafbfc;transition:opacity .2s}
+  .group.mti-hidden{display:none}
   .group-title{font-size:10px;font-weight:700;color:var(--primary-dark);text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px;display:flex;align-items:center;gap:5px}
   .field{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;margin-bottom:7px}
   .field:last-child{margin-bottom:0}
@@ -52,7 +53,17 @@
   .field label .de{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--primary-dark);font-size:10px;background:var(--primary-soft);padding:1px 5px;border-radius:3px;margin-right:5px}
   .field input,.field select,.field textarea{padding:6px 9px;border:1px solid var(--border-soft);border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;background:#fff;width:100%;transition:border .15s}
   .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 2px rgba(8,145,178,.1)}
+  .field input:disabled{background:#f1f5f9;color:var(--text-gray);cursor:not-allowed}
   .field textarea{font-size:10px;resize:vertical;min-height:40px}
+
+  /* ───── MTI INFO BANNER (modo 0800) ───── */
+  .mti-info{display:none;align-items:center;gap:9px;padding:9px 13px;border-radius:9px;background:linear-gradient(90deg,#cffafe 0%,#ecfeff 100%);border:1px solid #67e8f9;margin-bottom:12px;font-size:11px;color:var(--primary-dark);animation:mtiIn .25s ease-out}
+  .mti-info.show{display:flex}
+  @keyframes mtiIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .mti-info .mti-tag{font-family:'IBM Plex Mono',monospace;font-weight:800;background:var(--primary);color:#fff;padding:3px 9px;border-radius:6px;font-size:11px;flex-shrink:0;letter-spacing:.5px}
+  .mti-info .mti-desc{flex:1;line-height:1.45}
+  .mti-info .mti-desc strong{color:var(--accent)}
+  .mti-info code{background:rgba(255,255,255,.7);padding:1px 5px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--primary-dark);font-weight:600}
 
   .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
   .btn-send{background:linear-gradient(135deg,var(--primary) 0%,var(--accent) 100%);color:#fff;padding:9px 16px;font-size:12px;border-radius:8px;flex:1;justify-content:center}
@@ -61,6 +72,10 @@
   .btn-burst{background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:9px 14px;font-size:12px;border-radius:8px}
   .btn-burst:hover:not(:disabled){background:#fde68a}
   .btn-burst:disabled{opacity:.6;cursor:wait}
+  /* Botón Echo Test — gradiente cyan de la paleta */
+  .btn-echo{background:linear-gradient(135deg,#06b6d4 0%,#0e7490 100%);color:#fff;padding:9px 14px;font-size:12px;border-radius:8px;border:none}
+  .btn-echo:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 3px 8px rgba(6,182,212,.3);filter:brightness(1.05)}
+  .btn-echo:disabled{opacity:.6;cursor:wait}
   .btn-cancel{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:7px 13px;font-size:11px;border-radius:7px}
   .btn-cancel:hover{background:#fecaca}
   .btn-export{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;padding:7px 13px;font-size:11px;border-radius:7px}
@@ -259,24 +274,30 @@
       <div class="group">
         <div class="field">
           <label>MTI Tipo mensaje</label>
-          <select id="fmti">
+          <select id="fmti" onchange="onMtiChange()">
             <option value="0200">0200 — Financial request</option>
             <option value="0210">0210 — Financial response</option>
             <option value="0220">0220 — Advice</option>
             <option value="0400">0400 — Reversal request</option>
-            <option value="0800">0800 — Network mgmt</option>
+            <option value="0800">0800 — Network mgmt (Echo)</option>
           </select>
         </div>
       </div>
 
-      <div class="group">
+      <!-- Banner informativo para MTI especiales (0800) -->
+      <div class="mti-info" id="mtiInfo">
+        <span class="mti-tag" id="mtiInfoTag">0800</span>
+        <span class="mti-desc" id="mtiInfoDesc"></span>
+      </div>
+
+      <div class="group" data-grp="financiero">
         <div class="group-title">💳 Tarjeta</div>
         <div class="field"><label><span class="de">DE 2</span> PAN</label><input type="text" id="f2" value="5171830300761071" maxlength="19"></div>
         <div class="field"><label><span class="de">DE 14</span> Expiry (YYMM)</label><input type="text" id="f14" value="2401" maxlength="4"></div>
         <div class="field"><label><span class="de">DE 35</span> Track 2</label><input type="text" id="f35" value="5171830300761071D24012011930567400000"></div>
       </div>
 
-      <div class="group">
+      <div class="group" data-grp="financiero">
         <div class="group-title">💰 Transacción</div>
         <div class="field">
           <label><span class="de">DE 3</span> Tipo cuenta</label>
@@ -290,7 +311,7 @@
         <div class="field"><label><span class="de">DE 4</span> Monto (12 díg.)</label><input type="text" id="f4" value="000000010785" maxlength="12"></div>
       </div>
 
-      <div class="group">
+      <div class="group" data-grp="comun">
         <div class="group-title">🏪 Terminal</div>
         <div class="field"><label><span class="de">DE 22</span> Entry mode</label><input type="text" id="f22" value="0051" maxlength="4"></div>
         <div class="field"><label><span class="de">DE 23</span> Card seq</label><input type="text" id="f23" value="0001" maxlength="4"></div>
@@ -301,15 +322,15 @@
         <div class="field"><label><span class="de">DE 42</span> Merchant ID</label><input type="text" id="f42" value="000000720004108" maxlength="15"></div>
       </div>
 
-      <div class="group">
+      <div class="group" data-grp="comun">
         <div class="group-title">📦 Datos adicionales (LLLVAR)</div>
         <div class="field"><label><span class="de">DE 47</span> App name</label><input type="text" id="f47" value="com.tranred.milpagos.dev.rc1.4.90"></div>
-        <div class="field"><label><span class="de">DE 48</span> Add. data</label><input type="text" id="f48" value="" placeholder="    0010785444 (con 4 espacios al inicio)"></div>
-        <div class="field"><label><span class="de">DE 55</span> EMV (hex)</label><textarea id="f55">9F260841FF03DDF402DAE79F2701809F10120110A00003240000000000000000000000FF9F3704A39A2A129F360202AF950504C00000009A032605059C01009F02060000000107855F2A020928820239009F1A0208629F34031E03009F3303E0F8C89F03060000000000008407A00000000410109F350122</textarea></div>
+        <div class="field" data-grp-field="financiero"><label><span class="de">DE 48</span> Add. data</label><input type="text" id="f48" value="" placeholder="    0010785444 (con 4 espacios al inicio)"></div>
+        <div class="field" data-grp-field="financiero"><label><span class="de">DE 55</span> EMV (hex)</label><textarea id="f55">9F260841FF03DDF402DAE79F2701809F10120110A00003240000000000000000000000FF9F3704A39A2A129F360202AF950504C00000009A032605059C01009F02060000000107855F2A020928820239009F1A0208629F34031E03009F3303E0F8C89F03060000000000008407A00000000410109F350122</textarea></div>
         <div class="field"><label><span class="de">DE 56</span> Currency</label><input type="text" id="f56" value="Bs."></div>
-        <div class="field"><label><span class="de">DE 57</span> Tax info</label><input type="text" id="f57" value="0006109566"></div>
-        <div class="field"><label><span class="de">DE 62</span> Reserved</label><input type="text" id="f62" value="000004"></div>
-        <div class="field"><label><span class="de">DE 63</span> Reserved</label><input type="text" id="f63" value="37000001"></div>
+        <div class="field" data-grp-field="financiero"><label><span class="de">DE 57</span> Tax info</label><input type="text" id="f57" value="0006109566"></div>
+        <div class="field" data-grp-field="financiero"><label><span class="de">DE 62</span> Reserved</label><input type="text" id="f62" value="000004"></div>
+        <div class="field" data-grp-field="financiero"><label><span class="de">DE 63</span> Reserved</label><input type="text" id="f63" value="37000001"></div>
       </div>
 
       <div class="actions">
@@ -318,6 +339,9 @@
         </button>
         <button class="btn btn-burst" id="btnBurst" onclick="sendBurst()">
           <span id="btnBurstIcon">⚡</span><span id="btnBurstText">Burst</span>
+        </button>
+        <button class="btn btn-echo" id="btnEcho" onclick="sendEcho()">
+          <span id="btnEchoIcon">📡</span><span id="btnEchoText">Echo Test</span>
         </button>
       </div>
     </div>
@@ -443,7 +467,65 @@
     return f;
   }
 
-  function buildPayload() { return { mti: $('fmti').value, fields: getFields() }; }
+  // ═══════════════ MTI 0800 (Network Mgmt / Echo) ═══════════════
+  // Config de qué grupos se muestran según el MTI elegido
+  const MTI_CONFIG = {
+    '0800': {
+      grupos: ['comun'],   // solo Terminal + Datos adicionales
+      de3: '990000',
+      desc: 'Mensaje de gestión de red (Echo Test). DE 3 fijo <code>990000</code> · campos 3, 11, 12, 13, 41, 42, 47, 56. La <strong>STAN, hora y fecha</strong> se auto-generan.'
+    },
+    'DEFAULT': { grupos: ['financiero','comun'], de3: null, desc: null }
+  };
+
+  // Se llama al cambiar el dropdown de MTI (y al cargar la página)
+  window.onMtiChange = function() {
+    const mti = $('fmti').value;
+    const cfg = MTI_CONFIG[mti] || MTI_CONFIG['DEFAULT'];
+
+    // Mostrar/ocultar GRUPOS completos según el MTI
+    document.querySelectorAll('.group[data-grp]').forEach(g => {
+      const visible = cfg.grupos.includes(g.dataset.grp);
+      g.classList.toggle('mti-hidden', !visible);
+    });
+    // Mostrar/ocultar CAMPOS sueltos marcados como financieros (DE48,55,57,62,63)
+    document.querySelectorAll('.field[data-grp-field]').forEach(fld => {
+      const visible = cfg.grupos.includes(fld.dataset.grpField);
+      fld.style.display = visible ? '' : 'none';
+    });
+
+    // Banner informativo (solo MTI especiales como 0800)
+    const info = $('mtiInfo');
+    if (cfg.desc) {
+      info.classList.add('show');
+      $('mtiInfoTag').textContent = mti;
+      $('mtiInfoDesc').innerHTML = cfg.desc;
+    } else {
+      info.classList.remove('show');
+    }
+  };
+
+  // Arma el payload de un 0800 (echo). DE 3 fijo, solo campos válidos.
+  function build0800Payload() {
+    return {
+      mti: '0800',
+      fields: {
+        3:  '990000',                 // processing code fijo
+        41: $('f41').value,           // terminal ID
+        42: $('f42').value,           // merchant ID
+        47: $('f47').value,           // app name
+        56: $('f56').value || 'Bs.',  // currency
+        // 11 (STAN), 12 (hora), 13 (fecha) → autogenerados en el backend
+      }
+    };
+  }
+
+  function buildPayload() {
+    const mti = $('fmti').value;
+    // Para 0800 usamos el armado específico (solo campos válidos + DE3 fijo)
+    if (mti === '0800') return build0800Payload();
+    return { mti, fields: getFields() };
+  }
 
   function setStatus(icon, msg, tag, kind) {
     const bar = $('statusBar');
@@ -546,6 +628,48 @@
     }
   };
 
+  // ── ECHO TEST (0800) ───────────────────────────────────────────
+  // Manda un 0800 de un click, sin importar qué MTI esté elegido.
+  window.sendEcho = async function() {
+    setStatus('📡', 'Enviando Echo Test (0800)...', 'ECHO', 'loading');
+    clearTabs(); setMetrics(null);
+    setBtnLoading('btnEcho','btnEchoIcon','btnEchoText',true);
+
+    try {
+      const r = await fetch('/api/pos/send', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(build0800Payload()),
+      });
+      const data = await r.json();
+
+      if (!data.ok) {
+        setStatus('❌', data.error || 'Error en Echo', 'ERROR', 'err');
+        setMetrics(data);
+        if (data.requestHex) {
+          $('tab-request').innerHTML = `<pre class="hex-block">${colorizeHex(data.requestHex)}</pre>`;
+        } else {
+          $('tab-request').innerHTML = `<div class="empty-result"><div class="empty-icon">❌</div><p style="color:var(--red)">${data.error||'Error'}</p></div>`;
+        }
+        const errMsg = `<div class="empty-result"><div class="empty-icon">⏱️</div><p style="color:var(--red)">${data.error||'Sin respuesta'}</p><p style="color:var(--text-gray);font-size:11px;margin-top:8px">El request sí se mandó. Mirá el tab Request.</p></div>`;
+        $('tab-response').innerHTML = errMsg;
+        $('tab-parsed').innerHTML   = errMsg;
+        switchTab('request');
+        return;
+      }
+
+      setStatus('✅', 'Echo Test OK — el switch respondió', 'OK', 'ok');
+      setMetrics(data);
+      $('tab-request').innerHTML  = `<pre class="hex-block">${colorizeHex(data.requestHex)}</pre>`;
+      $('tab-response').innerHTML = `<pre class="hex-block">${colorizeHex(data.response.rawHex)}</pre>`;
+      $('tab-parsed').innerHTML   = `<pre class="json-block">${JSON.stringify(data.response, null, 2)}</pre>`;
+      switchTab('response');
+    } catch (e) {
+      setStatus('❌', 'Error de conexión: ' + e.message, 'NET ERROR', 'err');
+    } finally {
+      setBtnLoading('btnEcho','btnEchoIcon','btnEchoText',false,'📡','Echo Test');
+    }
+  };
+
   // ═══════════════════════ MODAL BURST ═══════════════════════
   let selectedMode = 'sequential';
 
@@ -622,7 +746,6 @@
   }
 
   window.sendBurst = function() {
-    // Abrir modal con defaults
     $('modalCount').value = '5';
     $('modalDelay').value = '1500';
     selectMode('sequential');
@@ -652,14 +775,11 @@
     await lanzarBurst(count, mode, delayMs);
   };
 
-  // Click en cada tarjeta de modo
   document.querySelectorAll('.modal-mode').forEach(el => {
     el.addEventListener('click', () => selectMode(el.dataset.mode));
   });
-  // Recalcular warning al cambiar cantidad o delay
   $('modalCount').addEventListener('input', updateModalWarn);
   $('modalDelay').addEventListener('input', updateModalWarn);
-  // Cerrar modal con ESC o click fuera
   $('burstModal').addEventListener('click', (e) => {
     if (e.target === $('burstModal')) cerrarModalBurst();
   });
@@ -753,32 +873,26 @@
     renderTableRows();
     switchTab('burst');
 
-    // Timer en vivo que actualiza las 4 métricas del header
     burstState.pollTimer = setInterval(() => {
       if (!burstState) return;
       updateLiveMetrics();
     }, 500);
   }
 
-  // Calcula y refresca las 4 métricas en vivo del header del burst
   function updateLiveMetrics() {
     if (!burstState) return;
 
-    // 1) Total: tiempo desde que arrancó el burst
     const totalSec = Math.floor((Date.now() - burstState.t0) / 1000);
     const m = Math.floor(totalSec / 60), s = totalSec % 60;
     const elTotalVal = $('lmTotalVal');
     if (elTotalVal) elTotalVal.textContent = `${m}:${String(s).padStart(2,'0')}`;
 
-    // 2) En curso: cantidad de tx que están sending/waiting
     const inFlight = burstState.results.filter(r => r.status === 'sending' || r.status === 'waiting');
     const elActiveVal = $('lmActiveVal');
     if (elActiveVal) elActiveVal.textContent = inFlight.length;
 
-    // 3) Más vieja: tx pendiente que lleva más tiempo esperando
     const elOldest = $('lmOldest'), elOldestVal = $('lmOldestVal');
     if (elOldest && elOldestVal) {
-      // limpiar clases previas
       elOldest.classList.remove('amber', 'red');
       if (inFlight.length === 0) {
         elOldestVal.textContent = '—';
@@ -787,16 +901,11 @@
         const oldestStart = Math.min(...startTimes);
         const oldestSec = Math.floor((Date.now() - oldestStart) / 1000);
         elOldestVal.textContent = oldestSec + 's';
-        // Colorear según se acerca al timeout (31s)
-        if (oldestSec >= 30) {
-          elOldest.classList.add('red');
-        } else if (oldestSec >= 20) {
-          elOldest.classList.add('amber');
-        }
+        if (oldestSec >= 30) elOldest.classList.add('red');
+        else if (oldestSec >= 20) elOldest.classList.add('amber');
       }
     }
 
-    // 4) Ritmo: TPS de los últimos 10 segundos (ventana móvil)
     const elRateVal = $('lmRateVal');
     if (elRateVal) {
       const windowMs = 10000;
@@ -917,6 +1026,7 @@
     setStatus(statusKind === 'ok' ? '✅' : '🛑', stateMsg, 'BURST', statusKind);
     setBtnLoading('btnBurst','btnBurstIcon','btnBurstText',false,'⚡','Burst');
     setBtnLoading('btnSend','btnSendIcon','btnSendText',false,'📤','Enviar 1');
+    setBtnLoading('btnEcho','btnEchoIcon','btnEchoText',false,'📡','Echo Test');
     const btn = $('btnBurstCancel');     if (btn) btn.style.display = 'none';
     const btnE = $('btnBurstExport');    if (btnE) btnE.disabled = false;
   }
@@ -963,12 +1073,12 @@
     URL.revokeObjectURL(url);
   };
 
-  // ── Lanzar burst (llamado por confirmarBurst del modal) ────────
   async function lanzarBurst(count, mode, delayMs) {
     setStatus('⚡', `Burst ${modeLabel(mode, delayMs)} en curso (${count} TX)...`, 'BURST', 'loading');
     setMetrics(null); clearTabs();
     setBtnLoading('btnBurst','btnBurstIcon','btnBurstText',true);
     setBtnLoading('btnSend','btnSendIcon','btnSendText',true);
+    setBtnLoading('btnEcho','btnEchoIcon','btnEchoText',true);
 
     renderBurstSkeleton(count, '172.23.12.2:34026', mode, delayMs);
 
@@ -1024,7 +1134,7 @@
     if (ev.type === 'tx-start') {
       if (burstState.results[ev.i]) {
         burstState.results[ev.i].status = 'sending';
-        burstState.results[ev.i].startTime = Date.now();   // ← marca cuándo empezó esta tx
+        burstState.results[ev.i].startTime = Date.now();
         renderTableRows();
         maybeAutoScroll(ev.i);
       }
@@ -1047,12 +1157,12 @@
           responseCode: ev.responseCode,
           responseMsg:  ev.responseMsg,
           error:        ev.error,
-          endTime:      Date.now(),                        // ← marca cuándo terminó
+          endTime:      Date.now(),
         });
         renderTableRows();
-        flashRow(ev.i, ev.ok);                             // ← efecto visual de feedback
+        flashRow(ev.i, ev.ok);
         updateStats();
-        updateLiveMetrics();                               // ← refrescar también las métricas vivas
+        updateLiveMetrics();
       }
       return;
     }
@@ -1074,21 +1184,17 @@
     }
   }
 
-  // Auto-scroll a la fila recién activada, solo si el burst es grande
-  // (en bursts chicos no tiene sentido y puede marear)
   function maybeAutoScroll(i) {
     if (!burstState || burstState.count < 30) return;
     const tbody = $('burstTbody');
     if (!tbody) return;
     const rows = tbody.querySelectorAll('tr');
     if (rows[i]) {
-      try {
-        rows[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } catch (_) { /* navegadores viejos */ }
+      try { rows[i].scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      catch (_) {}
     }
   }
 
-  // Animación de flash al completar una tx (verde si OK, rojo si error)
   function flashRow(i, ok) {
     const tbody = $('burstTbody');
     if (!tbody) return;
@@ -1097,7 +1203,6 @@
     if (!row) return;
     const cls = ok ? 'burst-row-flash-ok' : 'burst-row-flash-err';
     row.classList.remove('burst-row-flash-ok', 'burst-row-flash-err');
-    // Forzar reflow para reiniciar la animación si la fila ya tenía la clase
     void row.offsetWidth;
     row.classList.add(cls);
     setTimeout(() => row.classList.remove(cls), 800);
@@ -1113,10 +1218,14 @@
   // Forzar valor de DE 48 con espacios al inicio
   document.getElementById('f48').value = '    0010785444';
 
+  // Estado inicial del formulario según el MTI por defecto (0200)
+  onMtiChange();
+
 })();
 </script>
 
 </body>
 </html>
+
 
 
