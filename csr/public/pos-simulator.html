@@ -550,10 +550,12 @@
   // El reverso reusa STAN/hora/fecha (DE 11/12/13) y monto (DE 4) ORIGINALES.
   let lastReversable = null;   // { fields:{...}, stan:'...' }
 
-  // Campos que NO van en el reverso de este switch.
-  // El DE 59 se omite (lo confirmó el usuario). El backend regenera 11/12/13
-  // solo si NO vienen, por eso los mandamos explícitos para forzar los originales.
-  const REVERSAL_OMIT = [59];
+  // WHITELIST: campos que SÍ van en el reverso (0400) de este switch.
+  // Enfoque de lista blanca para no arrastrar campos de la original (0200)
+  // ni de su respuesta (0210) que no corresponden — ej. DE 35 (Track 2),
+  // DE 46, DE 37/38/39 (asignados por el switch). El DE 59 tampoco va.
+  // Si la original no tiene alguno de estos, simplemente no se incluye.
+  const REVERSAL_FIELDS = [2, 3, 4, 11, 12, 13, 14, 22, 23, 24, 25, 32, 41, 42, 47, 55, 56, 57, 62, 63];
 
   function rememberReversable(fieldsUsed, stan) {
     // Copia profunda de los campos usados en la original
@@ -570,12 +572,15 @@
     if (bar) bar.classList.remove('show');
   }
 
-  // Arma el payload del 0400 a partir de la transacción original guardada
+  // Arma el payload del 0400 con SOLO los campos de la whitelist que existan
+  // en la transacción original. 11/12/13/4 se reusan tal cual (originales).
   function buildReversalPayload(orig) {
-    const f = { ...orig.fields };
-    // Quitar los campos que no van en el reverso
-    REVERSAL_OMIT.forEach(de => { delete f[de]; });
-    // 11, 12, 13 ya vienen en orig.fields con los valores originales → se respetan
+    const f = {};
+    REVERSAL_FIELDS.forEach(de => {
+      const v = orig.fields[de];
+      if (v !== undefined && v !== null && v !== '') f[de] = v;
+    });
+    // 11, 12, 13 vienen de la original → el backend los respeta (no regenera)
     // 4 (monto) se mantiene igual (reverso total)
     return { mti: '0400', fields: f };
   }
@@ -1339,5 +1344,6 @@
 
 </body>
 </html>
+
 
 
