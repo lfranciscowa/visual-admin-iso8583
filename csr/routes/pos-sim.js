@@ -2,10 +2,6 @@
 // ============================================================================
 //  Rutas Express para el simulador POS web.
 //
-//  Wiring en server.js (paso 7.4):
-//      const posSim = require('./routes/pos-sim');
-//      app.use('/api/pos', posSim);
-//
 //  Endpoints:
 //      POST /api/pos/send         - Una transacción individual
 //      POST /api/pos/burst        - N transacciones (resumen al final)
@@ -17,11 +13,7 @@
 //      SWITCH_HOST=172.23.12.2
 //      SWITCH_PORT=34026
 //      SWITCH_TIMEOUT_MS=31000
-//
-//  Modos de burst-stream:
-//      sequential      : Una tras otra, espera respuesta
-//      parallel        : Todas a la vez (puede saturar AISSER single-threaded)
-//      parallel-delay  : Lanza cada N ms sin esperar respuesta (NUEVO)
+//      TZ_OFFSET_HOURS=-4        (opcional, default -4 = Venezuela)
 // ============================================================================
 
 'use strict';
@@ -32,15 +24,17 @@ const { sendMessage } = require('../lib/pos-client');
 
 const router = express.Router();
 
-// Defaults confirmados por el equipo (se sobrescriben con .env)
 const SWITCH_HOST = process.env.SWITCH_HOST     || '172.23.12.2';
 const SWITCH_PORT = parseInt(process.env.SWITCH_PORT     || '34026', 10);
 const TIMEOUT_MS  = parseInt(process.env.SWITCH_TIMEOUT_MS || '31000', 10);
+const BURST_MAX   = parseInt(process.env.BURST_MAX || '50000', 10);
 
-// Tope de tx por burst (subido a 50.000 para pruebas de volumen)
-const BURST_MAX = parseInt(process.env.BURST_MAX || '50000', 10);
+// Offset de zona horaria para DE 7/12/13.
+// Venezuela es UTC-4 (sin horario de verano). Si el servidor Node corre en
+// Render u otro host en UTC, sin este offset el DE 12/13 sale adelantado.
+// Configurable por .env (TZ_OFFSET_HOURS), default -4.
+const TZ_OFFSET_HOURS = parseFloat(process.env.TZ_OFFSET_HOURS || '-4');
 
-// Contador en memoria para STAN (compartido entre llamadas del proceso)
 let stanCounter = 1;
 function nextStan() {
   const v = stanCounter;
@@ -48,14 +42,16 @@ function nextStan() {
   return v.toString().padStart(6, '0');
 }
 
-// Helpers de timestamp con offset opcional (segundos)
+// Timestamp con offset opcional (segundos) + ajuste de zona horaria.
+// Tomamos el instante UTC, sumamos TZ_OFFSET_HOURS, y leemos con getUTC*
+// (que ahora representan la hora local de Venezuela UTC-4).
 function now(offsetSec = 0) {
-  const d = new Date(Date.now() + offsetSec * 1000);
-  const MM = String(d.getMonth() + 1).padStart(2, '0');
-  const DD = String(d.getDate()).padStart(2, '0');
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  const ss = String(d.getSeconds()).padStart(2, '0');
+  const d = new Date(Date.now() + offsetSec * 1000 + TZ_OFFSET_HOURS * 3600 * 1000);
+  const MM = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const DD = String(d.getUTCDate()).padStart(2, '0');
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const mm = String(d.getUTCMinutes()).padStart(2, '0');
+  const ss = String(d.getUTCSeconds()).padStart(2, '0');
   return {
     de7:  MM + DD + hh + mm + ss,
     de12: hh + mm + ss,
@@ -66,6 +62,10 @@ function now(offsetSec = 0) {
 /**
  * Toma campos del form, completa STAN y timestamps, arma buffer ISO 8583.
  * El listener de Recarga (34026) NO espera DE 7.
+ *
+ * NOTA REVERSO (0400): si el payload ya trae DE 11/12/13 (caso del reverso,
+ * que reusa los de la transacción original), se respetan tal cual. Solo se
+ * autogeneran cuando NO vienen (caso compra nueva).
  */
 function assembleMessage(payload) {
   const ts   = now();
@@ -90,18 +90,14 @@ function assembleMessage(payload) {
   return { message, stanUsed: stan, fieldsUsed: fields };
 }
 
-// Estado en memoria para soportar cancelación de burst-stream
-const activeBursts = new Map(); // burstId → { cancelled: bool }
+const activeBursts = new Map();
 
 function newBurstId() {
   return 'burst_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
 }
 
-// Helper para pausa async (usado solo en lugares sin SSE)
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// Sleep con heartbeat SSE para mantener viva la conexión del cliente
-// (curl, navegadores y proxies suelen cerrar streams que se quedan inactivos)
 function sleepWithHeartbeat(ms, res) {
   return new Promise(resolve => {
     const start = Date.now();
@@ -114,7 +110,6 @@ function sleepWithHeartbeat(ms, res) {
         return;
       }
       try {
-        // Los comentarios SSE empiezan con ':' y son ignorados por EventSource
         res.write(`: heartbeat ${elapsed}ms\n\n`);
       } catch (_) {
         clearInterval(timer);
@@ -136,12 +131,13 @@ router.get('/template', (req, res) => {
       port: SWITCH_PORT,
       timeoutMs: TIMEOUT_MS,
       burstMax: BURST_MAX,
+      tzOffsetHours: TZ_OFFSET_HOURS,
     },
   });
 });
 
 // ----------------------------------------------------------------------------
-// POST /api/pos/send  (sin cambios)
+// POST /api/pos/send
 // ----------------------------------------------------------------------------
 router.post('/send', async (req, res) => {
   let message, stanUsed, fieldsUsed;
@@ -191,7 +187,7 @@ router.post('/send', async (req, res) => {
 });
 
 // ----------------------------------------------------------------------------
-// POST /api/pos/burst (resumen al final, comportamiento original)
+// POST /api/pos/burst
 // ----------------------------------------------------------------------------
 router.post('/burst', async (req, res) => {
   const count    = Math.min(Math.max(parseInt(req.body.count || '1', 10), 1), BURST_MAX);
@@ -271,23 +267,6 @@ router.post('/burst', async (req, res) => {
 
 // ----------------------------------------------------------------------------
 // POST /api/pos/burst-stream  (Server-Sent Events en tiempo real)
-//
-// Body: {
-//   mti, fields,
-//   count,
-//   mode?: 'sequential' | 'parallel' | 'parallel-delay'   (default 'sequential')
-//   delayMs?: number                                       (default 1500, solo aplica a parallel-delay)
-//   parallel?: bool                                        (legacy, equivale a mode:'parallel')
-// }
-//
-// Emite eventos SSE:
-//   {type:'start',     burstId, count, target, mode, delayMs}
-//   {type:'tx-start',  i, status}
-//   {type:'tx-progress', i, stan, requestLen, status}
-//   {type:'tx-end',    i, stan, ok, elapsedMs, responseCode, responseMsg, error}
-//   {type:'done',      burstId, totalMs, okCount, failedCount, tps, count, mode}
-//   {type:'cancelled', burstId, completed, totalCount, totalMs, okCount, failedCount, tps, mode}
-//   {type:'error',     error}
 // ----------------------------------------------------------------------------
 router.post('/burst-stream', async (req, res) => {
   const count   = Math.min(Math.max(parseInt(req.body.count || '1', 10), 1), BURST_MAX);
@@ -295,14 +274,11 @@ router.post('/burst-stream', async (req, res) => {
   const port    = parseInt(req.body.port, 10) || SWITCH_PORT;
   const burstId = newBurstId();
 
-  // -------- Resolver modo + delay --------
-  // Soporte legacy: parallel:true (sin mode) ⇒ mode:'parallel'
   let mode = req.body.mode;
   if (!mode) mode = req.body.parallel ? 'parallel' : 'sequential';
   if (!['parallel', 'parallel-delay', 'sequential'].includes(mode)) mode = 'sequential';
   const delayMs = Math.min(Math.max(parseInt(req.body.delayMs || '1500', 10), 50), 10000);
 
-  // Configurar SSE
   res.setHeader('Content-Type',       'text/event-stream');
   res.setHeader('Cache-Control',      'no-cache');
   res.setHeader('Connection',         'keep-alive');
@@ -323,12 +299,7 @@ router.post('/burst-stream', async (req, res) => {
 
   send({ type: 'start', burstId, count, target: `${host}:${port}`, mode, delayMs });
 
-  // ─── Detección de cancelación del cliente (compatible Express 5) ───
-  // OJO: En Express 5, req.on('close') se dispara también al cerrar
-  // la response normalmente, generando falsos "cancelled" en streams.
-  // Por eso usamos 'aborted' (cliente realmente abortó) y vigilamos
-  // res.on('close') solo si la response NO terminó por nosotros.
-  let burstDone = false;   // bandera para distinguir cierre intencional
+  let burstDone = false;
 
   req.on('aborted', () => {
     state.cancelled = true;
@@ -402,11 +373,8 @@ router.post('/burst-stream', async (req, res) => {
     }
   }
 
-  // -------- Procesamiento según modo --------
   try {
     if (mode === 'parallel') {
-      // Todas a la vez. Útil para pruebas de saturación.
-      // OJO: AISSER es single-threaded; con count>2 suelen tirar timeout.
       const promises = [];
       for (let i = 0; i < count; i++) {
         if (state.cancelled) break;
@@ -415,23 +383,17 @@ router.post('/burst-stream', async (req, res) => {
       await Promise.all(promises);
 
     } else if (mode === 'parallel-delay') {
-      // Fire-and-forget escalonado: lanza cada delayMs sin esperar respuesta
-      // entre lanzamientos. Permite simular tráfico realista sin saturar
-      // AISSER. delayMs=1500 ≈ tiempo típico de TX, es seguro.
-      // Usa sleepWithHeartbeat para que el SSE no se cierre por inactividad
-      // durante la pausa entre TX (clientes y proxies cortan streams ociosos).
       const promises = [];
       for (let i = 0; i < count; i++) {
         if (state.cancelled) break;
-        promises.push(one(i));                          // NO hay await aquí
+        promises.push(one(i));
         if (i < count - 1 && !state.cancelled) {
-          await sleepWithHeartbeat(delayMs, res);       // pausa con heartbeat
+          await sleepWithHeartbeat(delayMs, res);
         }
       }
-      await Promise.all(promises);                      // espera que las en vuelo terminen
+      await Promise.all(promises);
 
     } else {
-      // sequential: una tras otra, espera respuesta. Modo más seguro.
       for (let i = 0; i < count; i++) {
         if (state.cancelled) break;
         await one(i);
@@ -473,7 +435,7 @@ router.post('/burst-stream', async (req, res) => {
     send({ type: 'error', error: err.message });
     console.error('❌ POS burst-stream error:', err.message);
   } finally {
-    burstDone = true;            // marca que terminamos intencionalmente
+    burstDone = true;
     activeBursts.delete(burstId);
     res.end();
   }
@@ -481,7 +443,6 @@ router.post('/burst-stream', async (req, res) => {
 
 // ----------------------------------------------------------------------------
 // POST /api/pos/burst-cancel
-// Body: { burstId }
 // ----------------------------------------------------------------------------
 router.post('/burst-cancel', (req, res) => {
   const { burstId } = req.body;
@@ -497,4 +458,3 @@ router.post('/burst-cancel', (req, res) => {
 });
 
 module.exports = router;
-
