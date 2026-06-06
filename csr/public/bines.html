@@ -758,10 +758,32 @@
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
-            if (data.ok) {
+
+            // Acepta ok:true o código AS/400 "00"
+            let exito = data.ok;
+            if (!exito) {
+                try {
+                    const inner = typeof data.msg === 'string' ? JSON.parse(data.msg) : data.msg;
+                    if (inner && (inner.code === '00' || inner.codigo === '00')) exito = true;
+                } catch (_) {}
+            }
+
+            if (exito) {
                 cerrarModal();
-                await cargarBines();
-                toast(modoEdicion ? '✅ BIN actualizado' : '✅ BIN registrado');
+                if (modoEdicion) {
+                    // Actualizar registro en array local
+                    const idx = todosLosBines.findIndex(b => (b.BIN || '').trim() === BIN);
+                    if (idx >= 0) {
+                        todosLosBines[idx] = { ...todosLosBines[idx], NOMBAN, MARCA, STATUS };
+                    }
+                    toast('✅ BIN actualizado');
+                } else {
+                    // Agregar nuevo registro al array local
+                    todosLosBines.push({ BIN, NOMBAN, MARCA, STATUS, TARJETA: '', CODBAN: '' });
+                    toast('✅ BIN registrado');
+                }
+                actualizarStats(todosLosBines);
+                filtrarLocal();
             } else {
                 Swal.fire('Error', data.msg || 'No se pudo guardar.', 'error');
             }
@@ -784,5 +806,6 @@
 </script>
 </body>
 </html>
+
 
 
