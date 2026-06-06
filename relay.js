@@ -22,7 +22,7 @@ app.use((req, res, next) => {
 // Reutiliza el mismo patrón que lib/pos-client.js para que el
 // modo BRIDGE y el modo TCP-DIRECTO se comporten igual.
 // ============================================================
-function sendTcp({ host, port, message, timeoutMs = 10000 }) {
+function sendTcp({ host, port, message, timeoutMs = 60000 }) {
     return new Promise((resolve, reject) => {
         const socket = new net.Socket();
         let received    = Buffer.alloc(0);
@@ -153,7 +153,7 @@ app.post('/relay-llaves', async (req, res) => {
 //   hexMessage: "01356000500100..."  (hex string completo con LOTR)
 //   host:       "172.23.12.2"        (opcional, default 172.23.12.2)
 //   port:       34026                (opcional, default 34026)
-//   timeoutMs:  10000                (opcional, default 10000)
+//   timeoutMs:  60000                (opcional, default 60000)
 // }
 //
 // Response: {
@@ -162,13 +162,18 @@ app.post('/relay-llaves', async (req, res) => {
 //   responseLen: 85,
 //   elapsedMs: 245
 // }
+//
+// NOTA TIMEOUT: el default subió de 10000 a 60000ms. Los reversos (0420)
+// bajo carga con los 7 puertos activos pueden tardar ~32s (Postilion busca
+// la transacción original + cruce + reencaminamiento). Con 10s o 31s se
+// cortaban antes de que llegara la respuesta. 60s da margen suficiente.
 // ============================================================
 app.post('/pos-tcp', async (req, res) => {
     const {
         hexMessage,
         host      = '172.23.12.2',
         port      = 34026,
-        timeoutMs = 10000,
+        timeoutMs = 60000,
     } = req.body || {};
 
     if (!hexMessage || typeof hexMessage !== 'string') {
@@ -202,7 +207,7 @@ app.post('/pos-tcp', async (req, res) => {
             host,
             port,
             message: messageBuffer,
-            timeoutMs: parseInt(timeoutMs, 10) || 10000,
+            timeoutMs: parseInt(timeoutMs, 10) || 60000,
         });
 
         console.log(`✅ POS-TCP ← ${host}:${port} · ${result.response.length}b · ${result.elapsedMs}ms`);
