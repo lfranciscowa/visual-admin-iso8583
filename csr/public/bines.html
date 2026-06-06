@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Admin — Gestión de BINes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --indigo:       #4f46e5;
+            --indigo-dark:  #4338ca;
+            --indigo-pale:  #eef2ff;
+            --indigo-border:#c7d2fe;
+            --violet:       #7c3aed;
+            --violet-pale:  #f5f3ff;
+            --emerald:      #059669;
+            --amber:        #d97706;
+            --amber-pale:   #fffbeb;
+            --amber-border: #fcd34d;
+            --red:          #dc2626;
+            --red-pale:     #fef2f2;
+            --green:        #16a34a;
+            --green-pale:   #f0fdf4;
+            --green-border: #bbf7d0;
+            --text-dark:    #0f172a;
+            --text-mid:     #334155;
+            --text-gray:    #64748b;
+            --border:       #e2e8f0;
+            --bg:           #f1f5f9;
+            --white:        #ffffff;
+            --sans:         'Sora', sans-serif;
+            --mono:         'IBM Plex Mono', monospace;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0;
+            background:
+                radial-gradient(ellipse 60% 40% at 10% 5%, #e0e7ff 0%, transparent 55%),
+                radial-gradient(ellipse 50% 35% at 90% 95%, #ede9fe 0%, transparent 55%);
+            pointer-events: none;
+        }
+
+        /* ── TOPBAR ─────────────────────────────────────────────── */
+        .topbar {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+            height: 62px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 1px 12px rgba(79,70,229,.06);
+        }
+        .topbar-left { display: flex; align-items: center; gap: 16px; }
+        .topbar-brand {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 15px; font-weight: 800; color: var(--text-dark);
+        }
+        .brand-icon {
+            width: 34px; height: 34px; border-radius: 9px;
+            background: linear-gradient(135deg, var(--indigo), var(--violet));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; box-shadow: 0 4px 12px rgba(79,70,229,.25);
+        }
+        .topbar-sep   { color: #cbd5e1; font-size: 18px; }
+        .topbar-title { font-size: 14px; font-weight: 700; color: var(--text-mid); }
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+        .btn-home {
+            display: flex; align-items: center; gap: 6px;
+            padding: 7px 14px; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--white);
+            color: var(--text-mid); font-size: 12px; font-weight: 600;
+            cursor: pointer; font-family: var(--sans); transition: .2s;
+            text-decoration: none;
+        }
+        .btn-home:hover { border-color: var(--indigo); color: var(--indigo); }
+
+        .btn-logout {
+            display: flex; align-items: center; gap: 6px;
+            padding: 7px 14px; border-radius: 8px;
+            border: 1px solid #fecdd3; background: #fff1f2;
+            color: var(--red); font-size: 12px; font-weight: 700;
+            cursor: pointer; font-family: var(--sans); transition: .2s;
+        }
+        .btn-logout:hover { background: var(--red); color: white; border-color: var(--red); }
+
+        /* ── PÁGINA ─────────────────────────────────────────────── */
+        .page { position: relative; z-index: 1; padding: 28px 32px; max-width: 1300px; margin: 0 auto; }
+
+        .section-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
+        }
+        .section-title { font-size: 22px; font-weight: 800; color: var(--text-dark); letter-spacing: -.5px; }
+        .section-sub   { font-size: 13px; color: var(--text-gray); margin-top: 3px; }
+
+        .btn-nuevo {
+            display: flex; align-items: center; gap: 8px;
+            padding: 11px 22px; border-radius: 10px; border: none;
+            background: linear-gradient(135deg, var(--indigo), var(--violet));
+            color: white; font-size: 13px; font-weight: 700;
+            cursor: pointer; font-family: var(--sans); transition: .2s;
+            box-shadow: 0 4px 14px rgba(79,70,229,.3);
+        }
+        .btn-nuevo:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79,70,229,.35); }
+
+        /* ── BARRA DE BÚSQUEDA ──────────────────────────────────── */
+        .search-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+        .search-wrap { flex: 1; position: relative; max-width: 440px; }
+        .search-wrap input {
+            width: 100%; padding: 10px 14px 10px 38px;
+            border: 1px solid var(--border); border-radius: 10px;
+            font-family: var(--sans); font-size: 13px;
+            background: var(--white); outline: none;
+            transition: border-color .2s, box-shadow .2s;
+            box-shadow: 0 1px 4px rgba(0,0,0,.04);
+        }
+        .search-wrap input:focus { border-color: var(--indigo); box-shadow: 0 0 0 3px var(--indigo-pale); }
+        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; }
+
+        .select-filter {
+            padding: 10px 13px; border-radius: 10px;
+            border: 1px solid var(--border); background: var(--white);
+            font-family: var(--sans); font-size: 13px; color: var(--text-dark);
+            outline: none; cursor: pointer; transition: .2s;
+        }
+        .select-filter:focus { border-color: var(--indigo); }
+
+        .btn-buscar {
+            padding: 10px 20px; border-radius: 10px; border: none;
+            background: var(--indigo); color: white;
+            font-size: 13px; font-weight: 700; cursor: pointer;
+            font-family: var(--sans); transition: .2s;
+        }
+        .btn-buscar:hover { background: var(--indigo-dark); }
+        .btn-limpiar {
+            padding: 10px 16px; border-radius: 10px;
+            border: 1px solid var(--border); background: var(--white);
+            color: var(--text-gray); font-size: 12px; font-weight: 600;
+            cursor: pointer; font-family: var(--sans); transition: .2s;
+        }
+        .btn-limpiar:hover { border-color: var(--red); color: var(--red); }
+
+        /* ── STATS ──────────────────────────────────────────────── */
+        .stats-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-chip {
+            background: var(--white); border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px 18px;
+            display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.04);
+        }
+        .stat-num { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+        .stat-lbl { font-size: 11px; color: var(--text-gray); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+        .stat-chip.total   .stat-num { color: var(--text-dark); }
+        .stat-chip.activos .stat-num { color: var(--green); }
+        .stat-chip.inactivos .stat-num { color: var(--red); }
+
+        /* ── TABLA ──────────────────────────────────────────────── */
+        .table-card {
+            background: var(--white); border: 1px solid var(--border);
+            border-radius: 14px; overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,.05);
+        }
+        .table-header {
+            padding: 14px 20px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .table-title { font-size: 13px; font-weight: 700; color: var(--text-dark); }
+        .table-meta  { font-size: 11px; color: var(--text-gray); font-family: var(--mono); }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead tr { background: #f8fafc; }
+        thead th {
+            padding: 11px 16px; text-align: left;
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            color: #94a3b8; letter-spacing: .06em;
+            border-bottom: 1px solid var(--border);
+        }
+        tbody td { padding: 13px 16px; font-size: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: #f8fafc; }
+
+        .td-bin {
+            font-family: var(--mono); font-weight: 700;
+            color: var(--indigo); font-size: 14px; letter-spacing: .05em;
+        }
+        .td-banco { font-size: 13px; font-weight: 600; color: var(--text-mid); }
+        .td-marca { font-family: var(--mono); font-size: 12px; color: var(--text-gray); }
+
+        .marca-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 10px; border-radius: 100px;
+            font-size: 11px; font-weight: 700; font-family: var(--mono);
+        }
+        .marca-badge.VISA   { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .marca-badge.MC     { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+        .marca-badge.AMEX   { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .marca-badge.NAI    { background: var(--indigo-pale); color: var(--indigo); border: 1px solid var(--indigo-border); }
+        .marca-badge.other  { background: var(--amber-pale); color: var(--amber); border: 1px solid var(--amber-border); }
+
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 10px; border-radius: 100px;
+            font-size: 11px; font-weight: 700;
+        }
+        .status-badge.activo   { background: var(--green-pale);  color: var(--green);  border: 1px solid var(--green-border); }
+        .status-badge.inactivo { background: var(--red-pale);    color: var(--red);    border: 1px solid #fecaca; }
+
+        .actions-cell { display: flex; gap: 6px; }
+        .btn-tbl {
+            width: 30px; height: 30px; border-radius: 7px;
+            border: 1px solid var(--border); background: var(--white);
+            cursor: pointer; display: flex; align-items: center;
+            justify-content: center; font-size: 13px; transition: .2s;
+        }
+        .btn-tbl.edit:hover { background: var(--indigo-pale); border-color: var(--indigo); }
+        .btn-tbl.del:hover  { background: var(--red-pale);    border-color: var(--red); }
+
+        /* Paginación */
+        .pagination {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 20px; border-top: 1px solid var(--border);
+            font-size: 12px; color: var(--text-gray);
+        }
+        .pag-btns { display: flex; gap: 6px; }
+        .btn-pag {
+            padding: 6px 14px; border-radius: 7px;
+            border: 1px solid var(--border); background: var(--white);
+            font-size: 12px; font-weight: 600; cursor: pointer;
+            font-family: var(--sans); transition: .2s; color: var(--text-mid);
+        }
+        .btn-pag:hover:not(:disabled) { border-color: var(--indigo); color: var(--indigo); }
+        .btn-pag:disabled { opacity: .4; cursor: not-allowed; }
+
+        .empty-row td { text-align: center; padding: 60px 20px; color: var(--text-gray); font-size: 13px; }
+
+        /* ── MODAL ──────────────────────────────────────────────── */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(15,23,42,.5); backdrop-filter: blur(6px);
+            z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: var(--white); width: 95%; max-width: 480px;
+            border-radius: 20px; padding: 32px;
+            box-shadow: 0 24px 64px rgba(0,0,0,.18);
+            animation: popIn .3s cubic-bezier(.34,1.2,.64,1);
+        }
+        @keyframes popIn {
+            from { opacity:0; transform: scale(.94) translateY(12px); }
+            to   { opacity:1; transform: none; }
+        }
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .modal-title { font-size: 17px; font-weight: 800; color: var(--text-dark); }
+        .modal-close {
+            background: none; border: none; font-size: 20px;
+            cursor: pointer; color: var(--text-gray); padding: 4px;
+            border-radius: 6px; transition: .15s;
+        }
+        .modal-close:hover { background: #f1f5f9; }
+
+        .field-group { margin-bottom: 16px; }
+        .field-label {
+            display: block; font-size: 10px; font-weight: 700;
+            text-transform: uppercase; color: var(--text-gray);
+            letter-spacing: .05em; margin-bottom: 6px;
+        }
+        .field-group input, .field-group select {
+            width: 100%; padding: 11px 13px;
+            border: 1.5px solid var(--border); border-radius: 9px;
+            font-family: var(--mono); font-size: 13px; color: var(--text-dark);
+            background: #fafafa; outline: none; transition: .2s;
+        }
+        .field-group input:focus, .field-group select:focus {
+            border-color: var(--indigo); background: var(--white);
+            box-shadow: 0 0 0 3px var(--indigo-pale);
+        }
+        .field-group input:disabled {
+            background: #f1f5f9; color: var(--text-gray); cursor: not-allowed;
+        }
+        .field-hint { font-size: 10px; color: var(--text-gray); margin-top: 4px; }
+
+        .field-group input.field-error, .field-group select.field-error {
+            border-color: var(--red) !important;
+            background: var(--red-pale) !important;
+        }
+        .field-error-msg {
+            display: block; color: #991b1b; font-size: 10.5px; font-weight: 600;
+            margin-top: 4px; padding: 4px 8px;
+            background: var(--red-pale); border-left: 2px solid var(--red);
+            border-radius: 3px;
+        }
+
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .modal-footer {
+            display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;
+        }
+        .btn-cancel {
+            padding: 11px 20px; border-radius: 9px;
+            border: 1px solid var(--border); background: var(--white);
+            color: var(--text-gray); font-size: 13px; font-weight: 600;
+            cursor: pointer; font-family: var(--sans); transition: .2s;
+        }
+        .btn-cancel:hover { background: #f1f5f9; }
+        .btn-guardar {
+            padding: 11px 24px; border-radius: 9px; border: none;
+            background: linear-gradient(135deg, var(--indigo), var(--violet));
+            color: white; font-size: 13px; font-weight: 700;
+            cursor: pointer; font-family: var(--sans); transition: .2s;
+            box-shadow: 0 4px 14px rgba(79,70,229,.25);
+        }
+        .btn-guardar:hover { transform: translateY(-1px); }
+        .btn-guardar:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: #0f172a; color: white;
+            padding: 11px 18px; border-radius: 10px;
+            font-size: 12px; font-weight: 600;
+            opacity: 0; transform: translateY(10px);
+            transition: .3s; pointer-events: none; z-index: 9999;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+
+        .spinner {
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-top-color: white; border-radius: 50%;
+            animation: spin .7s linear infinite; display: inline-block;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @keyframes fadeRow { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+    </style>
+</head>
+<body>
+
+<!-- ── GUARD ──────────────────────────────────────────────────── -->
+<script>
+(function guardBines() {
+    const MODULE_ID   = 'bines';
+    const ROLES_ADMIN = ['ADMIN', 'Administrador'];
+    const username = localStorage.getItem('username');
+    const rol      = localStorage.getItem('rol_actual');
+    const modulos  = JSON.parse(localStorage.getItem('modulos') || '[]');
+    if (!username) { window.location.replace('/login.html'); return; }
+    if (ROLES_ADMIN.includes(rol)) return;
+    if (!modulos.includes(MODULE_ID)) window.location.replace('/sin-acceso.html');
+})();
+</script>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── TOPBAR ──────────────────────────────────────────────────── -->
+<nav class="topbar">
+    <div class="topbar-left">
+        <div class="topbar-brand">
+            <div class="brand-icon">💳</div>
+            Visual Admin
+        </div>
+        <span class="topbar-sep">›</span>
+        <span class="topbar-title">Gestión de BINes</span>
+    </div>
+    <div class="topbar-right">
+        <a href="/home.html" class="btn-home">← Portal</a>
+        <button class="btn-logout" onclick="cerrarSesion()">🚪 Salir</button>
+    </div>
+</nav>
+
+<!-- ── CONTENIDO ───────────────────────────────────────────────── -->
+<div class="page">
+
+    <div class="section-header">
+        <div>
+            <div class="section-title">💳 Gestión de BINes</div>
+            <div class="section-sub">TRAFI903 · AS/400 · Bank Identification Numbers</div>
+        </div>
+        <button class="btn-nuevo" onclick="abrirModalNuevo()">+ Nuevo BIN</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+        <div class="stat-chip total">
+            <div>
+                <div class="stat-num" id="statTotal">—</div>
+                <div class="stat-lbl">Total BINes</div>
+            </div>
+        </div>
+        <div class="stat-chip activos">
+            <div>
+                <div class="stat-num" id="statActivos">—</div>
+                <div class="stat-lbl">Activos</div>
+            </div>
+        </div>
+        <div class="stat-chip inactivos">
+            <div>
+                <div class="stat-num" id="statInactivos">—</div>
+                <div class="stat-lbl">Inactivos</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="search-bar">
+        <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Buscar por BIN o banco..."
+                   oninput="filtrarLocal()" autocomplete="off">
+        </div>
+        <select class="select-filter" id="filterMarca" onchange="filtrarLocal()">
+            <option value="">Todas las marcas</option>
+            <option value="VISA">VISA</option>
+            <option value="MC">Mastercard</option>
+            <option value="AMEX">Amex</option>
+            <option value="NAI">NAI</option>
+        </select>
+        <select class="select-filter" id="filterStatus" onchange="filtrarLocal()">
+            <option value="">Todos los estados</option>
+            <option value="1">Activo</option>
+            <option value="0">Inactivo</option>
+        </select>
+        <button class="btn-limpiar" onclick="limpiarFiltros()">Limpiar</button>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-card">
+        <div class="table-header">
+            <span class="table-title">Registro de BINes</span>
+            <span class="table-meta" id="tableMeta">—</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>BIN</th>
+                    <th>Banco / Institución</th>
+                    <th>Marca / Red</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr class="empty-row"><td colspan="5">⏳ Cargando BINes...</td></tr>
+            </tbody>
+        </table>
+        <div class="pagination">
+            <span id="pagInfo">—</span>
+            <div class="pag-btns">
+                <button class="btn-pag" id="btnAnterior" onclick="paginaAnterior()" disabled>← Anterior</button>
+                <button class="btn-pag" id="btnSiguiente" onclick="paginaSiguiente()">Siguiente →</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL NUEVO / EDITAR ─────────────────────────────────────── -->
+<div class="modal-overlay" id="modalBin">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title" id="modalTitulo">💳 Nuevo BIN</span>
+            <button class="modal-close" onclick="cerrarModal()">✕</button>
+        </div>
+
+        <div class="field-group">
+            <label class="field-label">BIN *</label>
+            <input type="text" id="fBIN" placeholder="Ej: 411111" maxlength="8"
+                   autocomplete="off" style="text-transform:none;letter-spacing:.1em">
+            <span class="field-hint">6 a 8 dígitos numéricos · identificador único de la tarjeta</span>
+        </div>
+
+        <div class="field-group">
+            <label class="field-label">Banco / Institución (NOMBAN) *</label>
+            <input type="text" id="fNOMBAN" placeholder="Ej: BANCO DE VENEZUELA" maxlength="30"
+                   autocomplete="off" style="text-transform:uppercase">
+        </div>
+
+        <div class="field-row">
+            <div class="field-group">
+                <label class="field-label">Marca / Red (MARCA) *</label>
+                <select id="fMARCA">
+                    <option value="">— Seleccionar —</option>
+                    <option value="VISA">VISA</option>
+                    <option value="MC">Mastercard</option>
+                    <option value="AMEX">American Express</option>
+                    <option value="NAI">NAI</option>
+                    <option value="OTHER">Otra</option>
+                </select>
+            </div>
+            <div class="field-group">
+                <label class="field-label">Estado (STATUS)</label>
+                <select id="fSTATUS">
+                    <option value="1">Activo</option>
+                    <option value="0">Inactivo</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+            <button class="btn-guardar" id="btnGuardar" onclick="guardarBin()">
+                💾 Guardar BIN
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE  = '/api/bines';
+    const PAGE_SIZE = 20;
+
+    let modoEdicion   = false;
+    let todosLosBines = [];
+    let binesFiltrados = [];
+    let paginaActual  = 0;
+
+    cargarBines();
+
+    function toast(msg, dur = 2500) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), dur);
+    }
+
+    // ── CARGAR ─────────────────────────────────────────────────────
+    async function cargarBines() {
+        const body = document.getElementById('tableBody');
+        body.innerHTML = `<tr class="empty-row"><td colspan="5">⏳ Consultando AS/400...</td></tr>`;
+        try {
+            const res  = await fetch(API_BASE + '/select');
+            const data = await res.json();
+            if (data.ok && Array.isArray(data.bines)) {
+                todosLosBines = data.bines;
+                actualizarStats(data.bines);
+                filtrarLocal();
+            } else {
+                body.innerHTML = `<tr class="empty-row"><td colspan="5">⚠️ ${data.msg || 'Sin datos'}</td></tr>`;
+            }
+        } catch {
+            body.innerHTML = `<tr class="empty-row"><td colspan="5">❌ Error de conexión</td></tr>`;
+        }
+    }
+
+    // ── FILTRO LOCAL ───────────────────────────────────────────────
+    function filtrarLocal() {
+        const q      = (document.getElementById('searchInput').value || '').toLowerCase();
+        const marca  = document.getElementById('filterMarca').value;
+        const status = document.getElementById('filterStatus').value;
+
+        binesFiltrados = todosLosBines.filter(b => {
+            const bin    = (b.BIN    || '').trim();
+            const nomban = (b.NOMBAN || '').trim().toLowerCase();
+            const bmarca = (b.MARCA  || '').trim().toUpperCase();
+            const bstat  = String(b.STATUS ?? '').trim();
+
+            const matchQ      = !q      || bin.includes(q) || nomban.includes(q);
+            const matchMarca  = !marca  || bmarca === marca;
+            const matchStatus = !status || bstat  === status;
+            return matchQ && matchMarca && matchStatus;
+        });
+
+        paginaActual = 0;
+        renderPagina();
+    }
+
+    function limpiarFiltros() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('filterMarca').value  = '';
+        document.getElementById('filterStatus').value = '';
+        filtrarLocal();
+    }
+
+    // ── RENDER ─────────────────────────────────────────────────────
+    function renderPagina() {
+        const inicio = paginaActual * PAGE_SIZE;
+        const pagina = binesFiltrados.slice(inicio, inicio + PAGE_SIZE);
+        renderTabla(pagina, inicio);
+        actualizarPaginacion(inicio, pagina.length, binesFiltrados.length);
+    }
+
+    function renderTabla(bines, offset) {
+        const body = document.getElementById('tableBody');
+        if (!bines.length) {
+            body.innerHTML = `<tr class="empty-row"><td colspan="5">📭 No se encontraron BINes</td></tr>`;
+            return;
+        }
+        body.innerHTML = bines.map((b, i) => {
+            const bin    = (b.BIN    || '').trim();
+            const nomban = (b.NOMBAN || '').trim();
+            const marca  = (b.MARCA  || '').trim().toUpperCase();
+            const status = String(b.STATUS ?? '').trim();
+            const marcaCls = ['VISA','MC','AMEX','NAI'].includes(marca) ? marca : 'other';
+            const statusTxt = status === '1' ? 'Activo' : 'Inactivo';
+            const statusCls = status === '1' ? 'activo'  : 'inactivo';
+            const dot       = status === '1' ? '🟢' : '🔴';
+            return `
+            <tr style="animation: fadeRow .3s ease ${i * 25}ms both">
+                <td><span class="td-bin">${bin || '—'}</span></td>
+                <td><span class="td-banco">${nomban || '—'}</span></td>
+                <td><span class="marca-badge ${marcaCls}">${marca || '—'}</span></td>
+                <td><span class="status-badge ${statusCls}">${dot} ${statusTxt}</span></td>
+                <td>
+                    <div class="actions-cell">
+                        <button class="btn-tbl edit" onclick="abrirModalEditar(${JSON.stringify(b).replace(/"/g,'&quot;')})" title="Editar">✏️</button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    // ── STATS ──────────────────────────────────────────────────────
+    function actualizarStats(bines) {
+        const activos   = bines.filter(b => String(b.STATUS ?? '').trim() === '1').length;
+        const inactivos = bines.length - activos;
+        document.getElementById('statTotal').textContent    = bines.length;
+        document.getElementById('statActivos').textContent  = activos;
+        document.getElementById('statInactivos').textContent = inactivos;
+    }
+
+    // ── PAGINACIÓN ─────────────────────────────────────────────────
+    function actualizarPaginacion(offset, count, total) {
+        const desde = total === 0 ? 0 : offset + 1;
+        const hasta = offset + count;
+        document.getElementById('pagInfo').textContent   = `Mostrando ${desde}–${hasta} de ${total}`;
+        document.getElementById('tableMeta').textContent = `${total} BINes`;
+        document.getElementById('btnAnterior').disabled  = paginaActual === 0;
+        document.getElementById('btnSiguiente').disabled = hasta >= total;
+    }
+
+    function paginaSiguiente() { paginaActual++; renderPagina(); }
+    function paginaAnterior()  { if (paginaActual > 0) { paginaActual--; renderPagina(); } }
+
+    // ── MODAL NUEVO ────────────────────────────────────────────────
+    function abrirModalNuevo() {
+        modoEdicion = false;
+        limpiarModal();
+        document.getElementById('modalTitulo').textContent = '💳 Nuevo BIN';
+        document.getElementById('fBIN').disabled = false;
+        document.getElementById('btnGuardar').textContent = '💾 Guardar BIN';
+        document.getElementById('modalBin').classList.add('open');
+        setTimeout(() => document.getElementById('fBIN').focus(), 100);
+    }
+
+    // ── MODAL EDITAR ───────────────────────────────────────────────
+    function abrirModalEditar(bin) {
+        modoEdicion = true;
+        limpiarModal();
+        document.getElementById('modalTitulo').textContent = '✏️ Editar BIN';
+        document.getElementById('fBIN').value    = (bin.BIN    || '').trim();
+        document.getElementById('fBIN').disabled = true;
+        document.getElementById('fNOMBAN').value  = (bin.NOMBAN || '').trim().toUpperCase();
+        document.getElementById('fMARCA').value   = (bin.MARCA  || '').trim().toUpperCase();
+        document.getElementById('fSTATUS').value  = String(bin.STATUS ?? '1').trim();
+        document.getElementById('btnGuardar').textContent = '💾 Actualizar BIN';
+        document.getElementById('modalBin').classList.add('open');
+    }
+
+    function cerrarModal() {
+        document.getElementById('modalBin').classList.remove('open');
+        limpiarModal();
+    }
+
+    function limpiarModal() {
+        ['fBIN','fNOMBAN'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('fMARCA').value  = '';
+        document.getElementById('fSTATUS').value = '1';
+        document.querySelectorAll('.field-error-msg').forEach(el => el.remove());
+        document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
+    }
+
+    // ── VALIDAR ────────────────────────────────────────────────────
+    function marcarError(id, msg) {
+        const el = document.getElementById(id);
+        el.classList.add('field-error');
+        const prev = el.parentNode.querySelector('.field-error-msg');
+        if (prev) prev.remove();
+        const span = document.createElement('span');
+        span.className   = 'field-error-msg';
+        span.textContent = '⚠️ ' + msg;
+        el.insertAdjacentElement('afterend', span);
+    }
+
+    function validar() {
+        document.querySelectorAll('.field-error-msg').forEach(el => el.remove());
+        document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
+        const errores = [];
+        const bin    = document.getElementById('fBIN').value.trim();
+        const nomban = document.getElementById('fNOMBAN').value.trim();
+        const marca  = document.getElementById('fMARCA').value;
+
+        if (!bin) { marcarError('fBIN', 'El BIN es obligatorio'); errores.push('fBIN'); }
+        else if (!/^\d{6,8}$/.test(bin)) { marcarError('fBIN', 'Debe tener entre 6 y 8 dígitos numéricos'); errores.push('fBIN'); }
+
+        if (!nomban) { marcarError('fNOMBAN', 'El nombre del banco es obligatorio'); errores.push('fNOMBAN'); }
+
+        if (!marca)  { marcarError('fMARCA',  'Debe seleccionar una marca'); errores.push('fMARCA'); }
+
+        return errores;
+    }
+
+    // ── GUARDAR (INSERT / UPDATT) ──────────────────────────────────
+    async function guardarBin() {
+        const errores = validar();
+        if (errores.length) {
+            document.getElementById(errores[0]).focus();
+            toast('⚠️ Revisá los campos marcados', 3000);
+            return;
+        }
+
+        const BIN    = document.getElementById('fBIN').value.trim();
+        const NOMBAN = document.getElementById('fNOMBAN').value.trim().toUpperCase();
+        const MARCA  = document.getElementById('fMARCA').value.trim().toUpperCase();
+        const STATUS = document.getElementById('fSTATUS').value;
+
+        const btn = document.getElementById('btnGuardar');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Guardando...';
+
+        const endpoint = modoEdicion ? '/updatt' : '/insert';
+        const payload  = { BIN, NOMBAN, MARCA, STATUS, ACTION: '' };
+
+        try {
+            const res  = await fetch(API_BASE + endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.ok) {
+                cerrarModal();
+                await cargarBines();
+                toast(modoEdicion ? '✅ BIN actualizado' : '✅ BIN registrado');
+            } else {
+                Swal.fire('Error', data.msg || 'No se pudo guardar.', 'error');
+            }
+        } catch {
+            Swal.fire('Sin conexión', 'No se pudo conectar al servidor.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = modoEdicion ? '💾 Actualizar BIN' : '💾 Guardar BIN';
+        }
+    }
+
+    // ── CERRAR SESIÓN ──────────────────────────────────────────────
+    function cerrarSesion() {
+        if (confirm('¿Deseas cerrar la sesión?')) {
+            ['rol_actual','usuario_actual','username','token','modulos']
+                .forEach(k => localStorage.removeItem(k));
+            window.location.href = '/login.html';
+        }
+    }
+</script>
+</body>
+</html>
