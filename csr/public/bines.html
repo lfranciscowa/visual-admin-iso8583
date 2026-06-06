@@ -427,11 +427,10 @@
         </div>
         <select class="select-filter" id="filterMarca" onchange="filtrarLocal()">
             <option value="">Todas las marcas</option>
-            <option value="VISA">VISA</option>
-            <option value="MC">Mastercard</option>
-            <option value="AMEX">Amex</option>
+            <option value="VIS">VISA</option>
+            <option value="MAS">Mastercard</option>
+            <option value="AME">American Express</option>
             <option value="NAI">NAI</option>
-            <option value="OTHER">Otra</option>
         </select>
         <select class="select-filter" id="filterStatus" onchange="filtrarLocal()">
             <option value="">Todos los estados</option>
@@ -498,11 +497,10 @@
                 <label class="field-label">Marca / Red (MARCA) *</label>
                 <select id="fMARCA">
                     <option value="">— Seleccionar —</option>
-                    <option value="VISA">VISA</option>
-                    <option value="MC">Mastercard</option>
-                    <option value="AMEX">American Express</option>
-                    <option value="NAI">NAI</option>
-                    <option value="OTHER">Otra</option>
+                    <option value="VIS">VISA</option>
+                    <option value="MAS">Mastercard</option>
+                    <option value="AME">American Express</option>
+                    <option value="NAI">NAI - Naiguatá</option>
                 </select>
             </div>
             <div class="field-group">
@@ -532,13 +530,21 @@
     let binesFiltrados = [];
     let paginaActual  = 0;
 
-    // Normaliza marcas que vienen del AS/400 con nombres cortos
-    function normalizarMarca(raw) {
+    // Devuelve { cls, label } para mostrar en tabla
+    // El valor guardado en AS/400 es siempre la sigla corta (VIS, MAS, AME, NAI)
+    function marcaInfo(raw) {
         const m = (raw || '').trim().toUpperCase();
-        if (m === 'VIS')  return 'VISA';
-        if (m === 'MAS' || m === 'MAST') return 'MC';
-        if (m === 'AME')  return 'AMEX';
-        return m;
+        const map = {
+            'VIS':  { cls: 'VISA', label: 'VISA' },
+            'VISA': { cls: 'VISA', label: 'VISA' },
+            'MAS':  { cls: 'MC',   label: 'Mastercard' },
+            'MAST': { cls: 'MC',   label: 'Mastercard' },
+            'MC':   { cls: 'MC',   label: 'Mastercard' },
+            'AME':  { cls: 'AMEX', label: 'American Express' },
+            'AMEX': { cls: 'AMEX', label: 'American Express' },
+            'NAI':  { cls: 'NAI',  label: 'NAI' },
+        };
+        return map[m] || { cls: 'other', label: m || '—' };
     }
 
     cargarBines();
@@ -577,7 +583,7 @@
         binesFiltrados = todosLosBines.filter(b => {
             const bin    = (b.BIN    || '').trim();
             const nomban = (b.NOMBAN || '').trim().toLowerCase();
-            const bmarca = normalizarMarca(b.MARCA);
+            const bmarca = (b.MARCA  || '').trim().toUpperCase();
             const bstat  = String(b.STATUS ?? '').trim();
 
             const matchQ      = !q      || bin.includes(q) || nomban.includes(q);
@@ -614,9 +620,8 @@
         body.innerHTML = bines.map((b, i) => {
             const bin    = (b.BIN    || '').trim();
             const nomban = (b.NOMBAN || '').trim();
-            const marca  = normalizarMarca(b.MARCA);
+            const mi     = marcaInfo(b.MARCA);
             const status = String(b.STATUS ?? '').trim();
-            const marcaCls = ['VISA','MC','AMEX','NAI'].includes(marca) ? marca : 'other';
             const statusTxt = status === '1' ? 'Activo' : 'Inactivo';
             const statusCls = status === '1' ? 'activo'  : 'inactivo';
             const dot       = status === '1' ? '🟢' : '🔴';
@@ -624,7 +629,7 @@
             <tr style="animation: fadeRow .3s ease ${i * 25}ms both">
                 <td><span class="td-bin">${bin || '—'}</span></td>
                 <td><span class="td-banco">${nomban || '—'}</span></td>
-                <td><span class="marca-badge ${marcaCls}">${marca || '—'}</span></td>
+                <td><span class="marca-badge ${mi.cls}">${mi.label}</span></td>
                 <td><span class="status-badge ${statusCls}">${dot} ${statusTxt}</span></td>
                 <td>
                     <div class="actions-cell">
@@ -676,7 +681,7 @@
         document.getElementById('fBIN').value    = (bin.BIN    || '').trim();
         document.getElementById('fBIN').disabled = true;
         document.getElementById('fNOMBAN').value  = (bin.NOMBAN || '').trim().toUpperCase();
-        document.getElementById('fMARCA').value   = normalizarMarca(bin.MARCA);
+        document.getElementById('fMARCA').value   = (bin.MARCA || '').trim().toUpperCase();
         document.getElementById('fSTATUS').value  = String(bin.STATUS ?? '1').trim();
         document.getElementById('btnGuardar').textContent = '💾 Actualizar BIN';
         document.getElementById('modalBin').classList.add('open');
@@ -779,4 +784,5 @@
 </script>
 </body>
 </html>
+
 
