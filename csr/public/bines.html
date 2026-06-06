@@ -431,6 +431,7 @@
             <option value="MC">Mastercard</option>
             <option value="AMEX">Amex</option>
             <option value="NAI">NAI</option>
+            <option value="OTHER">Otra</option>
         </select>
         <select class="select-filter" id="filterStatus" onchange="filtrarLocal()">
             <option value="">Todos los estados</option>
@@ -438,6 +439,7 @@
             <option value="0">Inactivo</option>
         </select>
         <button class="btn-limpiar" onclick="limpiarFiltros()">Limpiar</button>
+        <button class="btn-buscar" onclick="cargarBines()">🔄 Recargar</button>
     </div>
 
     <!-- Tabla -->
@@ -530,6 +532,15 @@
     let binesFiltrados = [];
     let paginaActual  = 0;
 
+    // Normaliza marcas que vienen del AS/400 con nombres cortos
+    function normalizarMarca(raw) {
+        const m = (raw || '').trim().toUpperCase();
+        if (m === 'VIS')  return 'VISA';
+        if (m === 'MAS' || m === 'MAST') return 'MC';
+        if (m === 'AME')  return 'AMEX';
+        return m;
+    }
+
     cargarBines();
 
     function toast(msg, dur = 2500) {
@@ -566,7 +577,7 @@
         binesFiltrados = todosLosBines.filter(b => {
             const bin    = (b.BIN    || '').trim();
             const nomban = (b.NOMBAN || '').trim().toLowerCase();
-            const bmarca = (b.MARCA  || '').trim().toUpperCase();
+            const bmarca = normalizarMarca(b.MARCA);
             const bstat  = String(b.STATUS ?? '').trim();
 
             const matchQ      = !q      || bin.includes(q) || nomban.includes(q);
@@ -603,7 +614,7 @@
         body.innerHTML = bines.map((b, i) => {
             const bin    = (b.BIN    || '').trim();
             const nomban = (b.NOMBAN || '').trim();
-            const marca  = (b.MARCA  || '').trim().toUpperCase();
+            const marca  = normalizarMarca(b.MARCA);
             const status = String(b.STATUS ?? '').trim();
             const marcaCls = ['VISA','MC','AMEX','NAI'].includes(marca) ? marca : 'other';
             const statusTxt = status === '1' ? 'Activo' : 'Inactivo';
@@ -665,7 +676,7 @@
         document.getElementById('fBIN').value    = (bin.BIN    || '').trim();
         document.getElementById('fBIN').disabled = true;
         document.getElementById('fNOMBAN').value  = (bin.NOMBAN || '').trim().toUpperCase();
-        document.getElementById('fMARCA').value   = (bin.MARCA  || '').trim().toUpperCase();
+        document.getElementById('fMARCA').value   = normalizarMarca(bin.MARCA);
         document.getElementById('fSTATUS').value  = String(bin.STATUS ?? '1').trim();
         document.getElementById('btnGuardar').textContent = '💾 Actualizar BIN';
         document.getElementById('modalBin').classList.add('open');
@@ -768,3 +779,4 @@
 </script>
 </body>
 </html>
+
