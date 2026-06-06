@@ -29,6 +29,7 @@ const MODULOS_SISTEMA = [
     { id: 'perfiles', nombre: 'Gestión de Perfiles', url: '/perfil.html',             icon: '👥' },
     { id: 'llaves',  nombre: 'Llaves Criptográficas', url: '/llaves.html',            icon: '🔐' },
     { id: 'pos',     nombre: 'Simulador POS',        url: '/pos-simulator.html',      icon: '🏧' },
+    { id: 'bines',    nombre: 'Gestión de BINes',     url: '/bines.html',             icon: '💳' },
 ];
 
 app.get('/api/modulos', (req, res) => {
@@ -350,6 +351,75 @@ app.post('/api/llaves/delete', async (req, res) => {
         res.json({ ok: response.ok, msg: raw });
     } catch (err) {
         console.error('❌ TRAFI800 delete:', err.message);
+        res.status(500).json({ ok: false, msg: err.message });
+    }
+});
+
+// ============================================================
+// BINes — Crud_Trafi903
+// ============================================================
+const TRAFI903_RELAY = RELAY_BASE + '/relay-bines';
+
+app.get('/api/bines/select', async (req, res) => {
+    try {
+        const response = await fetch(TRAFI903_RELAY, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ endpoint: 'select' })
+        });
+        const raw = await response.text();
+        let parsed;
+        try { parsed = JSON.parse(raw); } catch { parsed = { raw }; }
+        let bines = [];
+        if (Array.isArray(parsed))           bines = parsed;
+        else if (Array.isArray(parsed.DATA)) bines = parsed.DATA;
+        else if (Array.isArray(parsed.data)) bines = parsed.data;
+        else if (typeof parsed === 'object' && !parsed.raw) bines = [parsed];
+        res.json({ ok: true, bines, total: bines.length });
+    } catch (err) {
+        console.error('❌ TRAFI903 select:', err.message);
+        res.status(500).json({ ok: false, msg: err.message });
+    }
+});
+
+app.post('/api/bines/insert', async (req, res) => {
+    const { BIN, NOMBAN, MARCA, STATUS = '0', ACTION = '' } = req.body;
+    if (!BIN || !NOMBAN || !MARCA)
+        return res.status(400).json({ ok: false, msg: 'BIN, NOMBAN y MARCA son requeridos' });
+    try {
+        const response = await fetch(TRAFI903_RELAY, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ endpoint: 'insert', body: { BIN, NOMBAN, MARCA, STATUS, ACTION } })
+        });
+        const raw = await response.text();
+        console.log(`✅ TRAFI903 insert BIN: ${BIN}`);
+        res.json({ ok: response.ok, msg: raw });
+    } catch (err) {
+        console.error('❌ TRAFI903 insert:', err.message);
+        res.status(500).json({ ok: false, msg: err.message });
+    }
+});
+
+app.post('/api/bines/updatt', async (req, res) => {
+    const { BIN, NOMBAN, MARCA, STATUS, ACTION } = req.body;
+    if (!BIN) return res.status(400).json({ ok: false, msg: 'BIN es requerido' });
+    const payload = { BIN };
+    if (NOMBAN  !== undefined) payload.NOMBAN  = NOMBAN;
+    if (MARCA   !== undefined) payload.MARCA   = MARCA;
+    if (STATUS  !== undefined) payload.STATUS  = STATUS;
+    if (ACTION  !== undefined) payload.ACTION  = ACTION;
+    try {
+        const response = await fetch(TRAFI903_RELAY, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ endpoint: 'updatt', body: payload })
+        });
+        const raw = await response.text();
+        console.log(`✅ TRAFI903 updatt BIN: ${BIN}`);
+        res.json({ ok: response.ok, msg: raw });
+    } catch (err) {
+        console.error('❌ TRAFI903 updatt:', err.message);
         res.status(500).json({ ok: false, msg: err.message });
     }
 });
