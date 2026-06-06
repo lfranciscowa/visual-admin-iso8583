@@ -145,29 +145,32 @@ app.post('/relay-llaves', async (req, res) => {
 });
 
 // ============================================================
-// BRIDGE HTTP→TCP — Simulador POS
-// Recibe mensaje ISO 8583 en hex, lo manda por TCP al switch
-// y devuelve la respuesta también en hex.
-//
-// Body: {
-//   hexMessage: "01356000500100..."  (hex string completo con LOTR)
-//   host:       "172.23.12.2"        (opcional, default 172.23.12.2)
-//   port:       34026                (opcional, default 34026)
-//   timeoutMs:  60000                (opcional, default 60000)
-// }
-//
-// Response: {
-//   ok: true,
-//   responseHex: "00536000500100...",
-//   responseLen: 85,
-//   elapsedMs: 245
-// }
-//
-// NOTA TIMEOUT: el default subió de 10000 a 60000ms. Los reversos (0420)
-// bajo carga con los 7 puertos activos pueden tardar ~32s (Postilion busca
-// la transacción original + cruce + reencaminamiento). Con 10s o 31s se
-// cortaban antes de que llegara la respuesta. 60s da margen suficiente.
+// RELAY BINes — Crud_Trafi903
 // ============================================================
+app.post('/relay-bines', async (req, res) => {
+    const { endpoint, body } = req.body;
+    console.log(`🔑 TRAFI903 petición: /${endpoint}`, body);
+    try {
+        const response = await fetch(
+            `http://172.23.12.2:10022/web/services/Crud_Trafi903/${endpoint}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            }
+        );
+        const data = await response.text();
+        console.log('✅ TRAFI903 respuesta:', data.substring(0, 100));
+        res.send(data);
+    } catch (e) {
+        console.error('❌ Error TRAFI903:', e.message);
+        res.status(500).json({ ok: false, msg: e.message });
+    
+    }
+});
+
+// ============================================================
+
 app.post('/pos-tcp', async (req, res) => {
     const {
         hexMessage,
