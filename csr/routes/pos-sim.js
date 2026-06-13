@@ -122,10 +122,22 @@ function sleepWithHeartbeat(ms, res) {
 // ----------------------------------------------------------------------------
 // GET /api/pos/template
 // ----------------------------------------------------------------------------
+
+// Destinos TCP disponibles para el POS. El simulador ISO 8583 local se
+// configura con SIM8583_HOST / SIM8583_PORT (default 127.0.0.1:8583).
+const SIM8583_HOST = process.env.SIM8583_HOST || '127.0.0.1';
+const SIM8583_PORT = parseInt(process.env.SIM8583_PORT || '8583', 10);
+
+const TARGETS = [
+  { id: 'as400', name: `Switch AS/400 (${SWITCH_HOST}:${SWITCH_PORT})`, host: SWITCH_HOST, port: SWITCH_PORT },
+  { id: 'sim',   name: `Simulador ISO 8583 (${SIM8583_HOST}:${SIM8583_PORT})`, host: SIM8583_HOST, port: SIM8583_PORT },
+];
+
 router.get('/template', (req, res) => {
   res.json({
     accountTypes: ACCOUNT_TYPES,
     fieldDef:     FIELD_DEF,
+    targets:      TARGETS,
     config: {
       host: SWITCH_HOST,
       port: SWITCH_PORT,
@@ -458,3 +470,4 @@ router.post('/burst-cancel', (req, res) => {
 });
 
 module.exports = router;
+

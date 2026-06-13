@@ -228,6 +228,38 @@
   .modal-warn.warn{background:#fef3c7;border:1px solid #fde68a;color:#92400e}
   .modal-warn.danger{background:#fee2e2;border:1px solid #fecaca;color:#991b1b}
 
+  /* ───── STATS TAB ───── */
+  .stats-panel{padding:4px 0}
+  .stats-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .stats-header-title{font-size:13px;font-weight:700;color:var(--text-dark)}
+  .btn-stats-reset{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:5px 11px;border-radius:7px;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer}
+  .btn-stats-reset:hover{background:#fecaca}
+  .stats-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+  .stats-kpi{background:#f8fafc;border:1px solid var(--border-soft);border-radius:10px;padding:12px 10px;text-align:center}
+  .stats-kpi-val{font-size:22px;font-weight:800;font-family:'IBM Plex Mono',monospace;color:var(--text-dark);line-height:1.1}
+  .stats-kpi-val.green{color:var(--green)}
+  .stats-kpi-val.red{color:var(--red)}
+  .stats-kpi-val.blue{color:var(--blue)}
+  .stats-kpi-lbl{font-size:10px;color:var(--text-gray);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+  .stats-section-title{font-size:10px;font-weight:700;color:var(--primary-dark);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+  .stats-bar-row{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+  .stats-bar-label{font-size:11px;font-weight:600;font-family:'IBM Plex Mono',monospace;min-width:34px;text-align:right;color:var(--text-dark)}
+  .stats-bar-desc{font-size:10px;color:var(--text-gray);min-width:120px}
+  .stats-bar-track{flex:1;height:10px;background:#f1f5f9;border-radius:6px;overflow:hidden}
+  .stats-bar-fill{height:100%;border-radius:6px;transition:width .4s ease}
+  .stats-bar-fill.green{background:var(--green)}
+  .stats-bar-fill.red{background:var(--red)}
+  .stats-bar-fill.amber{background:var(--amber)}
+  .stats-bar-fill.blue{background:var(--blue)}
+  .stats-bar-fill.gray{background:#94a3b8}
+  .stats-bar-count{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text-gray);min-width:30px;text-align:right}
+  .stats-lat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+  .stats-lat-box{background:#f8fafc;border:1px solid var(--border-soft);border-radius:9px;padding:10px;text-align:center}
+  .stats-lat-val{font-size:18px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--primary-dark)}
+  .stats-lat-lbl{font-size:10px;color:var(--text-gray);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+  .stats-empty{text-align:center;padding:32px 0;color:var(--text-gray);font-size:12px}
+  .stats-empty-icon{font-size:32px;margin-bottom:8px}
+
   .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:14px;border-top:1px solid var(--border-soft)}
   .modal-actions button{padding:9px 16px;border-radius:8px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;border:none;transition:all .15s}
   .btn-modal-cancel{background:#f1f5f9;color:var(--text-dark);border:1px solid var(--border-soft)}
@@ -281,6 +313,12 @@
       </div>
 
       <div class="group">
+        <div class="field">
+          <label>Destino TCP</label>
+          <select id="ftarget" onchange="onTargetChange()">
+            <option value="as400">Switch AS/400</option>
+          </select>
+        </div>
         <div class="field">
           <label>MTI Tipo mensaje</label>
           <select id="fmti" onchange="onMtiChange()">
@@ -391,6 +429,7 @@
         <button class="tab" id="tabBtn-response" onclick="switchTab('response')">📥 Response</button>
         <button class="tab" id="tabBtn-parsed" onclick="switchTab('parsed')">🔍 Parsed</button>
         <button class="tab" id="tabBtn-burst" onclick="switchTab('burst')">⚡ Burst</button>
+        <button class="tab" id="tabBtn-stats" onclick="switchTab('stats')">📊 Stats</button>
       </div>
 
       <div class="tab-content active" id="tab-request">
@@ -404,6 +443,11 @@
       </div>
       <div class="tab-content" id="tab-burst">
         <div class="empty-result"><div class="empty-icon">⚡</div><p>Apretá <strong>Burst</strong> para enviar N transacciones y ver el dashboard en vivo.</p></div>
+      </div>
+      <div class="tab-content" id="tab-stats">
+        <div class="stats-panel" id="statsPanel">
+          <div class="stats-empty"><div class="stats-empty-icon">📊</div><p>Enviá transacciones para ver el dashboard de métricas acumuladas.</p></div>
+        </div>
       </div>
     </div>
 
@@ -475,6 +519,41 @@
 
   const $ = id => document.getElementById(id);
 
+  // ═══════════════ DESTINO TCP (AS/400 o Simulador ISO 8583) ═══════════════
+  let TARGETS = [];
+  async function loadTargets() {
+    try {
+      const d = await fetch('/api/pos/template').then(r => r.json());
+      TARGETS = d.targets || [];
+      const sel = $('ftarget');
+      sel.innerHTML = TARGETS.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+      onTargetChange();
+    } catch (_) { /* sin targets: usa el default del backend */ }
+  }
+
+  function currentTarget() {
+    return TARGETS.find(t => t.id === $('ftarget').value) || null;
+  }
+
+  // host/port para incluir en cada payload; vacío = default del backend
+  function targetParams() {
+    const t = currentTarget();
+    return t ? { host: t.host, port: t.port } : {};
+  }
+
+  window.onTargetChange = function() {
+    const t = currentTarget();
+    const banner = document.querySelector('.info-banner div:last-child');
+    if (t && banner) {
+      banner.innerHTML = `<strong>TPDU:</strong> <code>60 00 50 01 00</code> (fijo) · ` +
+        `<strong>Destino:</strong> <code>${t.host}:${t.port}</code>` +
+        (t.id === 'sim' ? ' · <span style="color:#059669;font-weight:700">🧪 simulador local</span>' : '') +
+        ` · <strong>STAN, DE 11, 12, 13:</strong> auto-generados`;
+    }
+  };
+
+  loadTargets();
+
   function getFields() {
     const f = {};
     [2,3,4,14,22,23,24,25,32,35,41,42,47,48,55,56,57,62,63].forEach(de => {
@@ -541,8 +620,8 @@
   function buildPayload() {
     const mti = $('fmti').value;
     // Para 0800 usamos el armado específico (solo campos válidos + DE3 fijo)
-    if (mti === '0800') return build0800Payload();
-    return { mti, fields: getFields() };
+    if (mti === '0800') return { ...build0800Payload(), ...targetParams() };
+    return { mti, fields: getFields(), ...targetParams() };
   }
 
   // ═══════════════ REVERSO (MTI 0400) ═══════════════
@@ -599,7 +678,7 @@
     setBtnLoading('btnReversal','btnReversalIcon','btnReversalText',true);
 
     try {
-      const payload = buildReversalPayload(lastReversable);
+      const payload = { ...buildReversalPayload(lastReversable), ...targetParams() };
       const r = await fetch('/api/pos/send', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify(payload),
@@ -664,6 +743,8 @@
     else if (rc === '91' || rc === '92' || rc === '96') { elRc.classList.add('amber'); elDesc.style.color = 'var(--amber)'; }
     else if (rc !== '—') { elRc.classList.add('red'); elDesc.style.color = 'var(--red)'; }
     else elDesc.style.color = '';
+    // Acumular en stats (solo cuando tenemos un código de respuesta real)
+    if (data.ok && rc !== '—') trackTx(rc, data.elapsedMs);
   }
 
   function setBtnLoading(btnId, iconId, textId, loading, defaultIcon, defaultText) {
@@ -674,10 +755,103 @@
   }
 
   window.switchTab = function(tab) {
-    ['request','response','parsed','burst'].forEach(t => {
+    ['request','response','parsed','burst','stats'].forEach(t => {
       $('tab-'+t).classList.toggle('active', t === tab);
       const btn = $('tabBtn-'+t); if (btn) btn.classList.toggle('active', t === tab);
     });
+    if (tab === 'stats') renderStats();
+  };
+
+  // ═══════════════════════ STATS ACUMULADAS ═══════════════════════
+  const statsData = { total: 0, approved: 0, denied: 0, errors: 0, latencies: [], codes: {} };
+
+  const RC_LABELS = {
+    '00':'Aprobada','01':'Derivar al banco','05':'Denegada (genérico)','12':'TX inválida',
+    '13':'Monto inválido','14':'Tarjeta inválida','30':'Error formato','41':'Tarjeta perdida',
+    '43':'Tarjeta robada','51':'Fondos insuficientes','54':'Tarjeta vencida','55':'PIN incorrecto',
+    '57':'TX no permitida','58':'TX no permitida (term)','61':'Excede límite','62':'Tarjeta restringida',
+    '65':'Excede límite tx','75':'PIN intentos superados','76':'Clave inválida','91':'Emisor inaccesible',
+    '92':'Institución desconocida','96':'Error del sistema',
+  };
+
+  function trackTx(responseCode, elapsedMs) {
+    statsData.total++;
+    if (responseCode === '00') statsData.approved++;
+    else statsData.denied++;
+    if (elapsedMs != null && !isNaN(elapsedMs)) statsData.latencies.push(elapsedMs);
+    statsData.codes[responseCode] = (statsData.codes[responseCode] || 0) + 1;
+  }
+
+  function renderStats() {
+    const panel = $('statsPanel');
+    if (!panel) return;
+    if (statsData.total === 0) {
+      panel.innerHTML = '<div class="stats-empty"><div class="stats-empty-icon">📊</div><p>Enviá transacciones para ver el dashboard de métricas acumuladas.</p></div>';
+      return;
+    }
+    const lats = statsData.latencies;
+    const avgLat  = lats.length ? Math.round(lats.reduce((a,b)=>a+b,0)/lats.length) : 0;
+    const minLat  = lats.length ? Math.min(...lats) : 0;
+    const maxLat  = lats.length ? Math.max(...lats) : 0;
+    const pctOk   = Math.round(statsData.approved  / statsData.total * 100);
+    const pctDeny = Math.round(statsData.denied     / statsData.total * 100);
+
+    // Sort codes by count desc
+    const sortedCodes = Object.entries(statsData.codes).sort((a,b) => b[1]-a[1]);
+    const maxCodeCount = sortedCodes[0]?.[1] || 1;
+
+    const barsHtml = sortedCodes.map(([rc, cnt]) => {
+      const pct  = Math.round(cnt / statsData.total * 100);
+      const fill = rc === '00' ? 'green' : (rc === '91'||rc === '92'||rc === '96') ? 'amber' : 'red';
+      const lbl  = RC_LABELS[rc] || `Código ${rc}`;
+      const trackPct = Math.round(cnt / maxCodeCount * 100);
+      return `<div class="stats-bar-row">
+        <span class="stats-bar-label">${rc}</span>
+        <span class="stats-bar-desc">${lbl}</span>
+        <div class="stats-bar-track"><div class="stats-bar-fill ${fill}" style="width:${trackPct}%"></div></div>
+        <span class="stats-bar-count">${cnt} (${pct}%)</span>
+      </div>`;
+    }).join('');
+
+    panel.innerHTML = `
+      <div class="stats-header">
+        <span class="stats-header-title">Métricas acumuladas de sesión</span>
+        <button class="btn-stats-reset" onclick="resetStats()">🗑 Limpiar</button>
+      </div>
+      <div class="stats-kpis">
+        <div class="stats-kpi">
+          <div class="stats-kpi-val">${statsData.total}</div>
+          <div class="stats-kpi-lbl">Total enviadas</div>
+        </div>
+        <div class="stats-kpi">
+          <div class="stats-kpi-val green">${statsData.approved} <span style="font-size:13px">(${pctOk}%)</span></div>
+          <div class="stats-kpi-lbl">Aprobadas</div>
+        </div>
+        <div class="stats-kpi">
+          <div class="stats-kpi-val red">${statsData.denied} <span style="font-size:13px">(${pctDeny}%)</span></div>
+          <div class="stats-kpi-lbl">Denegadas</div>
+        </div>
+        <div class="stats-kpi">
+          <div class="stats-kpi-val blue">${avgLat} ms</div>
+          <div class="stats-kpi-lbl">Latencia prom.</div>
+        </div>
+      </div>
+      <div class="stats-section-title">Latencia TCP (ms)</div>
+      <div class="stats-lat-grid" style="margin-bottom:14px">
+        <div class="stats-lat-box"><div class="stats-lat-val">${minLat}</div><div class="stats-lat-lbl">Mínima</div></div>
+        <div class="stats-lat-box"><div class="stats-lat-val">${avgLat}</div><div class="stats-lat-lbl">Promedio</div></div>
+        <div class="stats-lat-box"><div class="stats-lat-val">${maxLat}</div><div class="stats-lat-lbl">Máxima</div></div>
+      </div>
+      <div class="stats-section-title">Desglose por código DE 39</div>
+      ${barsHtml}
+    `;
+  }
+
+  window.resetStats = function() {
+    statsData.total = 0; statsData.approved = 0; statsData.denied = 0;
+    statsData.errors = 0; statsData.latencies.length = 0;
+    Object.keys(statsData.codes).forEach(k => delete statsData.codes[k]);
+    renderStats();
   };
 
   function clearTabs() {
@@ -756,7 +930,7 @@
     try {
       const r = await fetch('/api/pos/send', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(build0800Payload()),
+        body: JSON.stringify({ ...build0800Payload(), ...targetParams() }),
       });
       const data = await r.json();
 
@@ -1281,6 +1455,7 @@
         flashRow(ev.i, ev.ok);
         updateStats();
         updateLiveMetrics();
+        if (ev.responseCode) trackTx(ev.responseCode, ev.elapsedMs);
       }
       return;
     }
