@@ -344,6 +344,19 @@
         <div class="field"><label><span class="de">DE 35</span> Track 2</label><input type="text" id="f35" value="5171830300761071D24012011930567400000"></div>
       </div>
 
+      <!-- PIN (DE52): opcional. Vacío = transacción SIN PIN (flujo actual). -->
+      <div class="group" data-grp="financiero">
+        <div class="group-title">🔐 PIN (DE 52) — opcional</div>
+        <div class="field">
+          <label><input type="checkbox" id="fpinEnable" onchange="onPinToggle()" style="margin-right:6px;vertical-align:middle">Enviar con PIN</label>
+          <input type="password" id="fpin" value="1234" maxlength="12" placeholder="PIN (4–12 díg.)" disabled>
+        </div>
+        <div class="field" id="fpinInfoRow" style="display:none">
+          <label style="opacity:.7">PIN block</label>
+          <span style="font-size:10px;color:var(--text-gray);line-height:1.4">Se cifra ISO-0 con la TPK <code style="font-size:10px">tpk-demo</code> y viaja en DE52. El simulador valida: PIN correcto → sigue reglas; PIN errado → DE39=55.</span>
+        </div>
+      </div>
+
       <div class="group" data-grp="financiero">
         <div class="group-title">💰 Transacción</div>
         <div class="field">
@@ -617,11 +630,28 @@
     };
   }
 
+  // Devuelve { pin } si el checkbox de PIN está activo y hay valor.
+  // Vacío = transacción SIN PIN (flujo actual, no agrega DE52).
+  function pinParams() {
+    const en = $('fpinEnable');
+    if (en && en.checked) {
+      const pin = ($('fpin').value || '').trim();
+      if (pin) return { pin };
+    }
+    return {};
+  }
+
+  window.onPinToggle = function() {
+    const on = $('fpinEnable').checked;
+    $('fpin').disabled = !on;
+    $('fpinInfoRow').style.display = on ? '' : 'none';
+  };
+
   function buildPayload() {
     const mti = $('fmti').value;
     // Para 0800 usamos el armado específico (solo campos válidos + DE3 fijo)
     if (mti === '0800') return { ...build0800Payload(), ...targetParams() };
-    return { mti, fields: getFields(), ...targetParams() };
+    return { mti, fields: getFields(), ...targetParams(), ...pinParams() };
   }
 
   // ═══════════════ REVERSO (MTI 0400) ═══════════════
@@ -1519,6 +1549,10 @@
 
 </body>
 </html>
+
+
+
+
 
 
 
