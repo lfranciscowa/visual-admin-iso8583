@@ -21,8 +21,13 @@
 const express = require('express');
 const { buildMessage, parseResponse, FIELD_DEF, ACCOUNT_TYPES } = require('../lib/iso8583');
 const { sendMessage } = require('../lib/pos-client');
+const { encryptPinBlock } = require('../lib/pinblock');
 
 const router = express.Router();
+
+// TPK (Terminal PIN Key) para cifrar el PIN block del DE52. Debe coincidir
+// con la TPK que el simulador usa para validar (tpk-demo). Configurable por env.
+const POS_TPK_HEX = process.env.POS_TPK_HEX || '1A2B3C4D5E6F70819AABBCCDDEEFF001';
 
 const SWITCH_HOST = process.env.SWITCH_HOST     || '172.23.12.2';
 const SWITCH_PORT = parseInt(process.env.SWITCH_PORT     || '34026', 10);
@@ -75,6 +80,15 @@ function assembleMessage(payload) {
   fields[11] = stan;
   fields[12] = fields[12] || ts.de12;
   fields[13] = fields[13] || ts.de13;
+
+  // Escenario CON PIN: si el payload trae un PIN en claro, se cifra como
+  // PIN block ISO-0 con la TPK y se coloca en DE52. Sin `pin`, no se toca
+  // nada (escenario SIN PIN = comportamiento actual).
+  if (payload.pin) {
+    const pan = String(fields[2] || '');
+    const keyHex = payload.pinKeyHex || POS_TPK_HEX;
+    fields[52] = encryptPinBlock(payload.pin, pan, keyHex);
+  }
 
   for (const k of Object.keys(fields)) {
     if (fields[k] === '' || fields[k] === null || fields[k] === undefined) {
@@ -470,4 +484,5 @@ router.post('/burst-cancel', (req, res) => {
 });
 
 module.exports = router;
+
 

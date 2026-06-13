@@ -44,6 +44,7 @@ const FIELD_DEF = {
   41: { type: 'an',     length: 8,   name: 'Terminal ID' },
   42: { type: 'an',     length: 15,  name: 'Merchant ID' },
   46: { type: 'LLLVAR', maxLen: 999, name: 'Additional info' },
+  52: { type: 'b',      length: 8,   name: 'PIN data', binaryData: true },
   47: { type: 'LLLVAR', maxLen: 999, name: 'Application name' },
   48: { type: 'LLLVAR', maxLen: 999, name: 'Additional data' },
   55: { type: 'LLLVAR', maxLen: 999, name: 'EMV data', binaryData: true },
@@ -153,6 +154,16 @@ function encodeField(de, value) {
   if (def.type === 'an') {
     const padded = v.padEnd(def.length, ' ').slice(0, def.length);
     return Buffer.from(padded, 'ascii');
+  }
+
+  if (def.type === 'b') {
+    // Campo binario de longitud fija (ej. DE52 PIN block = 8 bytes hex)
+    if (!/^[0-9a-fA-F]*$/.test(v) || v.length % 2 !== 0) {
+      throw new Error(`DE ${de} (${def.name}) debe ser hex de longitud par`);
+    }
+    const buf = Buffer.alloc(def.length, 0);
+    Buffer.from(v, 'hex').copy(buf);
+    return buf;
   }
 
   if (def.type === 'LLVAR') {
@@ -274,6 +285,10 @@ function parseResponse(buf) {
         const slice = buf.slice(offset, offset + def.length);
         fields[de] = slice.toString('ascii');
         offset += def.length;
+      } else if (def.type === 'b') {
+        if (offset + def.length > buf.length) break;
+        fields[de] = buf.slice(offset, offset + def.length).toString('hex').toUpperCase();
+        offset += def.length;
       } else if (def.type === 'LLVAR') {
         if (offset + 1 > buf.length) break;
         const lenStr = bcdUnpack(buf.slice(offset, offset + 1), 2);
@@ -333,4 +348,5 @@ module.exports = {
   bcdUnpack,
   describeResponseCode,
 };
+
 
