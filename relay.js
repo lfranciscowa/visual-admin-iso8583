@@ -174,8 +174,8 @@ app.post('/relay-bines', async (req, res) => {
 app.post('/pos-tcp', async (req, res) => {
     const {
         hexMessage,
-        host      = '172.23.12.2',
-        port      = 34026,
+        host      = '64.212.72.26',
+        port      = 8183,
         timeoutMs = 60000,
     } = req.body || {};
 
