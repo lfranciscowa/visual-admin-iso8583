@@ -10,7 +10,7 @@
 //      GET  /api/pos/template     - Plantilla con campos del JSON real
 //
 //  Configuración (.env):
-//      SWITCH_HOST=64.212.72.26
+//      SWITCH_HOST=powerphoenix.hopto.org
 //      SWITCH_PORT=8183
 //      SWITCH_TIMEOUT_MS=31000
 //      TZ_OFFSET_HOURS=-4        (opcional, default -4 = Venezuela)
@@ -29,7 +29,7 @@ const router = express.Router();
 // con la TPK que el simulador usa para validar (tpk-demo). Configurable por env.
 const POS_TPK_HEX = process.env.POS_TPK_HEX || '1A2B3C4D5E6F70819AABBCCDDEEFF001';
 
-const SWITCH_HOST = process.env.SWITCH_HOST     || '64.212.72.26';
+const SWITCH_HOST = process.env.SWITCH_HOST     || 'powerphoenix.hopto.org';
 const SWITCH_PORT = parseInt(process.env.SWITCH_PORT     || '8183', 10);
 const TIMEOUT_MS  = parseInt(process.env.SWITCH_TIMEOUT_MS || '31000', 10);
 const BURST_MAX   = parseInt(process.env.BURST_MAX || '50000', 10);

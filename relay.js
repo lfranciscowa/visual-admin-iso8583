@@ -174,7 +174,7 @@ app.post('/relay-bines', async (req, res) => {
 app.post('/pos-tcp', async (req, res) => {
     const {
         hexMessage,
-        host      = '64.212.72.26',
+        host      = 'powerphoenix.hopto.org',
         port      = 8183,
         timeoutMs = 60000,
     } = req.body || {};
