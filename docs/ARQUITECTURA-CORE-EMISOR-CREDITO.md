@@ -300,36 +300,113 @@ GET  /v1/cuentas/{id}/estado-cuenta?ciclo=YYYY-MM
 
 ---
 
-## 9. Stack tecnológico propuesto (alineado a lo que ya usas)
+## 9. Stack tecnológico definitivo (alto volumen)
 
-| Capa | Tecnología |
-|------|------------|
-| Lenguaje | **Node.js** (igual que tus apps) |
-| Base de datos | **PostgreSQL / Neon** (ya lo usas) |
-| ISO 8583 | Tu librería actual (`lib/iso8583.js`) + simulador |
-| Core legado | **AS/400** vía web services (relay actual) |
-| API | Express + OpenAPI |
-| Eventos | Cola (Redis/RabbitMQ) o tabla `outbox` + webhooks |
-| Front | HTML/JS (como `visual-admin`) o framework SPA |
-| Despliegue | Render (web) + tu servidor `tesh-desarrollo.com` (TCP/core) |
+> Principio: **separar el camino caliente** (autorización ISO 8583, baja latencia,
+> alto TPS) **del resto** (API, back-office, portal). Cada uno usa la herramienta
+> adecuada, pero comparten base de datos y bus de eventos.
+
+| Capa | Tecnología | Por qué |
+|------|------------|---------|
+| **Core de autorización** ⭐ | **Java + jPOS** | Estándar de la industria para switches/emisores ISO 8583. JVM multihilo, alto throughput, certificable con redes (Visa/MC). |
+| *(alternativa al core)* | **Go (Golang)** | Concurrencia simple (goroutines), latencia baja y predecible, si se prefiere algo más ligero. |
+| **API / Back-office / Portal** | **Node.js** | Lo que ya usas; ideal para web y APIs, no requiere el TPS extremo del core. |
+| **Base de datos (ledger)** | **PostgreSQL** (Neon → autogestionado a escala) | ACID, confiable, soporta miles de TPS bien diseñado. Migrable a **CockroachDB** para escala horizontal. |
+| **Caché / locks** | **Redis** | Caché de saldos/límites y bloqueos rápidos → clave para el TPS de autorización. |
+| **Bus de eventos** | **Kafka** (o NATS) | Clearing, notificaciones y webhooks sin frenar la autorización. |
+| **Pool de conexiones** | **PgBouncer** | Miles de conexiones concurrentes contra Postgres. |
+| **ISO 8583** | jPOS (core) + tu librería actual y **simulador** (sandbox/pruebas) | — |
+| **Core legado** | **AS/400 (Trafi)** vía web services (relay actual) | Adaptador `CoreBankingPort`. |
+| **Front** | HTML/JS (como `visual-admin`) o SPA | — |
+| **Despliegue** | Render (web/API) + servidor propio `tesh-desarrollo.com` (core TCP) | — |
+
+### 9.1 Escalabilidad de PostgreSQL para alto volumen
+
+PostgreSQL aguanta volúmenes enormes **si se diseña para ello**:
+
+- **Ledger append-only** → solo `INSERT`, nunca `UPDATE` sobre movimientos (menos bloqueos, más concurrencia).
+- **Particionamiento por fecha** de las tablas transaccionales (`movimientos`, `autorizaciones`) → consultas, purga y `VACUUM` rápidos.
+- **PgBouncer** delante de la base → soporta miles de conexiones.
+- **Réplicas de lectura** → reportes/consultas no golpean la primaria.
+- **Saldos materializados** (tabla `saldos`) actualizados por trigger/proceso → lectura O(1).
+- A escala extrema (multi-región / millones de TPS) → **CockroachDB/YugabyteDB**, compatibles con SQL de Postgres (migración con mínima reescritura).
+
+#### Ejemplo de particionamiento (movimientos por mes)
+
+```sql
+-- Tabla particionada por rango de fecha
+CREATE TABLE movimientos (
+  id          BIGSERIAL,
+  asiento_id  UUID NOT NULL,
+  cuenta_id   UUID NOT NULL,
+  monto       NUMERIC(18,2) NOT NULL,   -- + débito / - crédito
+  moneda      TEXT NOT NULL DEFAULT 'USD',
+  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
+) PARTITION BY RANGE (creado_en);
+
+-- Particiones mensuales (se crean automáticamente con pg_partman o un job)
+CREATE TABLE movimientos_2026_06 PARTITION OF movimientos
+  FOR VALUES FROM ('2026-06-01') TO ('2026-07-01');
+CREATE TABLE movimientos_2026_07 PARTITION OF movimientos
+  FOR VALUES FROM ('2026-07-01') TO ('2026-08-01');
+
+-- Índices por partición (búsquedas frecuentes)
+CREATE INDEX ON movimientos_2026_06 (cuenta_id, creado_en);
+CREATE INDEX ON movimientos_2026_07 (cuenta_id, creado_en);
+
+-- Igual para 'autorizaciones' (alto volumen en el camino caliente)
+CREATE TABLE autorizaciones (
+  id          UUID DEFAULT gen_random_uuid(),
+  tarjeta_id  UUID NOT NULL,
+  monto       NUMERIC(18,2) NOT NULL,
+  stan        TEXT, rrn TEXT, de39 TEXT,
+  estado      TEXT NOT NULL,
+  creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
+) PARTITION BY RANGE (creado_en);
+```
+
+> **Automatización:** usar **pg_partman** para crear/retirar particiones solo, y
+> retención (ej. mantener 24 meses en caliente, archivar el resto).
+
+#### Camino caliente de autorización (latencia mínima)
+
+```
+ISO 8583 → jPOS → [Redis: ¿límite/saldo en caché?]
+                    ├─ sí  → valida en memoria → responde DE39 (< 50 ms)
+                    └─ no  → lee Postgres → cachea → responde
+              (en paralelo) → publica evento en Kafka → ledger + clearing async
+```
+
+- La **respuesta al POS** no espera al ledger: primero responde, luego asienta
+  (con reserva/hold) → throughput máximo sin perder consistencia.
 
 ---
 
 ## 10. Despliegue (multi-plataforma)
 
 ```
-┌────────────────────┐     ┌──────────────────────────┐     ┌──────────────┐
-│  Render (web/API)  │────▶│ relay.tesh-desarrollo.com │────▶│   AS/400     │
-│  - Back-office     │     │ (adaptador core / TCP)    │     │   (Trafi)    │
-│  - API REST        │     └──────────────────────────┘     └──────────────┘
-│  - Portal cliente  │
-└─────────┬──────────┘
-          │ ISO 8583 / REST
-          ▼
-┌────────────────────┐
-│ Simulador 8583     │  (sandbox para certificar/probar autorización)
-│ tesh-desarrollo.com│
-└────────────────────┘
+┌────────────────────┐                                   ┌──────────────┐
+│  Render (web/API)  │──── REST ────┐                     │   AS/400     │
+│  Node.js           │              │                     │   (Trafi)    │
+│  - Back-office     │              ▼                     └──────▲───────┘
+│  - API REST        │     ┌─────────────────────┐               │ WS
+│  - Portal cliente  │     │  CORE AUTORIZACIÓN  │───────────────┘
+└────────────────────┘     │  Java + jPOS        │
+                           │  (tesh-desarrollo)  │◀── ISO 8583 ──── Red / POS
+                           └───┬──────────┬──────┘
+              ┌────────────────┘          └───────────────┐
+              ▼                ▼                           ▼
+      ┌──────────────┐  ┌──────────────┐          ┌───────────────┐
+      │ PostgreSQL   │  │ Redis        │          │ Kafka         │
+      │ (ledger,     │  │ (caché saldo,│          │ (eventos:     │
+      │ particionado)│  │  límites,    │          │  clearing,    │
+      │ + réplicas   │  │  locks)      │          │  webhooks)    │
+      └──────────────┘  └──────────────┘          └───────────────┘
+
+      ┌────────────────────┐
+      │ Simulador 8583     │  (sandbox para certificar/probar autorización)
+      │ sim.tesh-desarrollo│
+      └────────────────────┘
 ```
 
 ---
