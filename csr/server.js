@@ -6,6 +6,7 @@ const crypto  = require('crypto');
 const { Resend } = require('resend');
 const db = require('./database');
 const os = require('os');
+const { hashPassword, verifyPassword, generarClaveTemporal } = require('./lib/password');
 
 require('dotenv').config();
 
@@ -111,8 +112,18 @@ app.post('/api/login', async (req, res) => {
             return res.status(404).json({ ok: false, msg: 'Usuario no existe' });
         if (usuario.estado === 'INACTIVO')
             return res.status(403).json({ ok: false, msg: 'Cuenta desactivada. Contacta a un administrador.' });
-        if (usuario.password !== pass)
+
+        const check = verifyPassword(pass, usuario.password);
+        if (!check.ok)
             return res.status(401).json({ ok: false, msg: 'Contraseña incorrecta' });
+        // Migración progresiva: si la clave estaba en texto plano, la re-hasheamos.
+        if (check.legacy) {
+            try {
+                await db.query('UPDATE usuarios SET password=$1 WHERE username=$2',
+                    [hashPassword(pass), usuario.username]);
+                console.log(`🔐 Clave migrada a hash: ${usuario.username}`);
+            } catch (e) { console.error('⚠️  No se pudo migrar clave:', e.message); }
+        }
 
         // Parsear módulos del usuario
         let modulos = [];
@@ -172,7 +183,7 @@ app.post('/api/usuarios', async (req, res) => {
             nombre, user, email, rol,
             JSON.stringify(nodos   || []),
             JSON.stringify(modulos || []),
-            password, requiere_cambio, estado
+            hashPassword(password), requiere_cambio, estado
         ]);
         console.log(`✅ Usuario ${user} creado | Módulos: [${(modulos||[]).join(', ')}]`);
         res.json({ ok: true });
@@ -231,11 +242,13 @@ app.post('/api/update-password', async (req, res) => {
     const { username, currentPassword, newPassword } = req.body;
     try {
         const user = await db.get('SELECT * FROM usuarios WHERE username=$1', [username]);
-        if (!user || user.password !== currentPassword)
+        if (!user || !verifyPassword(currentPassword, user.password).ok)
             return res.status(401).json({ ok: false, msg: 'Clave temporal incorrecta' });
+        if (!newPassword || String(newPassword).length < 8)
+            return res.status(400).json({ ok: false, msg: 'La nueva clave debe tener al menos 8 caracteres' });
         await db.query(
             'UPDATE usuarios SET password=$1, requiere_cambio=0 WHERE username=$2',
-            [newPassword, username]
+            [hashPassword(newPassword), username]
         );
         res.json({ ok: true });
     } catch (error) {
@@ -247,11 +260,11 @@ app.post('/api/update-password', async (req, res) => {
 app.post('/api/usuarios/:username/reenviar-clave', async (req, res) => {
     const { username } = req.params;
     const { email } = req.body;
-    const nuevaClave = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const nuevaClave = generarClaveTemporal(12);
     try {
         await db.query(
             'UPDATE usuarios SET password=$1, requiere_cambio=1 WHERE username=$2',
-            [nuevaClave, username]
+            [hashPassword(nuevaClave), username]
         );
         res.json({ ok: true });
         enviarClaveEmail(email, username, nuevaClave)
@@ -662,6 +675,8 @@ const inicializarAdmin = async () => {
     try {
         const existe = await db.get('SELECT * FROM usuarios WHERE username=$1', ['admin']);
         if (!existe) {
+            // Clave inicial: variable de entorno ADMIN_PASSWORD o una fuerte aleatoria.
+            const claveInicial = process.env.ADMIN_PASSWORD || generarClaveTemporal(14);
             await db.query(
                 `INSERT INTO usuarios (nombre,username,email,rol,nodos,modulos,password,requiere_cambio,estado)
                  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
@@ -670,10 +685,13 @@ const inicializarAdmin = async () => {
                     process.env.MAIL_USER || 'admin@sistema.com',
                     'ADMIN', '[]',
                     JSON.stringify(['trama', 'monitor', 'perfiles', 'llaves', 'pos', 'bines']),
-                    'admin123', 0, 'ACTIVO'
+                    hashPassword(claveInicial), 1, 'ACTIVO'   // requiere_cambio=1 → obliga a cambiarla
                 ]
             );
-            console.log('👤 USUARIO ADMIN CREADO — user: admin / pass: admin123');
+            if (process.env.ADMIN_PASSWORD)
+                console.log('👤 USUARIO ADMIN CREADO con ADMIN_PASSWORD (deberá cambiarla al ingresar).');
+            else
+                console.log(`👤 USUARIO ADMIN CREADO — user: admin / pass temporal: ${claveInicial} (cámbiala al ingresar).`);
         }
     } catch (err) { console.error('❌ Error init:', err.message); }
 };
