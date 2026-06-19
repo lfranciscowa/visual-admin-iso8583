@@ -7,6 +7,7 @@ const { Resend } = require('resend');
 const db = require('./database');
 const os = require('os');
 const { hashPassword, verifyPassword, generarClaveTemporal } = require('./lib/password');
+const { generarToken, verificarToken } = require('./lib/token');
 
 require('dotenv').config();
 
@@ -15,6 +16,25 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ── AUTENTICACIÓN DE APIs ─────────────────────────────────────
+// Protege todas las rutas /api/* salvo las públicas. El token llega por
+// header 'Authorization: Bearer <token>' o, para SSE, por query (?token=).
+const API_PUBLICAS = new Set(['/api/login', '/api/update-password']);
+app.use((req, res, next) => {
+    if (!req.path.startsWith('/api/')) return next();   // estáticos / html
+    if (API_PUBLICAS.has(req.path)) return next();      // endpoints públicos
+
+    let token = null;
+    const auth = req.headers.authorization || '';
+    if (auth.startsWith('Bearer ')) token = auth.slice(7);
+    else if (req.query && req.query.token) token = req.query.token; // SSE (EventSource)
+
+    const payload = verificarToken(token);
+    if (!payload) return res.status(401).json({ ok: false, msg: 'No autorizado' });
+    req.user = payload;
+    next();
+});
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));;
@@ -139,6 +159,8 @@ app.post('/api/login', async (req, res) => {
 
         console.log(`✅ Login: ${usuario.username} | Rol: ${usuario.rol} | Módulos: [${modulos.join(', ')}]`);
 
+        const token = generarToken({ username: usuario.username, rol: usuario.rol });
+
         res.json({
             ok: true,
             user: {
@@ -146,6 +168,7 @@ app.post('/api/login', async (req, res) => {
                 nombre:          usuario.nombre,
                 rol:             usuario.rol,
                 requiere_cambio: usuario.requiere_cambio,
+                token,                           // ← sesión: el frontend lo guarda y lo envía
                 modulos                          // ← el frontend los guarda en localStorage
             }
         });
