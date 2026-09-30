@@ -19,8 +19,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ── AUTENTICACIÓN DE APIs ─────────────────────────────────────
 // Protege todas las rutas /api/* salvo las públicas. El token llega por
-// header 'Authorization: Bearer <token>' o, para SSE, por query (?token=).
+// header 'Authorization: Bearer <token>'. Solo el stream SSE lo acepta por
+// query (?token=), porque EventSource no permite enviar headers.
 const API_PUBLICAS = new Set(['/api/login', '/api/update-password']);
+const RUTAS_SSE = new Set(['/api/monitor/stream']);
 app.use((req, res, next) => {
     if (!req.path.startsWith('/api/')) return next();   // estáticos / html
     if (API_PUBLICAS.has(req.path)) return next();      // endpoints públicos
@@ -28,13 +30,22 @@ app.use((req, res, next) => {
     let token = null;
     const auth = req.headers.authorization || '';
     if (auth.startsWith('Bearer ')) token = auth.slice(7);
-    else if (req.query && req.query.token) token = req.query.token; // SSE (EventSource)
+    else if (req.method === 'GET' && RUTAS_SSE.has(req.path) && req.query && req.query.token) token = req.query.token;
 
     const payload = verificarToken(token);
     if (!payload) return res.status(401).json({ ok: false, msg: 'No autorizado' });
     req.user = payload;
     next();
 });
+
+const ROLES_ADMIN = ['ADMIN', 'Administrador'];
+function requireAdmin(req, res, next) {
+    if (!req.user || !ROLES_ADMIN.includes(req.user.r)) {
+        return res.status(403).json({ ok: false, msg: 'Requiere rol de administrador' });
+    }
+    next();
+}
+app.use('/api/usuarios', requireAdmin);
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));;
@@ -128,14 +139,11 @@ app.post('/api/login', async (req, res) => {
         const usuario = await db.get(
             'SELECT * FROM usuarios WHERE username = $1 OR email = $1', [user]
         );
-        if (!usuario)
-            return res.status(404).json({ ok: false, msg: 'Usuario no existe' });
+        const check = usuario ? verifyPassword(pass, usuario.password) : { ok: false };
+        if (!check.ok)
+            return res.status(401).json({ ok: false, msg: 'Usuario o contraseña incorrectos' });
         if (usuario.estado === 'INACTIVO')
             return res.status(403).json({ ok: false, msg: 'Cuenta desactivada. Contacta a un administrador.' });
-
-        const check = verifyPassword(pass, usuario.password);
-        if (!check.ok)
-            return res.status(401).json({ ok: false, msg: 'Contraseña incorrecta' });
         // Migración progresiva: si la clave estaba en texto plano, la re-hasheamos.
         if (check.legacy) {
             try {
@@ -219,7 +227,7 @@ app.post('/api/usuarios', async (req, res) => {
         }
     } catch (error) {
         console.error('❌ Error al crear usuario:', error.message);
-        res.status(500).json({ ok: false, msg: error.message });
+        res.status(500).json({ ok: false, msg: 'No se pudo crear el usuario' });
     }
 });
 
@@ -246,7 +254,8 @@ app.patch('/api/usuarios/:username/modulos', async (req, res) => {
         console.log(`🧩 Módulos de ${username} actualizados: [${(modulos||[]).join(', ')}]`);
         res.json({ ok: true });
     } catch (error) {
-        res.status(500).json({ ok: false, msg: error.message });
+        console.error('❌ Error al actualizar módulos:', error.message);
+        res.status(500).json({ ok: false, msg: 'No se pudieron actualizar los módulos' });
     }
 });
 
@@ -282,9 +291,15 @@ app.post('/api/update-password', async (req, res) => {
 // ── 8. REENVIAR CLAVE ─────────────────────────────────────────
 app.post('/api/usuarios/:username/reenviar-clave', async (req, res) => {
     const { username } = req.params;
-    const { email } = req.body;
     const nuevaClave = generarClaveTemporal(12);
     try {
+        // El correo sale de la BD, nunca del cliente: si no, cualquiera podría
+        // resetear una cuenta ajena y recibir la clave nueva en su propio correo.
+        const usuario = await db.get('SELECT email FROM usuarios WHERE username=$1', [username]);
+        if (!usuario || !usuario.email) {
+            return res.status(404).json({ ok: false, msg: 'Usuario sin correo registrado' });
+        }
+        const email = usuario.email;
         await db.query(
             'UPDATE usuarios SET password=$1, requiere_cambio=1 WHERE username=$2',
             [hashPassword(nuevaClave), username]

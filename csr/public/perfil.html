@@ -217,6 +217,9 @@ const MODULOS=[
 let todosLosUsuarios=[],tempPassword='',editandoUsername='';
 document.getElementById('adminNombre').textContent=localStorage.getItem('username')||'Admin';
 
+function escHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+// Argumento seguro para onclick="fn(...)": JSON.stringify escapa para JS, escHtml para el atributo HTML.
+function jsArg(v){return escHtml(JSON.stringify(String(v??'')))}
 function showToast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur)}
 function generarClave(){const c='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#';return Array.from({length:10},()=>c[Math.floor(Math.random()*c.length)]).join('')}
 function regenerarClave(){tempPassword=generarClave();document.getElementById('tempPassDisplay').textContent=tempPassword}
@@ -260,7 +263,7 @@ function cerrarModalModulos(){document.getElementById('modalModulos').style.disp
 async function guardarModulos(){
     const modulos=getModulosSeleccionados('editModulos');
     try{
-        const res=await fetch(`/api/usuarios/${editandoUsername}/modulos`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({modulos})});
+        const res=await fetch(`/api/usuarios/${encodeURIComponent(editandoUsername)}/modulos`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({modulos})});
         if(res.ok){cerrarModalModulos();cargarUsuarios();showToast(`✅ Módulos de ${editandoUsername} actualizados`)}
         else Swal.fire('Error','No se pudo guardar.','error');
     }catch{Swal.fire('Sin conexión','','error')}
@@ -311,26 +314,26 @@ function renderUsuarios(lista,stat=true){
         const act=u.estado==='ACTIVO';
         const un=u.username||u.user;
         const ini=u.nombre?u.nombre.split(' ').map(n=>n[0]).join('').toUpperCase().substring(0,2):un.substring(0,2).toUpperCase();
-        const em=u.email?`<p class="card-email">✉️ ${u.email}</p>`:'';
+        const em=u.email?`<p class="card-email">✉️ ${escHtml(u.email)}</p>`:'';
         const mods=u.modulos||[];
         const modHtml=mods.length>0
             ?mods.map(id=>{const m=MODULOS.find(x=>x.id===id);return m?`<span class="mod-tag">${m.icon} ${m.nombre}</span>`:''}).join('')
             :`<span style="font-size:10px;color:var(--text-gray);font-style:italic">Sin módulos asignados</span>`;
         c.insertAdjacentHTML('beforeend',`
-        <div class="user-card ${act?'':'card-disabled'}" id="card-${un}">
-            <div class="avatar">${ini}</div>
+        <div class="user-card ${act?'':'card-disabled'}" id="card-${escHtml(un)}">
+            <div class="avatar">${escHtml(ini)}</div>
             <div class="card-body">
-                <p class="card-username">${u.nombre||un}</p>
-                <p class="card-rol">${un} · ${u.rol}</p>
+                <p class="card-username">${escHtml(u.nombre||un)}</p>
+                <p class="card-rol">${escHtml(un)} · ${escHtml(u.rol)}</p>
                 <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">${modHtml}</div>
                 ${em}
                 <span class="status-badge ${act?'active':'inactive'}">${act?'● ACTIVO':'○ INACTIVO'}</span>
             </div>
             <div class="card-actions">
-                <button class="btn-icon toggle-btn" title="${act?'Desactivar':'Activar'}" onclick="toggleEstado('${un}','${u.estado}')">${act?'🟢':'⚪'}</button>
-                <button class="btn-icon mod-btn" title="Editar módulos" onclick="abrirModalModulos('${un}')">🧩</button>
-                <button class="btn-icon email-btn" title="Reenviar clave" onclick="reenviarClave('${un}','${u.email||''}')">📧</button>
-                <button class="btn-icon delete-btn" title="Eliminar" onclick="confirmarEliminar('${un}','${u.nombre||un}')">🗑️</button>
+                <button class="btn-icon toggle-btn" title="${act?'Desactivar':'Activar'}" onclick="toggleEstado(${jsArg(un)},${jsArg(u.estado)})">${act?'🟢':'⚪'}</button>
+                <button class="btn-icon mod-btn" title="Editar módulos" onclick="abrirModalModulos(${jsArg(un)})">🧩</button>
+                <button class="btn-icon email-btn" title="Reenviar clave" onclick="reenviarClave(${jsArg(un)},${jsArg(u.email||'')})">📧</button>
+                <button class="btn-icon delete-btn" title="Eliminar" onclick="confirmarEliminar(${jsArg(un)},${jsArg(u.nombre||un)})">🗑️</button>
             </div>
         </div>`);
     });
@@ -343,7 +346,7 @@ document.getElementById('perfilFormModal').onsubmit=async(e)=>{
     try{
         const res=await fetch('/api/usuarios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(datos)});
         const r=await res.json();
-        if(res.ok&&r.ok){cerrarModal();cargarUsuarios();Swal.fire({icon:'success',title:'✅ Usuario creado',html:`<p>Perfil <strong>${datos.user}</strong> creado con <strong>${datos.modulos.length}</strong> módulo(s).</p>`,confirmButtonColor:'#7c3aed'})}
+        if(res.ok&&r.ok){cerrarModal();cargarUsuarios();Swal.fire({icon:'success',title:'✅ Usuario creado',html:`<p>Perfil <strong>${escHtml(datos.user)}</strong> creado con <strong>${datos.modulos.length}</strong> módulo(s).</p>`,confirmButtonColor:'#7c3aed'})}
         else Swal.fire('Error',r.msg||'No se pudo crear.','error');
     }catch{Swal.fire('Sin conexión','','error')}
     finally{btn.disabled=false;btn.innerHTML='💾 Crear y Enviar Clave'}
@@ -353,21 +356,22 @@ async function toggleEstado(un,est){
     const nuevo=est==='ACTIVO'?'INACTIVO':'ACTIVO';const ac=nuevo==='ACTIVO'?'activar':'desactivar';
     const{isConfirmed}=await Swal.fire({title:`¿${ac[0].toUpperCase()+ac.slice(1)} usuario?`,text:`Vas a ${ac} la cuenta de ${un}`,icon:'question',showCancelButton:true,confirmButtonColor:nuevo==='ACTIVO'?'#059669':'#f59e0b',confirmButtonText:`Sí, ${ac}`,cancelButtonText:'Cancelar'});
     if(!isConfirmed)return;
-    try{const res=await fetch(`/api/usuarios/${un}/estado`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({estado:nuevo})});if(res.ok){showToast(`✅ ${un} ${nuevo==='ACTIVO'?'activado':'desactivado'}`);cargarUsuarios()}else Swal.fire('Error','','error')}
+    try{const res=await fetch(`/api/usuarios/${encodeURIComponent(un)}/estado`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({estado:nuevo})});if(res.ok){showToast(`✅ ${un} ${nuevo==='ACTIVO'?'activado':'desactivado'}`);cargarUsuarios()}else Swal.fire('Error','','error')}
     catch{Swal.fire('Sin conexión','','error')}
 }
 
 async function confirmarEliminar(un,nombre){
-    const{isConfirmed}=await Swal.fire({title:'¿Eliminar usuario?',html:`Borrarás permanentemente a <strong>${nombre}</strong>.<br>Esta acción no se puede deshacer.`,icon:'warning',showCancelButton:true,confirmButtonColor:'#ef4444',confirmButtonText:'Sí, eliminar',cancelButtonText:'Cancelar'});
+    const{isConfirmed}=await Swal.fire({title:'¿Eliminar usuario?',html:`Borrarás permanentemente a <strong>${escHtml(nombre)}</strong>.<br>Esta acción no se puede deshacer.`,icon:'warning',showCancelButton:true,confirmButtonColor:'#ef4444',confirmButtonText:'Sí, eliminar',cancelButtonText:'Cancelar'});
     if(!isConfirmed)return;
-    try{const res=await fetch(`/api/usuarios/${un}`,{method:'DELETE'});if(res.ok){const card=document.getElementById(`card-${un}`);if(card){card.style.transition='.3s';card.style.opacity='0';card.style.transform='scale(.95)'}setTimeout(()=>cargarUsuarios(),350);showToast(`🗑️ Usuario ${un} eliminado`)}else Swal.fire('Error','','error')}
+    try{const res=await fetch(`/api/usuarios/${encodeURIComponent(un)}`,{method:'DELETE'});if(res.ok){const card=document.getElementById(`card-${un}`);if(card){card.style.transition='.3s';card.style.opacity='0';card.style.transform='scale(.95)'}setTimeout(()=>cargarUsuarios(),350);showToast(`🗑️ Usuario ${un} eliminado`)}else Swal.fire('Error','','error')}
     catch{Swal.fire('Sin conexión','','error')}
 }
 
 async function reenviarClave(un,email){
-    const{value:correo,isConfirmed}=await Swal.fire({title:'📧 Reenviar clave',html:`<p style="font-size:13px;color:#64748b;margin-bottom:12px">Nueva clave para <strong>${un}</strong>.</p><input id="swal-email" class="swal2-input" type="email" placeholder="correo@empresa.com" value="${email}">`,confirmButtonText:'📨 Enviar',confirmButtonColor:'#7c3aed',showCancelButton:true,cancelButtonText:'Cancelar',preConfirm:()=>{const v=document.getElementById('swal-email').value;if(!v||!v.includes('@')){Swal.showValidationMessage('Correo inválido');return false}return v}});
+    if(!email){Swal.fire('Sin correo','Este usuario no tiene correo registrado.','warning');return}
+    const{isConfirmed}=await Swal.fire({title:'📧 Reenviar clave',html:`<p style="font-size:13px;color:#64748b;margin-bottom:12px">Se generará una clave nueva para <strong>${escHtml(un)}</strong> y se enviará a su correo registrado: <strong>${escHtml(email)}</strong>.</p>`,confirmButtonText:'📨 Enviar',confirmButtonColor:'#7c3aed',showCancelButton:true,cancelButtonText:'Cancelar'});
     if(!isConfirmed)return;
-    try{const res=await fetch(`/api/usuarios/${un}/reenviar-clave`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:correo})});const d=await res.json();if(res.ok&&d.ok)Swal.fire({icon:'success',title:'✅ Clave enviada',text:`Enviada a ${correo}`,confirmButtonColor:'#7c3aed'});else Swal.fire('Error',d.msg||'','error')}
+    try{const res=await fetch(`/api/usuarios/${encodeURIComponent(un)}/reenviar-clave`,{method:'POST'});const d=await res.json();if(res.ok&&d.ok)Swal.fire({icon:'success',title:'✅ Clave enviada',text:`Enviada a ${email}`,confirmButtonColor:'#7c3aed'});else Swal.fire('Error',d.msg||'','error')}
     catch{Swal.fire('Sin conexión','','error')}
 }
 
